@@ -1,0 +1,273 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Playfair+Display:wght@400;700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Empêche le scroll horizontal */
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+:root {
+  /* Couleurs */
+  --cream: #F5F1E8;
+  --light-cream: #EFE6CF;
+  --white-smoke: #FFFFFF;
+  --gold: #D4AF37;
+  --silver: #C0C0C0;
+  --dark-text: #1C1C1C;
+
+  /* Typographies */
+  --font-title: 'Playfair Display', serif;
+  --font-body: 'Montserrat', sans-serif;
+}
+
+/* Style de base */
+body {
+  font-family: var(--font-body);
+  background: linear-gradient(135deg, rgb(213, 180, 141), var(--light-cream));
+}
+
+header {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  height: 64.97px;
+}
+
+nav{
+  margin-left: 250px;
+  margin-right: 300px;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;          /* pleine hauteur du header */
+  padding: 5px;       /* espace horizontal */
+  position: relative;
+  text-decoration: none;
+  color: var(--dark-text);
+  transition: color 0.2s ease, box-shadow 0.2s ease;
+  cursor:pointer;
+}
+
+/* 2) On définit un box-shadow transparent par défaut */
+.nav-link {
+  box-shadow:
+    inset 2px 0 0 0 transparent,   /* trait gauche */
+    inset -2px 0 0 0 transparent,  /* trait droit */
+    inset 0 -2px 0 0 transparent;  /* trait bas */
+}
+
+/* 3) Au hover, on passe les shadows en noir */
+.nav-link:hover {
+  color: #000; /* ou #fff si tu veux inverser le texte */
+  box-shadow:
+    inset 2px 0 0 0 #000,    /* trait gauche */
+    inset -2px 0 0 0 #000,   /* trait droit */
+    inset 0 -2px 0 0 #000;   /* trait bas */
+}
+
+/* Modal overlay */
+.modal {
+  background: rgba(0,0,0,0.5);
+}
+
+/* Titres */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  color: var(--dark-text);
+}
+
+/* Boutons or */
+.btn-gold {
+  background: var(--gold) !important;
+  color: #fff !important;
+  border: none;
+}
+
+/* Hero full-screen with image */
+#hero {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+}
+#hero img {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#hero::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150px; /* ajustable : plus grand = fondu plus doux */
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0) 0%,
+    var(--light-cream) 100%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* 1) Transforme l’overlay en flex-row */
+.hero-overlay {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  transform: translateY(-50%);
+  display: flex;            /* <-- clé pour aligner logo + texte côte à côte */
+  align-items: center;
+  gap: 20px;                /* espace entre logo et texte */
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 10;              /* reste au-dessus de l’image */
+  max-width: 80%;
+}
+
+/* 2) Logo bien à sa taille, pas d’étirement */
+.hero-logo img {
+  position: absolute;
+  top:0%;
+  right:2%;
+  object-fit: contain;
+}
+
+/* 3) Texte dans sa colonne */
+.hero-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-text h1 {
+  margin-left: 60px;
+  margin-bottom:15px;
+}
+
+/* Mobile : on passe en colonne pour que ce soit lisible */
+@media (max-width: 767px) {
+  .hero-overlay {
+    flex-direction: column;
+    left: 5%;
+    width: 90%;
+  }
+}
+
+/* Grille produits */
+.products .product-card {
+  border: 1px solid var(--silver);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Footer */
+footer {
+  background: var(--white-smoke);
+}
+footer h5 {
+  margin-bottom: 8px;
+}
+footer ul li a {
+  color: var(--dark-text);
+  text-decoration: none;
+}
+
+/* Bulle panier */
+.cart-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border: 1px solid var(--silver);
+  cursor: pointer;
+}
+.cart-bubble i {
+  font-size: 28px;
+  color: var(--dark-text);
+}
+.cart-bubble .cart-count {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 22px;
+  height: 22px;
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+/* Images responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+.cart-bubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border: 1px solid var(--silver);
+  cursor: pointer;
+}
+
+/* Icone centrée */
+.cart-bubble i {
+  font-size: 28px;
+  color: var(--dark-text);
+}
+
+/* Petit badge noir en haut à gauche */
+.cart-bubble .cart-count {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 22px;
+  height: 22px;
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff; /* liseré blanc autour du badge */
+}

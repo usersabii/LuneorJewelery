@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+ <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <title>Luneor Jewelery</title>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>
+     <link rel="stylesheet" href="css/style.css"/>
+ </head>
+ <body>
+     <!-- Modal de création de compte -->
+     <div id="account-modal" class="modal fade show d-block" tabindex="-1">
+         <div class="modal-dialog modal-dialog-centered">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title">Créer un compte</h5>
+                     <button type="button" class="btn-close" id="modal-close"></button>
+                 </div>
+                 <div class="modal-body">
+                     <form id="account-form">
+                         <div class="mb-3"><input type="text" class="form-control" name="nom" placeholder="Nom" required></div>
+                         <div class="mb-3"><input type="text" class="form-control" name="prenom" placeholder="Prénom" required></div>
+                         <div class="mb-3"><input type="email" class="form-control" name="email" placeholder="Email" required></div>
+                         <div class="mb-3"><input type="password" class="form-control" name="mdp" placeholder="Mot de passe" required></div>
+                         <div class="mb-3"><input type="tel" class="form-control" name="telephone" placeholder="Numéro de téléphone" required></div>
+                         <div class="mb-3"><input type="text" class="form-control" name="adresse" placeholder="Adresse exacte" required></div>
+                         <button type="submit" class="btn btn-gold w-100">S'inscrire</button>
+                     </form>
+                 </div>
+              </div>
+         </div>
+      </div>
+
+      <!-- Navbar -->
+      <header class="d-flex align-items-center p-2 sticky-top bg-white shadow-sm">
+         <div><img src="img/photo_2025-07-12_18-12-47-removebg-preview.png" style="width:150px;margin-left:25px;"></div>
+          <nav>
+             <ul class="nav">
+                 <li class="nav-link me-4">Accueil</li>
+                 <li class="nav-link me-4">Shop</li>
+                 <li class="nav-link me-4">À propos</li>
+                 <li class="nav-link me-4">FAQs</li>
+             </ul>
+         </nav>
+         <div class="d-flex align-items-center gap-2">
+             <button class="btn btn-link-dark me-2 ms-5"><u>AR</u></button>
+             <i class="bi bi-person-circle fs-4"></i>
+         </div>
+      </header>
+
+      <!-- Bulle panier -->
+      <button class="cart-bubble">
+         <span class="cart-count">0</span>
+         <i class="bi bi-cart-fill"></i>
+      </button>
+
+      <section id="hero" class="position-relative">
+          <!-- Image de fond -->
+          <img src="img/ChatGPT Image Jul 11, 2025, 09_13_58 PM.png" alt="Hero" class="w-100 h-100 object-cover">
+      
+          <!-- Overlay texte -->
+          <div class="hero-overlay">
+              <div class="hero-logo">
+                  <img  src="img/photo_2025-07-11_23-17-23-removebg-preview.png" alt="Logo Luneor" style="width:110px; height:110px; object-fit:contain;">
+              </div>
+              <div class="hero-text">
+                 <h1 class="display-4">Luneor Jewelery</h1>
+                 <p class="lead" style="color:rgba(0, 0, 0, 0.518)">Sublimez chaque instant avec l’éclat de l’argenté et du doré.</p>
+                 <button class="btn btn-white" onclick="scrollToSection('description')">
+                     <u>En savoir plus</u>
+                 </button>
+              </div>
+          </div>
+      </section>
+      
+      <!-- Description -->
+      <section id="description" class="py-5 text-center px-3">
+          <p class="mx-auto" style="max-width:800px; line-height:1.6;">
+              Découvrez l’histoire de Luneor Jewellery, où l’artisanat rencontre la modernité. Chaque bijou est conçu avec passion en argenté et doré, pour sublimer la féminité.
+          </p>
+     </section>
+
+     <!-- Best-sellers -->
+     <section id="best-sellers" class="py-5">
+         <h2 class="text-center mb-4">Best-sellers</h2>
+         <div class="products row g-4 justify-content-center">
+             <!-- Exemple de card -->
+             <div class="col-12 col-md-4">
+                  <div class="card product-card">
+                     <img src="img/placeholder.jpg" class="card-img-top" alt="Bijou">
+                     <div class="card-body text-center">
+                         <h5 class="card-title">Collier Luna</h5>
+                         <p class="card-text">€120</p>
+                          <button class="btn btn-outline-secondary">Ajouter</button>
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </section>
+
+      <!-- Nouvel arrivage -->
+      <section id="new-arrivals" class="py-5">
+          <h2 class="text-center mb-4">Nouvel arrivage</h2>
+          <div class="products row g-4 justify-content-center">
+              <!-- Exemple de card -->
+              <div class="col-12 col-md-4">
+                  <div class="card product-card">
+                     <img src="img/placeholder.jpg" class="card-img-top" alt="Bijou">
+                     <div class="card-body text-center">
+                         <h5 class="card-title">Créole Clair</h5>
+                         <p class="card-text">€110</p>
+                         <button class="btn btn-outline-secondary">Ajouter</button>
+                     </div>
+                 </div>
+              </div>
+          </div>
+     </section>
+
+     <!-- Footer -->
+     <footer class="bg-white py-4">
+         <div class="container d-flex justify-content-between">
+             <div>
+                 <h5>Newsletter</h5>
+                 <div class="d-flex">
+                     <input type="email" class="form-control me-2" placeholder="Votre email">
+                     <button class="btn btn-gold">S’inscrire</button>
+                 </div>
+             </div>
+             <div>
+                 <h5>Réseaux sociaux</h5>
+                 <i class="bi bi-instagram me-2"></i>
+                 <i class="bi bi-facebook me-2"></i>
+                 <i class="bi bi-twitter"></i>
+             </div>
+             <div>
+                 <h5>Liens légaux</h5>
+                 <ul class="list-unstyled">
+                     <li><a href="#">CGV</a></li>
+                     <li><a href="#">Politique de confidentialité</a></li>
+                     <li><a href="#">Contact</a></li>
+                  </ul>
+             </div>
+         </div>
+     </footer>
+
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+     <script src="js/script.js"></script>
+ </body>
+</html>
