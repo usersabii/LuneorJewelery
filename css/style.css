@@ -29,7 +29,7 @@ html, body {
 /* Style de base */
 body {
   font-family: var(--font-body);
-  background: linear-gradient(135deg, rgb(213, 180, 141), var(--light-cream));
+  background: linear-gradient(135deg, rgb(209, 187, 160), var(--light-cream));
 }
 
 header {
