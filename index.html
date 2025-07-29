@@ -39,7 +39,7 @@
           <nav>
              <ul class="nav">
                  <li class="nav-link me-4">Accueil</li>
-                 <li class="nav-link me-4">Shop</li>
+                 <li class="nav-link me-4" id="nav-shop">Shop</li>
                  <li class="nav-link me-4">À propos</li>
                  <li class="nav-link me-4">FAQs</li>
              </ul>
@@ -56,7 +56,7 @@
          <i class="bi bi-cart-fill"></i>
       </button>
 
-      <section id="hero" class="position-relative">
+      <section id="hero" class="position-relative page-section">
             <!-- Image de fond -->
             <img src="img/ChatGPT Image Jul 11, 2025, 09_13_58 PM.png" alt="Hero" class="w-100 h-100 object-cover">
       
@@ -76,7 +76,7 @@
         </section>
       
         <!-- Description -->
-        <section id="description" class="d-flex flex-column flex-md-row align-items-center py-5 px-3" data-aos="fade-up">
+        <section id="description" class="d-flex flex-column flex-md-row align-items-center py-5 px-3 page-section" data-aos="fade-up">
            <div class="container">
                 <div class="row align-items-center g-4">
                   <!-- Colonne image -->
@@ -118,68 +118,181 @@
             </div>     
       </section>
           
-        <!-- Best-sellers -->
-        <section id="best-sellers" class="py-5">
-            <h2 class="text-center mb-4">Best-sellers</h2>
-            <div class="products row g-4 justify-content-center">
-              <!-- Exemple de card -->
-              <div class="col-12 col-md-4">
-                    <div class="card product-card">
-                      <img src="img/placeholder.jpg" class="card-img-top" alt="Bijou">
-                      <div class="card-body text-center">
-                         <h5 class="card-title">Collier Luna</h5>
-                         <p class="card-text">€125</p>
-                          <button class="btn btn-outline-secondary">Ajouter</button>
+      <section id="highlights" class="py-5 page-section">
+         <div class="container">
+             <!-- En-tête de section -->
+             <div class="text-center mb-4">
+                 <h2 class="section-title">Nos Incontournables</h2>
+             </div>
+      
+             <!-- Boutons de tab -->
+             <div class="d-flex justify-content-center mb-4">
+                 <button class="btn-tab active" data-target="#best-sellers">Best Sellers</button>
+                 <button class="btn-tab"        data-target="#new-arrivals">Nouveautés</button>
+             </div>
+      
+             <!-- Contenu des tabs -->
+             <div class="tab-content">
+                 <!-- Best Sellers -->
+                 <div id="best-sellers" class="tab-pane active">
+                     <div class="row g-4">
+                          <!-- Exemple de card ; duplique/la pour chaque produit -->
+                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                             <div class="card product-card">
+                                 <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Produit">
+                                 <div class="card-body text-center">
+                                     <h5 class="card-title">Nom du Bijou</h5>
+                                      <p class="card-text">3000 DZD</p>
+                                     <button class="btn btn-gold btn-sm">
+                                         <i class="bi bi-cart"></i> Ajouter
+                                     </button>
+                                 </div>
+                             </div>
+                         </div>
+                      </div>
+                 </div>
+      
+                 <!-- Nouveautés -->
+                 <div id="new-arrivals" class="tab-pane">
+                      <div class="row g-4">
+                          <!-- Duplique le même type de card ici -->
+                          <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                              <div class="card product-card">
+                                   <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Nouveau produit">
+                                   <div class="card-body text-center">
+                                     <h5 class="card-title">Nouveau Style</h5>
+                                      <p class="card-text">2200 DZD</p>
+                                     <button class="btn btn-gold btn-sm">
+                                         <i class="bi bi-cart"></i> Ajouter
+                                     </button>
+                                  </div>
+                             </div>
+                         </div>
                        </div>
-                    </div>
+                 </div>
               </div>
-            </div>
-        </section>
-
-        <!-- Nouvel arrivage -->
-        <section id="new-arrivals" class="py-5">
-            <h2 class="text-center mb-4">Nouvel arrivage</h2>
-            <div class="products row g-4 justify-content-center">
-                <!-- Exemple de card -->
-                <div class="col-12 col-md-4">
-                    <div class="card product-card">
-                        <img src="img/placeholder.jpg" class="card-img-top" alt="Bijou">
-                        <div class="card-body text-center">
-                           <h5 class="card-title">Créole Clair</h5>
-                           <p class="card-text">€110</p>
-                           <button class="btn btn-outline-secondary">Ajouter</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-       </section>
-
+          </div>
+      </section>
+      <section id="shop-section" class="page-section hidden">
+         <div class="shop-wrapper">
+             <!-- Sidebar fixe à gauche -->
+             <aside class="shop-sidebar">
+                 <div class="filter-group">
+                     <h3>Type de bijou</h3>
+                     <ul class="filter-list">
+                         <input type="checkbox" id="type-necklace"><label for="type-necklace" class="px-3">Colliers</label><br>
+                         <input type="checkbox" id="type-ring"><label for="type-ring" class="px-3">Bagues</label><br>
+                         <input type="checkbox" id="type-bracelet"><label for="type-bracelet" class="px-3">Bracelet</label><br>
+                         <input type="checkbox" id="type-earring"><label for="type-earring" class="px-3">Boucles d’oreilles</label><br>
+                      </ul>
+                 </div>
+                 <div class="filter-group">
+                        <h3>Matériaux</h3>
+                        <ul class="filter-list">
+                         <input type="checkbox" id="material-gold"><label for="material-gold" class="px-3">Or</label><br>
+                         <input type="checkbox" id="material-silver"><label for="material-silver" class="px-3">Argent</label><br>
+                        </ul>
+                 </div>
+                 <h3>Filtres du prix</h3>  
+                 <div class="filter-group">
+                     <label for="price-range">Prix</label>
+                     <input type="range" id="price-range" min="0" max="500">
+                  </div>                            
+              </aside>
+      
+              <!-- Contenu produits à droite -->
+              <main class="shop-content">
+                 <div class="products-grid row g-4">
+                     <!-- Exemple de carte produit ; duplique selon tes données -->
+                     <div class="col-6 col-md-4 col-lg-3">
+                         <div class="card product-card">
+                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
+                             <div class="card-body text-center">
+                                 <h5 class="card-title">Bijou A</h5>
+                                 <p class="card-text">1200 DZD</p>
+                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                             </div>
+                         </div>
+                     </div>
+                     <div class="col-6 col-md-4 col-lg-3">
+                         <div class="card product-card">
+                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
+                             <div class="card-body text-center">
+                                 <h5 class="card-title">Bijou A</h5>
+                                 <p class="card-text">1200 DZD</p>
+                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                             </div>
+                         </div>
+                     </div>
+                     <div class="col-6 col-md-4 col-lg-3">
+                         <div class="card product-card">
+                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
+                             <div class="card-body text-center">
+                                 <h5 class="card-title">Bijou A</h5>
+                                 <p class="card-text">1200 DZD</p>
+                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                             </div>
+                         </div>
+                     </div>
+                     <div class="col-6 col-md-4 col-lg-3">
+                         <div class="card product-card">
+                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
+                             <div class="card-body text-center">
+                                 <h5 class="card-title">Bijou A</h5>
+                                 <p class="card-text">1200 DZD</p>
+                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                             </div>
+                         </div>
+                     </div>
+                 </div> 
+             </main>
+          </div>
+      </section>
+      
        <!-- Footer -->
-        <footer class="bg-white py-4">
-            <div class="container d-flex justify-content-between">
-                <div>
-                    <h5>Newsletter</h5>
-                    <div class="d-flex">
-                        <input type="email" class="form-control me-2" placeholder="Votre email">
-                        <button class="btn btn-gold">S’inscrire</button>
-                    </div>
-                </div>
-                <div>
-                    <h5>Réseaux sociaux</h5>
-                    <i class="bi bi-instagram me-2"></i>
-                    <i class="bi bi-facebook me-2"></i>
-                    <i class="bi bi-twitter"></i>
-                </div>
-                <div>
-                    <h5>Liens légaux</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">CGV</a></li>
-                        <li><a href="#">Politique de confidentialité</a></li>
-                        <li><a href="#">Contact</a></li>
-                    </ul>
-                </div>
-           </div>
-        </footer>
+       <footer class="footer">
+          <div class="container grid-footer">
+             <div class="footer__brand">
+                 <h2>Luneor Jewellery</h2>
+                 <p>Éclat et élégance pour chaque instant.</p>
+             </div>
+  
+              <!-- Liens utiles -->
+             <div class="footer__links">
+                 <h3>Liens utiles</h3>
+                 <ul>
+                      <li><a href="#hero">Accueil</a></li>
+                      <li><a href="#shop">Shop</a></li>
+                      <li><a href="#description">À propos</a></li>
+                      <li><a href="#faq">FAQ</a></li>
+                  </ul>
+             </div>
+  
+             <!-- Newsletter -->
+             <div class="footer__newsletter">
+                 <h3>Newsletter</h3>
+                 <p>Inscris-toi pour ne rien manquer.</p>
+                 <form>
+                     <input type="email" placeholder="Votre email" required>
+                     <button type="submit"><i class="bi bi-chevron-right"></i></button>
+                 </form>
+             </div>
+  
+             <!-- Réseaux sociaux -->
+             <div class="footer__social">
+                 <h3>Suivez-nous</h3>
+                 <a href="#"><i class="bi bi-instagram"></i></a>
+                 <a href="#"><i class="bi bi-facebook"></i></a>
+                 <a href="#"><i class="bi bi-twitter"></i></a>
+             </div>
+         </div>
+  
+         <!-- Bas de footer -->
+         <div class="footer__bottom">
+             <p>&copy; 2025 Luneor Jewellery. Tous droits réservés.</p>
+         </div>
+     </footer>
+  
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
      <script>AOS.init({ duration: 800 });</script>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/4.0.12/fullpage.min.js"></script>

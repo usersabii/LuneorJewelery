@@ -227,16 +227,271 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
-/* Footer */
-footer {
+/* ----- Tabs ----- */
+.btn-tab {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  position: relative;
+  transition: color 0.2s;
+}
+.btn-tab.active {
+  color: #000;
+}
+.btn-tab.active::after {
+  content: "";
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background: #000;
+  bottom: 0;
+  left: 0;
+}
+
+/* Masquer les panes non-actifs */
+.tab-pane {
+  display: none;
+}
+.tab-pane.active {
+  display: block;
+}
+
+/* ----- Cards produits ----- */
+.product-card {
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+.product-card .card-img-top {
+  object-fit: cover;
+  height: 220px;
+}
+.product-card .card-body {
+  padding: 1rem;
+}
+.btn-gold {
+  background-color: #d4af37;
+  color: #fff;
+  border: none;
+}
+.btn-gold:hover {
+  background-color: #b8962d;
+}
+
+/* Ajustements responsive si besoin */
+@media (max-width: 576px) {
+  .product-card .card-img-top {
+    height: 180px;
+  }
+}
+
+.page-section {
+  transition: opacity 0.3s ease;
+}
+
+/* caché */
+.hidden {
+  display: none !important;
+  opacity: 0;
+}
+
+/* visible */
+.page-section:not(.hidden) {
+  display: block;  /* ou flex/grid selon besoin */
+  opacity: 1;
+}
+
+:root {
+  --header-height: 80px; /* Ajuste si ton header est plus ou moins haut */
+}
+
+/* Wrapper Flex */
+.shop-wrapper {
+  display: flex;
+  height: calc(100vh - var(--header-height));
+}
+
+/* Sidebar (20% ou largeur fixe) */
+.shop-sidebar {
+  flex: 0 0 250px; /* 250px fixe ; change en 20% si tu préfères */
   background: var(--white-smoke);
+  padding: 1rem;
+  border-right: 1px solid var(--silver);
+  overflow-y: auto;
+  position: sticky;
+  top: var(--header-height);
 }
-footer h5 {
-  margin-bottom: 8px;
+
+/* Titres et listes de filtres */
+.shop-sidebar h2 {
+  margin-bottom: 1rem;
 }
-footer ul li a {
+/* Filtre prix moderne */
+.price-filter {
+  margin-bottom: 2rem;
+}
+#price-slider {
+  margin: 0.5rem 0;
+}
+
+/* Contenu principal (80%) */
+.shop-content {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* Grille de produits */
+.products-grid {
+  margin: 0 -0.5rem;
+}
+.products-grid .col-6,
+.products-grid .col-md-4,
+.products-grid .col-lg-3 {
+  padding: 0 0.5rem;
+}
+
+/* Cards (déjà stylées précédemment) */
+.product-card {
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+/* Responsive : empile en colonne sur petits écrans */
+@media (max-width: 767px) {
+  .shop-wrapper {
+    flex-direction: column;
+    height: auto;
+  }
+  .shop-sidebar {
+    position: relative;
+    top: auto;
+    width: 100%;
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--silver);
+  }
+  .shop-content {
+    padding-top: 1rem;
+  }
+}
+
+.footer {
+  background: rgba(255, 255, 255, 0.689);
+  color: var(--dark-text);
+  padding: 3rem 1rem 1rem;
+  font-family: var(--font-body);
+}
+
+/* Grid pour organiser les blocs */
+.grid-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+  gap: 2.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Titres en serif pour l’élégance */
+.footer__brand h2,
+.footer__links h3,
+.footer__newsletter h3,
+.footer__social h3 {
+  font-family: var(--font-title);
+  margin-bottom: 0.75rem;
+}
+
+/* Brand */
+.footer__brand h2 {
+  font-size: 1.8rem;
+}
+.footer__brand p {
+  line-height: 1.6;
+}
+
+/* Liens utiles */
+.footer__links ul {
+  list-style: none;
+  padding: 0;
+}
+.footer__links ul li {
+  margin-bottom: 0.5rem;
+}
+.footer__links ul li a {
   color: var(--dark-text);
   text-decoration: none;
+  transition: color 0.3s;
+}
+.footer__links ul li a:hover {
+  color: var(--gold);
+}
+
+/* Newsletter */
+.footer__newsletter p {
+  line-height: 1.5;
+}
+.footer__newsletter form {
+  display: flex;
+  margin-top: 0.5rem;
+}
+.footer__newsletter input {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 0.9rem;
+}
+.footer__newsletter button {
+  background: var(--gold);
+  border: none;
+  padding: 0 1rem;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.footer__newsletter button i {
+  font-size: 1.2rem;
+  color: #000000;
+}
+
+/* Réseaux sociaux */
+.footer__social a {
+  display: inline-block;
+  margin-right: 0.75rem;
+  font-size: 1.5rem;
+  color: var(--dark-text);
+  transition: color 0.3s;
+}
+.footer__social a:hover {
+  color: var(--gold);
+}
+
+/* Bas de footer */
+.footer__bottom {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: black 1px solid;
+  border-bottom: #000000 1px solid;
+  font-size: 0.875rem;
+  margin-top: 2rem;
 }
 
 /* Bulle panier */
