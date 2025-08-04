@@ -78,10 +78,40 @@ function showSection(sectionId) {
   }
 }
 
-// Au clic sur le lien “Shop” de ta nav
-document.getElementById('nav-shop').addEventListener('click', e => {
-  e.preventDefault();            // empêche le navigateur de suivre le lien
-  showSection('shop-section');   // n'affiche que la section Shop
+document.addEventListener('DOMContentLoaded', () => {
+  // Bouton Shop existant
+  const shopBtn = document.getElementById('nav-shop');
+  shopBtn.addEventListener('click', e => {
+    e.preventDefault();
+    // Masque tout, puis n'affiche que la section Shop
+    showSection('shop-section');
+  });
+
+  // Nouveau : bouton Accueil
+  const homeBtn = document.getElementById('nav-accueil');
+  homeBtn.addEventListener('click', e => {
+    e.preventDefault();
+    // 1) Masque la section Shop
+    document.getElementById('shop-section').classList.add('hidden');
+    // 2) Affiche toutes les autres sections (assume qu'elles ont la classe .page-section)
+    document.querySelectorAll('.page-section').forEach(sec => {
+      if (sec.id !== 'shop-section') {
+        sec.classList.remove('hidden');
+      }
+    });
+    // (optionnel) scroll en haut
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 });
+
+/**
+ * Fait défiler en douceur jusqu'à la section donnée.
+ * @param {string} id — l'attribut id de la section cible.
+ */
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (!section) return console.warn(`Section introuvable : ${id}`);
+  section.scrollIntoView({ behavior: 'smooth' });
+}
 
 

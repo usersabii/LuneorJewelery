@@ -44,9 +44,9 @@
          <div><img src="img/photo_2025-07-12_18-12-47-removebg-preview.png" style="width:150px;margin-left:25px;"></div>
           <nav>
              <ul class="nav">
-                 <li class="nav-link me-4">Accueil</li>
+                 <li class="nav-link me-4" id="nav-accueil">Accueil</li>
                  <li class="nav-link me-4" id="nav-shop">Shop</li>
-                 <li class="nav-link me-4">À propos</li>
+                 <li class="nav-link me-4" onclick="scrollToSection('description')">À propos</li>
                  <li class="nav-link me-4">FAQs</li>
              </ul>
          </nav>
@@ -182,29 +182,45 @@
       <section id="shop-section" class="page-section hidden">
          <div class="shop-wrapper">
              <!-- Sidebar fixe à gauche -->
-             <aside class="shop-sidebar">
-                 <div class="filter-group">
-                     <h3>Type de bijou</h3>
+             <aside class="shop-sidebar modern-sidebar">
+                 <!-- Recherche rapide -->
+                 <div class="filter-card filter-search">
+                     <input type="text" placeholder="Rechercher un bijou" aria-label="Recherche">
+                     <i class="bi bi-search"></i>
+                 </div>
+              
+                 <!-- Prix -->
+                 <div class="filter-card price-filter">
+                     <h4>Prix (€)</h4>
+                     <div id="price-slider"></div>
+                     <div class="price-values">
+                         <span id="price-min">0</span> – <span id="price-max">500</span>
+                     </div>
+                 </div>
+              
+                 <!-- Type de bijou -->
+                 <div class="filter-card">
+                     <h4>Type</h4>
                      <ul class="filter-list">
-                         <input type="checkbox" id="type-necklace"><label for="type-necklace" class="px-3">Colliers</label><br>
-                         <input type="checkbox" id="type-ring"><label for="type-ring" class="px-3">Bagues</label><br>
-                         <input type="checkbox" id="type-bracelet"><label for="type-bracelet" class="px-3">Bracelet</label><br>
-                         <input type="checkbox" id="type-earring"><label for="type-earring" class="px-3">Boucles d’oreilles</label><br>
+                         <li><label><input type="checkbox"> Colliers</label></li>
+                         <li><label><input type="checkbox"> Bagues</label></li>
+                         <li><label><input type="checkbox"> Bracelets</label></li>
+                         <li><label><input type="checkbox"> Boucles d’oreilles</label></li>
                       </ul>
-                 </div>
-                 <div class="filter-group">
-                        <h3>Matériaux</h3>
-                        <ul class="filter-list">
-                         <input type="checkbox" id="material-gold"><label for="material-gold" class="px-3">Or</label><br>
-                         <input type="checkbox" id="material-silver"><label for="material-silver" class="px-3">Argent</label><br>
-                        </ul>
-                 </div>
-                 <h3>Filtres du prix</h3>  
-                 <div class="filter-group">
-                     <label for="price-range">Prix</label>
-                     <input type="range" id="price-range" min="0" max="500">
-                  </div>                            
-              </aside>
+                  </div>
+              
+                  <!-- Couleur -->
+                  <div class="filter-card">
+                      <h4>Couleur</h4>
+                     <div class="color-options">
+                         <label class="color-swatch gold"><input type="radio" name="metal"> Or</label>
+                         <label class="color-swatch silver"><input type="radio" name="metal"> Argent</label>
+                     </div>
+                  </div>
+              
+                 <!-- Réinitialiser -->
+                 <button class="btn-reset">Réinitialiser les filtres</button>
+              </aside>              
       
               <!-- Contenu produits à droite -->
               <main class="shop-content">
@@ -290,6 +306,8 @@
                  <a href="#"><i class="bi bi-instagram"></i></a>
                  <a href="#"><i class="bi bi-facebook"></i></a>
                  <a href="#"><i class="bi bi-twitter"></i></a>
+                 <a href="mailto:luneorjewelery.contact@gmail.Com" target="_blank" style="font-size:medium;">luneorjewelery.contact@gmail.Com</a>
+                 <a href="https://wa.me/213558972307" style="font-size:medium">+213558972307</a>
              </div>
          </div>
   

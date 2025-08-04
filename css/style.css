@@ -392,10 +392,145 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Container général */
+.modern-sidebar {
+  background: var(--white-smoke);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 260px; /* ou flex-basis:20% */
+}
+
+/* Cartes de filtres */
+.filter-card {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  border-left: 4px solid var(--gold);
+}
+.filter-card h4 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  color: var(--dark-text);
+}
+
+/* Recherche */
+.filter-search {
+  position: relative;
+  border-left: none;
+}
+.filter-search input {
+  width: 100%;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-right: 15px;
+  padding-left: 4px;
+  border: 1px solid var(--silver);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.filter-search i {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: var(--silver);
+}
+
+/* Liste de cases à cocher */
+.filter-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.filter-list li {
+  margin-bottom: 0.5rem;
+}
+.filter-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--dark-text);
+}
+
+/* Options de couleur */
+.color-options {
+  display: flex;
+  gap: 0.5rem;
+}
+.color-swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.color-swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.color-swatch.gold    { background: var(--gold); }
+.color-swatch.silver  { background: var(--silver); }
+.color-swatch.both    { background: linear-gradient(45deg, var(--gold) 50%, var(--silver) 50%); }
+.color-swatch input:checked + &,
+.color-swatch input:checked + .color-swatch {
+  outline: 2px solid var(--dark-text);
+}
+
+/* Bouton Réinitialiser */
+.btn-reset {
+  background: transparent;
+  border: none;
+  color: var(--dark-text);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 0.95rem;
+  align-self: flex-start;
+  transition: color 0.2s;
+}
+.btn-reset:hover {
+  color: var(--gold);
+}
+
+/* Ajustements du slider noUiSlider dans ce design */
+.price-filter {
+  border-left: none;
+}
+#price-slider {
+  margin-top: 0.5rem;
+}
+.noUi-target {
+  background: var(--light-cream);
+}
+.noUi-connect {
+  background: var(--gold);
+}
+.noUi-handle {
+  border: 2px solid var(--gold);
+  background: #FFF;
+}
+
 .footer {
   background: rgba(255, 255, 255, 0.689);
   color: var(--dark-text);
-  padding: 3rem 1rem 1rem;
+  padding: 2rem 1rem 1rem;
   font-family: var(--font-body);
 }
 
