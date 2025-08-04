@@ -419,29 +419,38 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--dark-text);
 }
 
-/* Recherche */
+/* 1) On retire le padding de la card pour qu’elle ne pousse pas l’input */
 .filter-search {
-  position: relative;
+  padding: 0;
   border-left: none;
 }
-.filter-search input {
+
+/* 2) On positionne le wrapper */
+.search-wrapper {
+  position: relative;
   width: 100%;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-right: 15px;
-  padding-left: 4px;
+}
+
+/* 3) Style de l’input */
+.search-wrapper input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 0.55rem; /* espace à droite pour l’icône */
   border: 1px solid var(--silver);
   border-radius: 8px;
   font-size: 0.95rem;
 }
-.filter-search i {
+
+/* 4) Icône positionnée dans le champ */
+.search-wrapper .search-icon {
   position: absolute;
-  right: 0.3rem;
   top: 50%;
+  right: 1rem;
   transform: translateY(-50%);
   font-size: 1.2rem;
   color: var(--silver);
+  pointer-events: none;  /* laisse l’input capter les clics */
 }
+
 
 /* Liste de cases à cocher */
 .filter-list {
