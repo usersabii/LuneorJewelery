@@ -114,4 +114,182 @@ function scrollToSection(id) {
   section.scrollIntoView({ behavior: 'smooth' });
 }
 
+document.querySelector('.segmented-metal')
+  .addEventListener('change', (e) => {
+    const value = document.querySelector('input[name="metal"]:checked')?.value;
+    // TODO: filtre tes produits avec `value` (gold/silver)
+    console.log('métal:', value);
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const sliderEl = document.getElementById('price-slider');
+    if (!sliderEl || typeof noUiSlider === 'undefined') return;
+  
+    const minIn = document.getElementById('price-min-input');
+    const maxIn = document.getElementById('price-max-input');
+    const bMin  = document.getElementById('price-badge-min');
+    const bMax  = document.getElementById('price-badge-max');
+  
+    noUiSlider.create(sliderEl, {
+      start: [0, 500],
+      connect: true,
+      step: 5,
+      range: { min: 0, max: 500 },
+      tooltips: [{
+        to: v => `€${Math.round(v)}`,
+        from: v => Number(String(v).replace(/[^\d.]/g,'')) 
+      },{
+        to: v => `€${Math.round(v)}`,
+        from: v => Number(String(v).replace(/[^\d.]/g,'')) 
+      }],
+      pips: { mode: 'positions', values: [0,20,40,60,80,100], density: 4 }
+    });
+  
+    // slider -> inputs + badge
+    sliderEl.noUiSlider.on('update', (values) => {
+      const [v1, v2] = values.map(v => Math.round(Number(String(v).replace(/[^\d.]/g,''))));
+      minIn.value = v1; maxIn.value = v2;
+      bMin.textContent = `€${v1}`; bMax.textContent = `€${v2}`;
+    });
+  
+    // inputs -> slider
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+    function setFromInputs(){
+      let v1 = clamp(parseInt(minIn.value || 0,10), 0, 500);
+      let v2 = clamp(parseInt(maxIn.value || 0,10), 0, 500);
+      if (v1 > v2) [v1, v2] = [v2, v1];
+      sliderEl.noUiSlider.set([v1, v2]);
+    }
+    minIn.addEventListener('change', setFromInputs);
+    maxIn.addEventListener('change', setFromInputs);
+  
+    // presets
+    document.querySelectorAll('.price-presets button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const [a,b] = btn.dataset.range.split(',').map(Number);
+        sliderEl.noUiSlider.set([a,b]);
+      });
+    });
+  });
+
+  // Chips multi-sélection pour Type de bijou
+document.addEventListener('DOMContentLoaded', () => {
+  const group = document.querySelector('.type-filter .chip-group');
+  if (!group) return;
+
+  group.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    const pressed = chip.getAttribute('aria-pressed') === 'true';
+    chip.setAttribute('aria-pressed', String(!pressed));
+    chip.classList.toggle('is-active', !pressed);
+
+    // Récupère la liste des types sélectionnés
+    const selected = [...group.querySelectorAll('.chip[aria-pressed="true"]')]
+      .map(btn => btn.dataset.type);
+
+    // (Option) déclenche un event pour rafraîchir la grille produits
+    document.dispatchEvent(new CustomEvent('filters:change', {
+      detail: { types: selected }
+    }));
+  });
+
+  // Reset
+  const resetBtn = document.querySelector('.type-filter .chip-reset');
+  resetBtn?.addEventListener('click', () => {
+    group.querySelectorAll('.chip').forEach(chip => {
+      chip.setAttribute('aria-pressed','false');
+      chip.classList.remove('is-active');
+    });
+    document.dispatchEvent(new CustomEvent('filters:change', {
+      detail: { types: [] }
+    }));
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const grid = document.getElementById('products-grid');
+  const bubble = document.getElementById('cart-bubble');
+  const countEl = document.getElementById('cart-count');
+
+  // Panier simple en mémoire (tu peux remplacer par localStorage si tu veux)
+  const cart = [];
+
+  function updateCartCount(){
+    const total = cart.reduce((sum, item) => sum + item.qty, 0);
+    if (countEl) countEl.textContent = String(total);
+  }
+
+  function addToCart(data){
+    // Cherche si déjà présent
+    const found = cart.find(p => p.id === data.id);
+    if (found) found.qty += 1;
+    else cart.push({ ...data, qty: 1 });
+    updateCartCount();
+    // petit effet sur la bulle
+    bubble?.classList.remove('pulse'); // reset
+    void bubble?.offsetWidth;          // reflow pour rejouer l’anim
+    bubble?.classList.add('pulse');
+  }
+
+  function flyToCart(imgEl){
+    if (!imgEl || !bubble) return;
+
+    const imgRect = imgEl.getBoundingClientRect();
+    const bubRect = bubble.getBoundingClientRect();
+
+    // Clone visuel
+    const clone = imgEl.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = imgRect.left + 'px';
+    clone.style.top  = imgRect.top + 'px';
+    clone.style.width  = imgRect.width + 'px';
+    clone.style.height = imgRect.height + 'px';
+    clone.style.borderRadius = '12px';
+    clone.style.zIndex = 9999;
+    clone.style.pointerEvents = 'none';
+    clone.style.transition = 'transform .7s cubic-bezier(.2,.7,.2,1), opacity .7s ease';
+
+    document.body.appendChild(clone);
+
+    // Calcul du vecteur → centre de la bulle
+    const fromX = imgRect.left + imgRect.width/2;
+    const fromY = imgRect.top  + imgRect.height/2;
+    const toX   = bubRect.left + bubRect.width/2;
+    const toY   = bubRect.top  + bubRect.height/2;
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+
+    // Lance l’anim au prochain frame
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate(${dx}px, ${dy}px) scale(.15)`;
+      clone.style.opacity = '0.6';
+    });
+
+    clone.addEventListener('transitionend', () => {
+      clone.remove();
+    }, { once: true });
+  }
+
+  // Délégation de clic sur la grille
+  grid?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-add');
+    if (!btn) return;
+
+    // Données produit
+    const card = btn.closest('.product-card');
+    const img  = card?.querySelector('.product-img');
+    const data = {
+      id:    btn.dataset.id,
+      name:  btn.dataset.name,
+      price: Number(btn.dataset.price || 0),
+      img:   btn.dataset.img
+    };
+
+    addToCart(data);
+    flyToCart(img);
+  });
+});
+
+
 

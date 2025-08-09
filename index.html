@@ -57,8 +57,8 @@
       </header>
 
       <!-- Bulle panier -->
-      <button class="cart-bubble">
-         <span class="cart-count">0</span>
+      <button class="cart-bubble" id="cart-bubble" type="button">
+         <span class="cart-count" id="cart-count">0</span>
          <i class="bi bi-cart-fill"></i>
       </button>
 
@@ -192,83 +192,137 @@
                  </div>
               
                  <!-- Prix -->
-                 <div class="filter-card price-filter">
-                     <h4>Prix (€)</h4>
-                     <div id="price-slider"></div>
-                     <div class="price-values">
-                         <span id="price-min">0</span> – <span id="price-max">500</span>
+                 <div class="filter-card price-filter v2">
+                     <div class="price-header">
+                         <h4>Prix</h4>
+                         <span class="price-badge">
+                             <span id="price-badge-min">200</span> — <span id="price-badge-max">5000DA</span>
+                         </span>
                      </div>
-                 </div>
-              
-                 <!-- Type de bijou -->
-                 <div class="filter-card">
-                     <h4>Type</h4>
-                     <ul class="filter-list">
-                         <li><label><input type="checkbox"> Colliers</label></li>
-                         <li><label><input type="checkbox"> Bagues</label></li>
-                         <li><label><input type="checkbox"> Bracelets</label></li>
-                         <li><label><input type="checkbox"> Boucles d’oreilles</label></li>
-                      </ul>
+                  
+                     <div id="price-slider"></div>
+                  
+                     <div class="price-io">
+                         <div class="price-field">
+                              <label for="price-min-input">Min</label>
+                             <input type="number" id="price-min-input" min="0" max="5000" step="5" value="0">
+                         </div>
+                         <div class="dash">—</div>
+                         <div class="price-field">
+                             <label for="price-max-input">Max</label>
+                             <input type="number" id="price-max-input" min="0" max="5000" step="5" value="500">
+                         </div>
+                     </div>
+                  
+                     <div class="price-presets">
+                         <button type="button" data-range="200,1000">200–1000</button>
+                         <button type="button" data-range="1000,2500">1000–2500</button>
+                         <button type="button" data-range="2500,5000">2500–5000</button>
+                      </div>
                   </div>
-              
+                               
+                 <!-- Type de bijou -->
+                 <div class="filter-card type-filter v2">
+                     <h4>Type de bijou</h4>
+                  
+                     <div class="chip-group" role="group" aria-label="Type de bijou">
+                         <button type="button" class="chip" data-type="necklace" aria-pressed="false">Colliers</button>
+                         <button type="button" class="chip" data-type="ring"      aria-pressed="false">Bagues</button>
+                         <button type="button" class="chip" data-type="bracelet"  aria-pressed="false">Bracelets</button>
+                         <button type="button" class="chip" data-type="earring"   aria-pressed="false">Boucles d’oreilles</button>
+                         <button type="button" class="chip" data-type="anklet"    aria-pressed="false">Chaînes de cheville</button>
+                         <button type="button" class="chip" data-type="set"       aria-pressed="false">Parures</button>
+                     </div>                 
+                     <div class="chip-actions">
+                         <button type="button" class="chip-reset">Tout effacer</button>
+                     </div>
+                  </div>                  
+
                   <!-- Couleur -->
                   <div class="filter-card">
-                      <h4>Couleur</h4>
-                     <div class="color-options">
-                         <label class="color-swatch gold"><input type="radio" name="metal"> Or</label>
-                         <label class="color-swatch silver"><input type="radio" name="metal"> Argent</label>
-                     </div>
+                     <h4>Métal</h4>
+                  
+                     <div class="segmented-metal" role="radiogroup" aria-label="Choix du métal">
+                         <input type="radio" name="metal" id="metal-gold"   value="gold"   checked>
+                         <label for="metal-gold"   data-metal="gold">
+                             <i class="bi bi-gem"></i> Or
+                         </label>
+                  
+                         <input type="radio" name="metal" id="metal-silver" value="silver">
+                          <label for="metal-silver" data-metal="silver">
+                              <i class="bi bi-gem"></i> Argent
+                         </label>               
+                      </div>
                   </div>
-              
+                               
                  <!-- Réinitialiser -->
                  <button class="btn-reset">Réinitialiser les filtres</button>
               </aside>              
       
               <!-- Contenu produits à droite -->
               <main class="shop-content">
-                 <div class="products-grid row g-4">
-                     <!-- Exemple de carte produit ; duplique selon tes données -->
+                 <div class="products-grid row g-4" id="products-grid">
                      <div class="col-6 col-md-4 col-lg-3">
-                         <div class="card product-card">
-                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
-                             <div class="card-body text-center">
-                                 <h5 class="card-title">Bijou A</h5>
-                                 <p class="card-text">1200 DZD</p>
-                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                         <article class="product-card" data-type="ring" data-metal="gold">
+                             <div class="product-media">
+                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
+                                   <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
                              </div>
-                         </div>
+                             <div class="product-info">
+                                  <h5 class="product-title">Bague Lune</h5>
+                                  <div class="product-meta">
+                                      <span class="price">1200DA</span>
+                                      <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 </div>
+                             </div>
+                         </article>
+                      </div>
+                      <div class="col-6 col-md-4 col-lg-3">
+                         <article class="product-card" data-type="ring" data-metal="gold">
+                             <div class="product-media">
+                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
+                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
+                             </div>
+                             <div class="product-info">
+                                 <h5 class="product-title">Bague Lune</h5>
+                                 <div class="product-meta">
+                                     <span class="price">1200DA</span>
+                                     <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 </div>
+                             </div>
+                         </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <div class="card product-card">
-                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
-                             <div class="card-body text-center">
-                                 <h5 class="card-title">Bijou A</h5>
-                                 <p class="card-text">1200 DZD</p>
-                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                         <article class="product-card" data-type="ring" data-metal="gold">
+                             <div class="product-media">
+                                 <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
+                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
                              </div>
-                         </div>
+                             <div class="product-info">
+                                 <h5 class="product-title">Bague Lune</h5>
+                                 <div class="product-meta">
+                                     <span class="price">1200DA</span>
+                                     <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 </div>
+                             </div>
+                         </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <div class="card product-card">
-                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
-                             <div class="card-body text-center">
-                                 <h5 class="card-title">Bijou A</h5>
-                                 <p class="card-text">1200 DZD</p>
-                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                         <article class="product-card" data-type="ring" data-metal="gold">
+                             <div class="product-media">
+                                 <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
+                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
                              </div>
-                         </div>
-                     </div>
-                     <div class="col-6 col-md-4 col-lg-3">
-                         <div class="card product-card">
-                             <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Bijou A">
-                             <div class="card-body text-center">
-                                 <h5 class="card-title">Bijou A</h5>
-                                 <p class="card-text">1200 DZD</p>
-                                 <button class="btn btn-gold btn-sm"><i class="bi bi-cart"></i> Ajouter</button>
+                             <div class="product-info">
+                                 <h5 class="product-title">Bague Lune</h5>
+                                 <div class="product-meta">
+                                     <span class="price">1200DA</span>
+                                     <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                </div>
                              </div>
-                         </div>
+                         </article>
                      </div>
-                 </div> 
+                 </div>
              </main>
           </div>
       </section>
