@@ -45,7 +45,7 @@
           <nav>
              <ul class="nav">
                  <li class="nav-link me-4" id="nav-accueil">Accueil</li>
-                 <li class="nav-link me-4" id="nav-shop">Shop</li>
+                 <li class="nav-link nav-cta me-4" id="nav-shop">Shop</li>
                  <li class="nav-link me-4" onclick="scrollToSection('description')">À propos</li>
                  <li class="nav-link me-4">FAQs</li>
              </ul>
@@ -55,8 +55,51 @@
              <i class="bi bi-person-circle fs-4"></i>
          </div>
       </header>
-
-      <!-- Bulle panier -->
+      <!-- HEADER MOBILE -->
+      <header class="header-mobile d-lg-none">
+         <div class="mbar">
+             <!-- Menu (offcanvas) -->
+             <button class="icon-btn" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-label="Ouvrir le menu"><i class="bi bi-list"></i></button>
+             <!-- Logo centré -->
+             <a href="/" class="mobile-logo" id="mobile-logo">
+                <span class="word">LUNEOR</span>
+                <small>Jewelery</small>
+              </a>
+             <!-- Icônes droite -->
+             <div class="right-icons">
+                 <button class="icon-btn" id="openSearch" aria-label="Rechercher"><i class="bi bi-search"></i></button>
+                 <button class="icon-btn" aria-label="Panier"><i class="bi bi-bag"></i></button>
+             </div>
+         </div>
+      </header>
+  
+      <!-- Offcanvas menu -->
+      <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+         <div class="offcanvas-header">
+             <h5 class="offcanvas-title" id="mobileMenuLabel">Menu</h5>
+             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+         </div>
+         <div class="offcanvas-body">
+             <ul class="mobile-nav-list">
+                 <li><a href="#" id="mobile-home">Accueil</a></li>
+                 <li><a href="#" id="mobile-shop">Shop</a></li>
+                 <li><a href="#about">À propos</a></li>
+                 <li><a href="#faq">FAQ</a></li>
+             </ul>
+              <hr>
+             <div class="lang-switch">FR | AR</div>
+         </div>
+       </div>
+  
+        <!-- Search overlay -->
+       <div class="search-overlay" id="searchOverlay" aria-hidden="true">
+          <div class="search-box">
+             <i class="bi bi-search"></i>
+             <input type="search" id="mobileSearchInput" placeholder="Rechercher un bijou…" autocomplete="off">
+             <button class="icon-btn" id="closeSearch" aria-label="Fermer"><i class="bi bi-x-lg"></i></button>
+         </div>
+       </div>
+        <!-- Bulle panier -->
       <button class="cart-bubble" id="cart-bubble" type="button">
          <span class="cart-count" id="cart-count">0</span>
          <i class="bi bi-cart-fill"></i>
@@ -73,7 +116,7 @@
                 </div>
                 <div class="hero-text">
                    <h1 class="display-4">Luneor Jewelery</h1>
-                   <p class="lead" style="color:rgba(0, 0, 0, 0.518)">Sublimez chaque instant avec l’éclat de l’argenté et du doré.</p>
+                   <p class="lead" style="color:rgba(0, 0, 0, 0.518)">Une inspiration qui se transforme en une création.</p>
                    <button class="btn btn-white" onclick="scrollToSection('description')">
                        <u>En savoir plus</u>
                     </button>
@@ -145,14 +188,38 @@
                           <!-- Exemple de card ; duplique/la pour chaque produit -->
                          <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                              <div class="card product-card">
-                                 <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Produit">
-                                 <div class="card-body text-center">
-                                     <h5 class="card-title">Nom du Bijou</h5>
-                                      <p class="card-text">3000 DZD</p>
-                                     <button class="btn btn-gold btn-sm">
-                                         <i class="bi bi-cart"></i> Ajouter
-                                     </button>
-                                 </div>
+                                 <article class="product-card" data-type="ring" data-metal="gold">
+                                     <div class="product-media">
+                                         <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
+                                     </div>
+                                     <div class="product-info">
+                                         <h5 class="product-title">Nom du bijou</h5>
+                                         <div class="product-meta">
+                                              <span class="price">€120</span>
+                                 
+                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
+                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
+                                         </div>
+                                     </div>
+                                 </article>     
+                             </div>
+                         </div>
+                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                             <div class="card product-card">
+                                 <article class="product-card" data-type="ring" data-metal="gold">
+                                     <div class="product-media">
+                                          <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
+                                     </div>
+                                     <div class="product-info">
+                                         <h5 class="product-title">Nom du bijou</h5>
+                                         <div class="product-meta">
+                                             <span class="price">€120</span>
+                                
+                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
+                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
+                                         </div>
+                                     </div>
+                                 </article>     
                              </div>
                          </div>
                       </div>
@@ -163,21 +230,44 @@
                       <div class="row g-4">
                           <!-- Duplique le même type de card ici -->
                           <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                              <div class="card product-card">
-                                   <img src="img/Capture d'écran 2025-07-26 201320.png" class="card-img-top" alt="Nouveau produit">
-                                   <div class="card-body text-center">
-                                     <h5 class="card-title">Nouveau Style</h5>
-                                      <p class="card-text">2200 DZD</p>
-                                     <button class="btn btn-gold btn-sm">
-                                         <i class="bi bi-cart"></i> Ajouter
-                                     </button>
-                                  </div>
-                             </div>
+                             <div class="card product-card">
+                                 <article class="product-card" data-type="ring" data-metal="gold">
+                                     <div class="product-media">
+                                            <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
+                                     </div>
+                                     <div class="product-info">
+                                         <h5 class="product-title">Nom du bijou</h5>
+                                         <div class="product-meta">
+                                             <span class="price">€120</span>
+                          
+                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
+                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
+                                         </div>
+                                     </div> 
+                                 </article>
+                             </div>                         
                          </div>
-                       </div>
+                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                             <div class="card product-card">
+                                 <article class="product-card" data-type="ring" data-metal="gold">
+                                     <div class="product-media">
+                                           <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
+                                     </div>
+                                     <div class="product-info">
+                                         <h5 class="product-title">Nom du bijou</h5>
+                                         <div class="product-meta">
+                                             <span class="price">€120</span>
+                         
+                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
+                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
+                                         </div>
+                                     </div> 
+                                  </article>
+                             </div>                         
+                         </div>
+                     </div>
                  </div>
-              </div>
-          </div>
+             </div>
       </section>
       <section id="shop-section" class="page-section hidden">
          <div class="shop-wrapper">
@@ -196,7 +286,7 @@
                      <div class="price-header">
                          <h4>Prix</h4>
                          <span class="price-badge">
-                             <span id="price-badge-min">200</span> — <span id="price-badge-max">5000DA</span>
+                             <span id="price-badge-min">1000</span> — <span id="price-badge-max">5000DA</span>
                          </span>
                      </div>
                   
@@ -214,10 +304,9 @@
                          </div>
                      </div>
                   
-                     <div class="price-presets">
-                         <button type="button" data-range="200,1000">200–1000</button>
-                         <button type="button" data-range="1000,2500">1000–2500</button>
-                         <button type="button" data-range="2500,5000">2500–5000</button>
+                     <div class="price-presets">                         
+                         <button type="button" data-range="1000,2500">1000-2500</button>
+                         <button type="button" data-range="2500,5000">2500-5000</button>
                       </div>
                   </div>
                                
@@ -273,6 +362,7 @@
                                   <div class="product-meta">
                                       <span class="price">1200DA</span>
                                       <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                      <button class="btn-buy" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
                                  </div>
                              </div>
                          </article>
@@ -288,6 +378,7 @@
                                  <div class="product-meta">
                                      <span class="price">1200DA</span>
                                      <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                     <button class="btn-buy"      data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
                                  </div>
                              </div>
                          </article>
@@ -303,6 +394,7 @@
                                  <div class="product-meta">
                                      <span class="price">1200DA</span>
                                      <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                     <button class="btn-buy" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
                                  </div>
                              </div>
                          </article>
@@ -318,6 +410,7 @@
                                  <div class="product-meta">
                                      <span class="price">1200DA</span>
                                      <button class="btn-add" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                     <button class="btn-buy" data-id="SKU001" data-name="Bague Lune" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
                                 </div>
                              </div>
                          </article>
@@ -361,7 +454,7 @@
                  <h3>Suivez-nous</h3>
                  <a href="#"><i class="bi bi-instagram"></i></a>
                  <a href="#"><i class="bi bi-facebook"></i></a>
-                 <a href="#"><i class="bi bi-twitter"></i></a>
+                 <a href="#"><i class="bi bi-whatsapp"></i></a>
                  <a href="mailto:luneorjewelery.contact@gmail.Com" target="_blank" style="font-size:medium;">luneorjewelery.contact@gmail.Com</a>
                  <a href="https://wa.me/213558972307" style="font-size:medium">+213558972307</a>
              </div>
@@ -372,7 +465,68 @@
              <p>&copy; 2025 Luneor Jewellery. Tous droits réservés.</p>
          </div>
      </footer>
-  
+     <div class="modal fade" id="buyNowModal" tabindex="-1" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered modal-lg">
+             <div class="modal-content buy-modal">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="buyModalTitle"></h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                 </div>      
+                 <div class="modal-body">
+                     <div class="buy-grid">
+                         <div class="buy-media">
+                             <img id="buyModalImg" src="" alt="">
+                         </div>
+      
+                         <div class="buy-info">
+                             <div class="price-line">
+                             <span>Prix unitaire :</span>
+                             <strong id="buyModalPrice">€0</strong>
+                         </div>
+      
+                         <div class="qty-line">
+                              <label>Quantité</label>
+                              <div class="qty">
+                                 <button type="button" class="qty-btn" id="qtyMinus">−</button>
+                                 <input type="number" id="qtyInput" min="1" value="1">
+                                 <button type="button" class="qty-btn" id="qtyPlus">+</button>
+                             </div>
+                         </div>
+      
+                         <div class="pay-line">
+                              <label>Méthode de paiement</label>
+                              <div class="pay-options">
+                                   <label><input type="radio" name="pay" value="card" checked> Carte</label>
+                                  <label><input type="radio" name="pay" value="cod"> Main à main (à la livraison)</label>
+                              </div>
+                              <small class="text-muted" id="payHint">Paiement carte : simulation pour l’instant.</small>
+                         </div>
+      
+                         <div class="delivery-line">
+                             <label>Livraison</label>
+                             <select id="deliverySelect">
+                                 <option value="standard" data-days="3–5">Standard (3–5 jours)</option>
+                                 <option value="express"  data-days="1–2">Express (24–48h)</option>
+                             </select>
+                         </div>
+      
+                         <div class="total-line">
+                             <span>Total</span>
+                             <strong id="buyModalTotal">€0</strong>
+                         </div>
+                      </div>
+                 </div>
+      
+                 <p class="eta" id="deliveryEta">Estimation : 3–5 jours.</p>
+             </div>
+      
+             <div class="modal-footer">
+                 <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                 <button class="btn btn-gold" id="confirmBuyBtn">Confirmer la commande</button>
+             </div>
+          </div>
+      </div>
+      
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
      <script>AOS.init({ duration: 800 });</script>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/4.0.12/fullpage.min.js"></script>

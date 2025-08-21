@@ -271,23 +271,175 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { once: true });
   }
 
-  // Délégation de clic sur la grille
-  grid?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-add');
-    if (!btn) return;
+ // remplace l'ancien grid?.addEventListener('click', ...)
+document.addEventListener('click', (e) => {
+  // BUY
+  const buyBtn = e.target.closest('.btn-buy');
+  if (buyBtn) {
+    const card = buyBtn.closest('.product-card');
+    const img  = card?.querySelector('.product-img, img');
+    openBuyModal({
+      id: buyBtn.dataset.id,
+      name: buyBtn.dataset.name,
+      price: Number(buyBtn.dataset.price || 0),
+      img: buyBtn.dataset.img,
+      sourceImgEl: img || null
+    });
+    return;
+  }
 
-    // Données produit
+  // ADD
+  const addBtn = e.target.closest('.btn-add');
+  if (addBtn) {
+    const card = addBtn.closest('.product-card');
+    const img  = card?.querySelector('.product-img, img');
+    addToCart({
+      id: addBtn.dataset.id,
+      name: addBtn.dataset.name,
+      price: Number(addBtn.dataset.price || 0),
+      img: addBtn.dataset.img
+    });
+    flyToCart(img);
+  }
+});
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const buyModalEl   = document.getElementById('buyNowModal');
+  const buyModal     = buyModalEl ? new bootstrap.Modal(buyModalEl) : null;
+
+  const titleEl = document.getElementById('buyModalTitle');
+  const imgEl   = document.getElementById('buyModalImg');
+  const priceEl = document.getElementById('buyModalPrice');
+  const totalEl = document.getElementById('buyModalTotal');
+  const qtyIn   = document.getElementById('qtyInput');
+  const qPlus   = document.getElementById('qtyPlus');
+  const qMinus  = document.getElementById('qtyMinus');
+  const payHint = document.getElementById('payHint');
+  const delSel  = document.getElementById('deliverySelect');
+  const etaEl   = document.getElementById('deliveryEta');
+  const confirm = document.getElementById('confirmBuyBtn');
+
+  let current = { id:'', name:'', price:0, img:'' , sourceImgEl:null };
+
+  function format(n){ return '€' + Number(n).toFixed(0); }
+  function updateTotal(){
+    const q = Math.max(1, parseInt(qtyIn.value||'1',10));
+    totalEl.textContent = format(q * current.price);
+  }
+
+  // Ouvre le modal avec les données du produit
+  document.getElementById('products-grid')?.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-buy');
+    if(!btn) return;
+
     const card = btn.closest('.product-card');
     const img  = card?.querySelector('.product-img');
-    const data = {
+
+    current = {
       id:    btn.dataset.id,
       name:  btn.dataset.name,
-      price: Number(btn.dataset.price || 0),
-      img:   btn.dataset.img
+      price: Number(btn.dataset.price||0),
+      img:   btn.dataset.img,
+      sourceImgEl: img || null
     };
 
-    addToCart(data);
-    flyToCart(img);
+    titleEl.textContent = current.name;
+    imgEl.src = current.img;
+    priceEl.textContent = format(current.price);
+    qtyIn.value = 1;
+    updateTotal();
+    delSel.value = 'standard';
+    etaEl.textContent = 'Estimation : 3-5 jours.';
+    payHint.textContent = 'Paiement carte : simulation pour l’instant.';
+    buyModal?.show();
+  });
+
+  // Qty +/-
+  qPlus?.addEventListener('click', ()=>{ qtyIn.value = Number(qtyIn.value||1)+1; updateTotal(); });
+  qMinus?.addEventListener('click', ()=>{
+    qtyIn.value = Math.max(1, Number(qtyIn.value||1)-1); updateTotal();
+  });
+  qtyIn?.addEventListener('input', updateTotal);
+
+  // Paiement hint
+  document.querySelectorAll('input[name="pay"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      payHint.textContent = r.value === 'cod'
+        ? 'Vous payez à la livraison (main à main).'
+        : 'Paiement carte : simulation pour l’instant.';
+    });
+  });
+
+  // Livraison ETA
+  delSel?.addEventListener('change', ()=>{
+    const opt = delSel.selectedOptions[0];
+    etaEl.textContent = 'Estimation : ' + (opt.dataset.days || '');
+  });
+
+  // Confirmer = ajoute au panier + animation + fermer
+  confirm?.addEventListener('click', ()=>{
+    const qty = Math.max(1, parseInt(qtyIn.value||'1',10));
+    // Ajoute N fois (ou adapte ta fonction addToCart pour accepter une qty)
+    for(let i=0;i<qty;i++){
+      addToCart({ id: current.id, name: current.name, price: current.price, img: current.img });
+    }
+    flyToCart(current.sourceImgEl);
+    buyModal?.hide();
+  });
+});
+function openBuyModal(product){
+  // remplace les set… actuels par l’usage de product.{id,name,price,img,sourceImgEl}
+  current = product;
+  // ... remplis titre, image, prix, qty=1, total, etc.
+  buyModal?.show();
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const shopLink = document.getElementById('nav-shop');
+
+  // Si déjà vu, on coupe le brillant
+  if (localStorage.getItem('shop_seen') === '1'){
+    shopLink?.classList.add('cta-seen');
+  }
+
+  // Au clic, affiche la section shop + mémorise
+  shopLink?.addEventListener('click', (e)=>{
+    e.preventDefault();
+    // ta fonction existante :
+    showSection('shop-section');     // n’affiche que la section Shop
+
+    localStorage.setItem('shop_seen','1');
+    shopLink.classList.add('cta-seen');
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Ouvrir/fermer la recherche
+  const overlay = document.getElementById('searchOverlay');
+  document.getElementById('openSearch')?.addEventListener('click', () => {
+    overlay.classList.add('show');
+    setTimeout(()=> document.getElementById('mobileSearchInput')?.focus(), 50);
+  });
+  document.getElementById('closeSearch')?.addEventListener('click', () => {
+    overlay.classList.remove('show');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') overlay.classList.remove('show');
+  });
+
+  // Liens Accueil / Shop (réutilise ta logique SPA)
+  const hideOffcanvas = () => {
+    const oc = document.getElementById('mobileMenu');
+    bootstrap.Offcanvas.getInstance(oc)?.hide();
+  };
+  document.getElementById('mobile-home')?.addEventListener('click', (e)=>{
+    e.preventDefault(); hideOffcanvas();
+    showSection('hero'); window.scrollTo({top:0, behavior:'smooth'});
+  });
+  document.getElementById('mobile-shop')?.addEventListener('click', (e)=>{
+    e.preventDefault(); hideOffcanvas();
+    showSection('shop-section'); window.scrollTo({top:0, behavior:'smooth'});
   });
 });
 
