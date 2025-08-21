@@ -446,41 +446,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-function showPage(page){ // page = 'home' ou 'shop'
-  document.querySelectorAll('[data-page]').forEach(sec => {
-    if (sec.dataset.page === page) {
-      sec.removeAttribute('hidden');  // montrer
-    } else {
-      sec.setAttribute('hidden', ''); // cacher
-    }
-  });
+function setVisible(el, show){
+  if (!el) return;
+  // Attribut
+  if (show) el.removeAttribute('hidden');
+  else      el.setAttribute('hidden','');
+
+  // Classe bootstrap éventuelle
+  el.classList.toggle('d-none', !show);
+
+  // Styles inline éventuels laissés par d’anciens scripts
+  if (show) el.style.removeProperty('display');
+  else      el.style.display = 'none';
+
+  // Accessibilité
+  el.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+function showPage(page){ // 'home' ou 'shop'
+  const show = [...document.querySelectorAll(`[data-page="${page}"]`)];
+  const hide = [...document.querySelectorAll('[data-page]')].filter(s => !show.includes(s));
+
+  hide.forEach(s => setVisible(s, false));
+  show.forEach(s => setVisible(s, true));
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Liens desktop
+
 document.getElementById('nav-accueil')?.addEventListener('click', e => {
-  e.preventDefault(); showPage('home');
-});
-document.getElementById('nav-shop')?.addEventListener('click', e => {
-  e.preventDefault(); showPage('shop');
-});
-
-// Liens mobile (offcanvas)
-document.getElementById('mobile-home')?.addEventListener('click', e => {
-  e.preventDefault(); showPage('home');
-  bootstrap.Offcanvas.getInstance(document.getElementById('mobileMenu'))?.hide();
-});
-document.getElementById('mobile-shop')?.addEventListener('click', e => {
-  e.preventDefault(); showPage('shop');
-  bootstrap.Offcanvas.getInstance(document.getElementById('mobileMenu'))?.hide();
-});
-
-// À l’ouverture du site : Accueil
-document.addEventListener('DOMContentLoaded', () => {
+  e.preventDefault();
   showPage('home');
 });
 
+document.getElementById('nav-shop')?.addEventListener('click', e => {
+  e.preventDefault();
+  showPage('shop');
+});
 
+// Mobile (offcanvas)
+document.getElementById('mobile-home')?.addEventListener('click', e => {
+  e.preventDefault();
+  showPage('home');
+  const oc = document.getElementById('mobileMenu');
+  bootstrap.Offcanvas.getInstance(oc)?.hide();
+});
+document.getElementById('mobile-shop')?.addEventListener('click', e => {
+  e.preventDefault();
+  showPage('shop');
+  const oc = document.getElementById('mobileMenu');
+  bootstrap.Offcanvas.getInstance(oc)?.hide();
+});
 
-
-
+// À l’ouverture : Accueil
+document.addEventListener('DOMContentLoaded', () => {
+  showPage('home');
+});

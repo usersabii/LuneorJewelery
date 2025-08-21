@@ -42,6 +42,74 @@ header {
   z-index: 10;
 }
 
+/* Hauteur & style du header desktop (garde ton HTML tel quel) */
+:root{ --header-h: 84px; }
+
+.header-desktop{
+  position: sticky; top: 0; z-index: 1030;
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  /* remplace les classes flex par une grille 3 colonnes: logo | nav | actions */
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  min-height: var(--header-h);
+  padding: 0 24px;
+  gap: 16px;
+}
+
+/* La liste nav: centrée, et surtout PAS de retour à la ligne */
+.header-desktop nav .nav{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;             /* <-- clé pour empêcher la “deuxième rangée” */
+  gap: 24px;                     /* espace régulier entre items */
+  margin: 0;
+}
+
+/* Tes <li> ont la classe .nav-link (pas <a>) -> on les pose proprement */
+.header-desktop .nav .nav-link{
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  padding: .4rem .6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #111;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-desktop .nav .nav-link:hover{
+  background: rgba(0,0,0,.05);
+}
+
+/* Le pill doré “Shop” */
+.header-desktop .nav .nav-cta{
+  background: linear-gradient(135deg,#d4af37,#f0c75e 60%,#d4af37);
+  color:#111 !important;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(212,175,55,.35);
+}
+
+/* Le bloc d’actions à droite reste sur la même ligne */
+.header-desktop > .d-flex{
+  justify-self: end;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Image logo: garde une taille raisonnable pour éviter la casse */
+.header-desktop img{ max-height: 48px; width: auto; }
+
+/* Le premier contenu (hero) ne se cache pas sous le header sticky */
+#hero, main, .page{ scroll-margin-top: var(--header-h); }
+
+/* Sécurité: toute ancienne barre errante au-dessus du hero -> on cache */
+body > .nav { display: none !important; }
+
 /* Mobile header */
 .header-mobile{
   position: sticky; 
