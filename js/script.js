@@ -445,3 +445,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+function showPage(page){ // page = 'home' ou 'shop'
+  document.querySelectorAll('[data-page]').forEach(sec => {
+    if (sec.dataset.page === page) {
+      sec.removeAttribute('hidden');  // montrer
+    } else {
+      sec.setAttribute('hidden', ''); // cacher
+    }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Liens desktop
+document.getElementById('nav-accueil')?.addEventListener('click', e => {
+  e.preventDefault(); showPage('home');
+});
+document.getElementById('nav-shop')?.addEventListener('click', e => {
+  e.preventDefault(); showPage('shop');
+});
+
+// Liens mobile (offcanvas)
+document.getElementById('mobile-home')?.addEventListener('click', e => {
+  e.preventDefault(); showPage('home');
+  bootstrap.Offcanvas.getInstance(document.getElementById('mobileMenu'))?.hide();
+});
+document.getElementById('mobile-shop')?.addEventListener('click', e => {
+  e.preventDefault(); showPage('shop');
+  bootstrap.Offcanvas.getInstance(document.getElementById('mobileMenu'))?.hide();
+});
+
+// À l’ouverture du site : Accueil
+document.addEventListener('DOMContentLoaded', () => {
+  showPage('home');
+});
+
+
+
+
+

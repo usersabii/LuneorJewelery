@@ -133,6 +133,18 @@ header {
   .header-mobile{ display:none; }
 }
 
+/* Mobile ( < 992px ) : cache le header desktop */
+@media (max-width: 991.98px){
+  .header-desktop { display: none !important; }
+  .header-mobile  { display: block !important; }
+}
+
+/* Desktop ( >= 992px ) : cache le header mobile */
+@media (min-width: 992px){
+  .header-desktop { display: block !important; }
+  .header-mobile  { display: none !important; }
+}
+
 nav{
   margin-left: 250px;
   margin-right: 300px;
