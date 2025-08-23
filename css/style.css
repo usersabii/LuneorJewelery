@@ -80,7 +80,7 @@ header {
 
 .icon-btn{
   width:44px; 
-  height:44px; 
+  height:40px; 
   border:none; 
   background:transparent;
   display:flex; 
@@ -1199,55 +1199,4 @@ html {
   align-items: center;
   justify-content: center;
   border: 2px solid #fff; /* liseré blanc autour du badge */
-}
-
-
-
-
-/* Hauteur cible du header (ajuste si besoin) */
-:root { --header-h: 76px; }
-header.sticky-top.shadow-sm { min-height: var(--header-h); }
-
-/* Le conteneur d'actions à droite (AR + icônes) reste bien centré verticalement */
-header.sticky-top.shadow-sm > .d-flex {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Boutons/icônes : taille carrée et centrés, pas de débordement */
-header.sticky-top.shadow-sm .icon-btn,
-header.sticky-top.shadow-sm .btn-link-dark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;           /* <= clé pour ne pas dépasser */
-  min-width: 40px;
-  padding: 0 .5rem;
-  border: 0;
-  background: transparent;
-  line-height: 1;         /* évite que ça “descende” */
-  box-sizing: border-box;
-}
-
-/* Icônes Bootstrap : baseline neutre */
-header.sticky-top.shadow-sm .bi {
-  font-size: 1.2rem;      /* ajuste 1.1–1.3rem selon ton goût */
-  line-height: 1;
-  vertical-align: middle;
-}
-
-/* Logo : limite la hauteur pour éviter d'étirer le header */
-header.sticky-top.shadow-sm img {
-  max-height: 48px;
-  width: auto;
-}
-
-/* Sécurité : la liste de nav reste centrée et ne casse pas sur 2 lignes */
-header.sticky-top.shadow-sm nav .nav {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 24px;
-  margin: 0;
-}
+};
