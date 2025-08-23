@@ -446,59 +446,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-function setVisible(el, show){
-  if (!el) return;
-  // Attribut
-  if (show) el.removeAttribute('hidden');
-  else      el.setAttribute('hidden','');
-
-  // Classe bootstrap éventuelle
-  el.classList.toggle('d-none', !show);
-
-  // Styles inline éventuels laissés par d’anciens scripts
-  if (show) el.style.removeProperty('display');
-  else      el.style.display = 'none';
-
-  // Accessibilité
-  el.setAttribute('aria-hidden', show ? 'false' : 'true');
+// -------- Helpers blindés --------
+function revealDeep(root){
+  if(!root) return;
+  // enlève TOUS les verrous sur root + ses DESCENDANTS
+  const nodes = [root, ...root.querySelectorAll('*')];
+  nodes.forEach(el=>{
+    el.removeAttribute('hidden');
+    el.classList.remove('d-none','is-hidden','hidden');
+    if (el.style && el.style.display === 'none') el.style.removeProperty('display');
+    el.setAttribute('aria-hidden','false');
+  });
+}
+function hideRoot(root){
+  if(!root) return;
+  // ne cache que la racine (suffit)
+  root.setAttribute('hidden','');
+  root.classList.add('d-none','is-hidden');
+  root.style.display = 'none';
+  root.setAttribute('aria-hidden','true');
 }
 
-function showPage(page){ // 'home' ou 'shop'
-  const show = [...document.querySelectorAll(`[data-page="${page}"]`)];
-  const hide = [...document.querySelectorAll('[data-page]')].filter(s => !show.includes(s));
-
-  hide.forEach(s => setVisible(s, false));
-  show.forEach(s => setVisible(s, true));
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function goHome(){
+  // cache SHOP
+  document.querySelectorAll('[data-page="shop"]').forEach(hideRoot);
+  // révèle HOME en profondeur
+  document.querySelectorAll('[data-page="home"]').forEach(revealDeep);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function goShop(){
+  document.querySelectorAll('[data-page="home"]').forEach(hideRoot);
+  document.querySelectorAll('[data-page="shop"]').forEach(revealDeep);
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
-
-document.getElementById('nav-accueil')?.addEventListener('click', e => {
-  e.preventDefault();
-  showPage('home');
-});
-
-document.getElementById('nav-shop')?.addEventListener('click', e => {
-  e.preventDefault();
-  showPage('shop');
-});
-
-// Mobile (offcanvas)
-document.getElementById('mobile-home')?.addEventListener('click', e => {
-  e.preventDefault();
-  showPage('home');
-  const oc = document.getElementById('mobileMenu');
-  bootstrap.Offcanvas.getInstance(oc)?.hide();
-});
-document.getElementById('mobile-shop')?.addEventListener('click', e => {
-  e.preventDefault();
-  showPage('shop');
-  const oc = document.getElementById('mobileMenu');
-  bootstrap.Offcanvas.getInstance(oc)?.hide();
-});
-
-// À l’ouverture : Accueil
+// -------- Branches (desktop + mobile) --------
 document.addEventListener('DOMContentLoaded', () => {
-  showPage('home');
+  // Au chargement : Accueil complet
+  goHome();
+
+  document.getElementById('nav-accueil')?.addEventListener('click', e => { e.preventDefault(); goHome(); });
+  document.getElementById('nav-shop')?.addEventListener('click', e => { e.preventDefault(); goShop(); });
+
+  document.getElementById('mobile-home')?.addEventListener('click', e => {
+    e.preventDefault(); goHome();
+    const oc = document.getElementById('mobileMenu');
+    if (oc) bootstrap.Offcanvas.getInstance(oc)?.hide();
+  });
+  document.getElementById('mobile-shop')?.addEventListener('click', e => {
+    e.preventDefault(); goShop();
+    const oc = document.getElementById('mobileMenu');
+    if (oc) bootstrap.Offcanvas.getInstance(oc)?.hide();
+  });
 });

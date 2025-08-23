@@ -57,6 +57,9 @@ header {
   .header-mobile{ display: none !important; }
 }
 
+.is-hidden{ display:none !important; }
+[hidden]{ display:none !important; }
+
 /* Mobile header */
 .header-mobile{
   position: sticky; 
@@ -439,6 +442,7 @@ h1, h2, h3, h4, h5, h6 {
 .product-card .card-body {
   padding: 1rem;
 }
+
 .btn-gold {
   background-color: #d4af37;
   color: #fff;
