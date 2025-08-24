@@ -500,9 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-
-
-
 document.addEventListener('click', (e)=>{
   const chipLink = e.target.closest('.type-filter a.chip[href]');
   if (chipLink) e.preventDefault();

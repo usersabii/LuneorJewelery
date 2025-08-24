@@ -129,45 +129,6 @@ a[href^="tel"], a[href^="mailto"], a[href^="sms"]{
 /* f) Tap highlight iOS (halo bleu au toucher) */
 *{ -webkit-tap-highlight-color: transparent; }
 
-
-
-
-/* Anti-bleu iPhone / Bootstrap dans la section Type de bijou */
-.type-filter .chip,
-.type-filter .chip:link,
-.type-filter .chip:visited,
-.type-filter a.chip,
-.type-filter label.chip,
-.type-filter button.chip{
-  color:#111 !important;
-  -webkit-text-fill-color:#111;          /* iOS */
-  text-decoration:none !important;
-}
-
-/* Icônes à l'intérieur de la chip */
-.type-filter .chip i{
-  color:#111 !important;
-  -webkit-text-fill-color:#111;
-}
-
-/* État actif = toujours texte noir */
-.type-filter .chip.is-active,
-.type-filter .chip[aria-pressed="true"]{
-  color:#111 !important;
-}
-
-/* Si une chip hérite d'un style Bootstrap de lien */
-.type-filter .btn-link,
-.type-filter .nav-link{
-  color:#111 !important;
-}
-
-/* Tap highlight iOS */
-.type-filter .chip{ -webkit-tap-highlight-color: transparent; }
-
-
-
-
 .icon-btn:active{ 
   background:rgba(0,0,0,.06); 
 }
