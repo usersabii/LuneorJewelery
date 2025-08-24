@@ -88,6 +88,47 @@ header {
   border-radius:10px;
 }
 
+/* a) Forcer la couleur des liens globalement (et hover en or) */
+:root{
+  --bs-link-color: #111;           /* override Bootstrap link */
+  --bs-link-hover-color: #d4af37;
+}
+a, a:visited{ color:#111 !important; text-decoration:none; }
+a:hover{ color:#d4af37 !important; }
+
+/* b) iOS transforme tel/email en liens bleus -> neutraliser */
+a[x-apple-data-detectors]{
+  color: inherit !important;
+  text-decoration: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+}
+
+/* c) Spécifique header mobile & desktop : icônes en noir */
+.header-mobile .icon-btn,
+.header-mobile .icon-btn i,
+.header-mobile .right-icons .bi,
+header.sticky-top.shadow-sm .bi{
+  color:#111 !important;
+  -webkit-text-fill-color:#111; /* iOS */
+}
+
+/* d) Bouton/ lien style Bootstrap qui force le bleu */
+.btn-link, .btn-link-dark, .nav-link{
+  color:#111 !important;
+}
+.btn-link:hover, .nav-link:hover{
+  color:#d4af37 !important;
+}
+
+/* e) Liens spéciaux (tel/mail/sms) */
+a[href^="tel"], a[href^="mailto"], a[href^="sms"]{
+  color: inherit !important; text-decoration: none !important;
+}
+
+/* f) Tap highlight iOS (halo bleu au toucher) */
+*{ -webkit-tap-highlight-color: transparent; }
+
 .icon-btn:active{ 
   background:rgba(0,0,0,.06); 
 }
