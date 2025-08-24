@@ -499,3 +499,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (oc) bootstrap.Offcanvas.getInstance(oc)?.hide();
   });
 });
+
+
+
+
+document.addEventListener('click', (e)=>{
+  const chipLink = e.target.closest('.type-filter a.chip[href]');
+  if (chipLink) e.preventDefault();
+});
