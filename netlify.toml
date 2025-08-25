@@ -1,2 +1,5 @@
 [build]
   functions = "netlify/functions"
+
+[build.environment]
+  GS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwOK_615WQvwwfaEhXDQ4JZbhPfXL50iBDkrMzicXZ7IlxbTA72sn_Ag4Gqf7pFy8k/exec"
