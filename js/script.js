@@ -1,3 +1,83 @@
+// --- Panier minimal global (évite le crash si absent) ---
+window.cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+function updateCartBubble(){
+  const countEl = document.querySelector('.cart-count');
+  if (!countEl) return;
+  const totalQty = window.cart.reduce((s, i) => s + (i.qty || 1), 0);
+  countEl.textContent = String(totalQty);
+}
+function saveCart(){
+  localStorage.setItem('cart', JSON.stringify(window.cart));
+  updateCartBubble();
+}
+
+// Ajout au panier (global)
+window.addToCart = function(item){
+  if (!item || !item.id) return;
+  const found = window.cart.find(x => x.id === item.id);
+  if (found) {
+    found.qty = (found.qty || 1) + 1;
+  } else {
+    window.cart.push({ ...item, qty: 1 });
+  }
+  saveCart();
+};
+
+// Animation vers la bulle (facultative si elem pas dispo)
+window.flyToCart = function(sourceImgEl){
+  if (!sourceImgEl) return; // pas d'image => pas d'anim
+  const bubble = document.querySelector('.cart-bubble');
+  if (!bubble) return;
+
+  const r1 = sourceImgEl.getBoundingClientRect();
+  const r2 = bubble.getBoundingClientRect();
+
+  const ghost = sourceImgEl.cloneNode(true);
+  ghost.style.position = 'fixed';
+  ghost.style.left = r1.left + 'px';
+  ghost.style.top = r1.top + 'px';
+  ghost.style.width = sourceImgEl.clientWidth + 'px';
+  ghost.style.height = sourceImgEl.clientHeight + 'px';
+  ghost.style.transition = 'transform .6s cubic-bezier(.22,.75,.2,1), opacity .6s';
+  ghost.style.zIndex = '9999';
+  ghost.style.pointerEvents = 'none';
+  document.body.appendChild(ghost);
+
+  const tx = r2.left - r1.left;
+  const ty = r2.top - r1.top;
+
+  requestAnimationFrame(()=>{
+    ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.2)`;
+    ghost.style.opacity = '0.3';
+  });
+  setTimeout(()=> ghost.remove(), 650);
+};
+
+document.addEventListener('DOMContentLoaded', updateCartBubble);
+
+fetch("/.netlify/functions/signup", {
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+    nom:"Test", prenom:"User", email:"test@example.com",
+    telephone:"0700000000", adresse:"Alger"
+  })
+}).then(r=>r.text()).then(console.log).catch(console.error);
+
+fetch("/.netlify/functions/order", {
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body: JSON.stringify({
+    orderId: "LNJ-"+Date.now(),
+    payment: "COD",
+    delivery: "standard",
+    items: [{id:"SET001", name:"Parure Lune Or", qty:1, price:199}],
+    total: 199,
+    client: { nom:"Test", prenom:"User", email:"test@example.com", telephone:"0700", adresse:"Alger" }
+  })
+}).then(r=>r.text()).then(console.log).catch(console.error);
+
 // Récupère le modal, le bouton de fermeture et le formulaire
 const modal        = document.getElementById('account-modal');
 const closeBtn     = document.getElementById('modal-close');
