@@ -504,3 +504,145 @@ document.addEventListener('click', (e)=>{
   const chipLink = e.target.closest('.type-filter a.chip[href]');
   if (chipLink) e.preventDefault();
 });
+
+document.getElementById('cta-parures')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  // Affiche l'écran Shop (ta fonction existante)
+  if (typeof goShop === 'function') goShop();
+
+  // Si tu as le système d’événement de filtres :
+  document.dispatchEvent(new CustomEvent('filters:change', { detail:{ types: ['set'] } }));
+
+  document.getElementById('shop-section')?.scrollIntoView({behavior:'smooth'});
+});
+
+
+// --- ouverture robuste du modal ---
+function openBuyModal(p){
+  // éléments du modal
+  const mEl = document.getElementById('buyNowModal');
+  if (!mEl) return console.warn('Modal #buyNowModal introuvable');
+  // Instance Bootstrap (crée-la si besoin)
+  const modal = bootstrap.Modal.getOrCreateInstance(mEl);
+
+  // Remplir le contenu
+  document.getElementById('buyModalTitle').textContent = p.name || '';
+  document.getElementById('buyModalImg').src = p.img || '';
+  document.getElementById('buyModalPrice').textContent = 'DA' + (p.price || 0);
+  const qtyIn = document.getElementById('qtyInput');
+  qtyIn.value = 1;
+  // total
+  const updateTotal = () => {
+    const q = Math.max(1, parseInt(qtyIn.value||'1', 10));
+    document.getElementById('buyModalTotal').textContent = 'DA' + (q * (p.price||0));
+  };
+  qtyIn.oninput = updateTotal; updateTotal();
+
+  // montrer le modal
+  modal.show();
+
+  // mémoriser l’image source pour l’animation après confirmation
+  window.__currentBuy = { ...p };
+}
+
+// --- écouteur global pour tous les .btn-buy de la page ---
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-buy');
+  if (!btn) return;
+
+  e.preventDefault();
+
+  const card = btn.closest('.product-card');
+  const img  = card?.querySelector('.product-img, img');
+
+  const product = {
+    id:    btn.dataset.id || '',
+    name:  btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || '',
+    price: Number(btn.dataset.price || 0),
+    img:   btn.dataset.img || img?.getAttribute('src') || '',
+    sourceImgEl: img || null
+  };
+
+  openBuyModal(product);
+});
+
+// --- confirmer la commande (ajout panier + animation + fermer) ---
+document.getElementById('confirmBuyBtn')?.addEventListener('click', () => {
+  const q = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1', 10));
+  const p = window.__currentBuy || {};
+  for (let i=0; i<q; i++){
+    addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
+  }
+  if (p.sourceImgEl) flyToCart(p.sourceImgEl);
+  bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
+});
+
+// après succès d'inscription
+localStorage.setItem('signupProfile', JSON.stringify({
+  nom: payload.nom, prenom: payload.prenom, email: payload.email,
+  telephone: payload.telephone, adresse: payload.adresse
+}));
+
+document.getElementById('confirmBuyBtn')?.addEventListener('click', async () => {
+  const qty = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1',10));
+  const pay = document.querySelector('input[name="pay"]:checked')?.value || 'card';
+  const del = document.getElementById('deliverySelect').value;
+
+  // récupère le client
+  const client = JSON.parse(localStorage.getItem('signupProfile') || '{}');
+  if (!client?.nom || !client?.telephone || !client?.adresse) {
+    // si pas d'info → rouvrir le modal d'inscription
+    const accModal = new bootstrap.Modal(document.getElementById('account-modal'));
+    accModal.show();
+    return;
+  }
+
+  // produit courant (déjà mémorisé lors de openBuyModal)
+  const p = window.__currentBuy || {};
+  const orderId = 'LNJ-' + Date.now().toString().slice(-6); // simple ID
+
+  const order = {
+    orderId,
+    payment: pay === 'cod' ? 'COD' : 'CARD',
+    delivery: del,
+    items: [{ id: p.id, name: p.name, qty, price: p.price }],
+    total: qty * (p.price || 0),
+    client
+  };
+
+  try{
+    // 1) enregistre dans Sheets via Netlify Function
+    const r = await fetch('/.netlify/functions/order', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(order)
+    });
+    if (!r.ok) throw new Error(await r.text());
+
+    // 2) ajoute au panier local (facultatif si tu veux) + animation
+    for(let i=0;i<qty;i++){
+      addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
+    }
+    if (p.sourceImgEl) flyToCart(p.sourceImgEl);
+
+    // 3) ferme le modal achat
+    bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
+
+    // 4) toast de confirmation
+    showOrderToast(orderId, pay);
+
+  }catch(err){
+    alert('Commande non enregistrée : ' + err.message);
+    console.error(err);
+  }
+});
+
+function showOrderToast(orderId, pay){
+  const body = document.getElementById('orderToastBody');
+  body.innerHTML = (pay === 'cod')
+    ? `Votre commande <b>${orderId}</b> est enregistrée.<br>Paiement <b>à la livraison</b>. Vous recevrez une confirmation sous peu.`
+    : `Votre commande <b>${orderId}</b> est enregistrée.`;
+
+  const t = new bootstrap.Toast(document.getElementById('orderToast'), { delay: 4500 });
+  t.show();
+}

@@ -167,108 +167,80 @@
             </div>     
       </section>
           
-      <section id="highlights" class="py-5 page-section" data-page="home">
+      <section id="parures" data-page="home" class="section">
          <div class="container">
-             <!-- En-tête de section -->
-             <div class="text-center mb-4">
-                 <h2 class="section-title">Nos Incontournables</h2>
+             <div class="section-head">
+                 <h2>Nos ensembles <span class="accent">Parures</span></h2>
+                 <a href="#" id="cta-parures" class="btn btn-outline-dark btn-sm">Voir toutes les parures</a>
              </div>
+             <p class="section-intro">Des ensembles harmonisés (collier + boucles + bracelet) en doré et argenté, pensés pour les grandes occasions et le quotidien chic.</p>
       
-             <!-- Boutons de tab -->
-             <div class="d-flex justify-content-center mb-4">
-                 <button class="btn-tab active" data-target="#best-sellers">Best Sellers</button>
-                 <button class="btn-tab"        data-target="#new-arrivals">Nouveautés</button>
-             </div>
-      
-             <!-- Contenu des tabs -->
-             <div class="tab-content">
-                 <!-- Best Sellers -->
-                 <div id="best-sellers" class="tab-pane active" data-page="home">
-                     <div class="row g-4">
-                          <!-- Exemple de card ; duplique/la pour chaque produit -->
-                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                             <div class="card product-card">
-                                 <article class="product-card" data-type="ring" data-metal="gold">
-                                     <div class="product-media">
-                                         <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
-                                     </div>
-                                     <div class="product-info">
-                                         <h5 class="product-title">Nom du bijou</h5>
-                                         <div class="product-meta">
-                                              <span class="price">€120</span>
-                                 
-                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
-                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
-                                         </div>
-                                     </div>
-                                 </article>     
+             <!-- Grille de parures -->
+             <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4 products-grid">           
+                 <div class="col">
+                     <article class="product-card" data-type="set" data-metal="gold">
+                         <div class="product-media">
+                             <img src="img/jewelry-placeholder.png" alt="Parure Lune Or" class="product-img">
+                             <div class="product-cta">
+                                 <span class="price-chip ms-3"><b>1700DA</b></span>           
+                                 <button class="seg seg-add btn-add" type="button" data-id="SET001" data-name="Parure Lune Or" data-price="199" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 <button class="seg seg-buy btn-buy" type="button" data-id="SET001" data-name="Parure Lune Or" data-price="199" data-img="img/jewelry-placeholder.png">Acheter</button>                                
                              </div>
                          </div>
-                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                             <div class="card product-card">
-                                 <article class="product-card" data-type="ring" data-metal="gold">
-                                     <div class="product-media">
-                                          <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
-                                     </div>
-                                     <div class="product-info">
-                                         <h5 class="product-title">Nom du bijou</h5>
-                                         <div class="product-meta">
-                                             <span class="price">€120</span>
-                                
-                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
-                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
-                                         </div>
-                                     </div>
-                                 </article>     
+                         <div class="product-info">
+                             <h5 class="product-title">Parure Lune Or</h5>
+                         </div>
+                      </article>
+                  </div>      
+                  <div class="col">
+                      <article class="product-card" data-type="set" data-metal="silver">
+                         <div class="product-media">
+                             <img src="img/jewelry-placeholder.png" alt="Parure Éclat Argent" class="product-img">
+                             <div class="product-cta">
+                                 <span class="price-chip ms-3"><b>1800DA</b></span>
+                                 <button class="seg seg-add btn-add" type="button" data-id="SET002" data-name="Parure Éclat Argent" data-price="189" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 <button class="seg seg-buy btn-buy" type="button" data-id="SET002" data-name="Parure Éclat Argent" data-price="189" data-img="img/jewelry-placeholder.png">Acheter</button>                            
                              </div>
                          </div>
-                      </div>
-                 </div>
-      
-                 <!-- Nouveautés -->
-                 <div id="new-arrivals" class="tab-pane" data-page="home">
-                      <div class="row g-4">
-                          <!-- Duplique le même type de card ici -->
-                          <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                             <div class="card product-card">
-                                 <article class="product-card" data-type="ring" data-metal="gold">
-                                     <div class="product-media">
-                                            <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
-                                     </div>
-                                     <div class="product-info">
-                                         <h5 class="product-title">Nom du bijou</h5>
-                                         <div class="product-meta">
-                                             <span class="price">€120</span>
-                          
-                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
-                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
-                                         </div>
-                                     </div> 
-                                 </article>
-                             </div>                         
+                         <div class="product-info">
+                             <h5 class="product-title">Parure Éclat Argent</h5>
                          </div>
-                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                             <div class="card product-card">
-                                 <article class="product-card" data-type="ring" data-metal="gold">
-                                     <div class="product-media">
-                                           <img src="img/jewelry-placeholder.png" alt="Nom du bijou" class="product-img">
-                                     </div>
-                                     <div class="product-info">
-                                         <h5 class="product-title">Nom du bijou</h5>
-                                         <div class="product-meta">
-                                             <span class="price">€120</span>
-                         
-                                             <button class="btn-add" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Ajouter</button>                          
-                                             <button class="btn-buy" type="button" data-id="SKU123" data-name="Nom du bijou" data-price="120" data-img="img/jewelry-placeholder.png">Acheter</button>
-                                         </div>
-                                     </div> 
-                                  </article>
-                             </div>                         
+                     </article>
+                  </div>     
+                  <div class="col">
+                     <article class="product-card" data-type="set" data-metal="mix">
+                         <div class="product-media">
+                             <img src="img/jewelry-placeholder.png" alt="Parure Duo Or & Argent" class="product-img">
+                             <div class="product-cta">
+                                 <span class="price-chip ms-3"><b>2000DA</b></span>                               
+                                 <button class="seg seg-add btn-add" type="button" data-id="SET003" data-name="Parure Duo Or & Argent" data-price="2000" data-img="img/jewelry-placeholder.png">Ajouter</button>
+                                 <button class="seg seg-buy btn-buy" type="button" data-id="SET003" data-name="Parure Duo Or & Argent" data-price="2000" data-img="img/jewelry-placeholder.png">Acheter</button>                                
+                             </div>
                          </div>
-                     </div>
-                 </div>
-             </div>
+                         <div class="product-info">
+                             <h5 class="product-title">Parure Duo Or & Argent</h5>
+                         </div>
+                     </article>
+                  </div>     
+                  <div class="col">
+                      <article class="product-card" data-type="set" data-metal="gold">
+                         <div class="product-media">
+                             <img src="img/jewelry-placeholder.png" alt="Parure Solstice" class="product-img">
+                             <div class="product-cta">
+                                 <span class="price-chip ms-3"><b>2000DA</b></span>
+                                 <button class="seg seg-add btn-add" type="button" data-id="SET004" data-name="Parure Solstice" data-price="205" data-img="img/jewelry-placeholder.png">Ajouter</button> 
+                                 <button class="seg seg-buy btn-buy" type="button" data-id="SET004" data-name="Parure Solstice" data-price="205" data-img="img/jewelry-placeholder.png">Acheter</button>                              
+                             </div>
+                          </div>
+                          <div class="product-info">
+                             <h5 class="product-title">Parure Solstice</h5>
+                         </div>
+                     </article>
+                   </div>     
+              </div>
+         </div>
       </section>
+      
       <section id="shop-section" class="page-section hidden" data-page="shop">
          <div class="shop-wrapper">
              <!-- Sidebar fixe à gauche -->
@@ -2222,6 +2194,16 @@
                  <button class="btn btn-gold" id="confirmBuyBtn">Confirmer la commande</button>
              </div>
           </div>
+      </div>
+      <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+         <div id="orderToast" class="toast text-bg-dark" role="alert" aria-live="polite" aria-atomic="true">
+              <div class="toast-header">
+                 <strong class="me-auto">Commande confirmée</strong>
+                 <small class="text-muted">maintenant</small>
+                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fermer"></button>
+              </div>
+              <div class="toast-body" id="orderToastBody"></div>
+         </div>
       </div>
       
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>

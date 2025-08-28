@@ -464,6 +464,16 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
+.section{ padding: clamp(28px,3vw,56px) 0; }
+.section-head{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:1rem;
+  margin-bottom: .75rem;
+}
+.section-head h2{ margin:0; font-weight:800; letter-spacing:.02em; }
+.section-head .accent{ color: var(--dark,#171716); }
+.section-intro{ color:#6b6b6b; margin-bottom: 1rem; }
+
+
 /* ----- Tabs ----- */
 .btn-tab {
   background: transparent;
