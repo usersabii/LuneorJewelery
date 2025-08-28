@@ -55,28 +55,78 @@ window.flyToCart = function(sourceImgEl){
 };
 
 document.addEventListener('DOMContentLoaded', updateCartBubble);
+// #account-form : ENVOIE seulement à l’inscription
+document.getElementById('account-form')?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const form = e.currentTarget;
+  const payload = Object.fromEntries(new FormData(form));
+  console.log('[signup] payload', payload);
 
-fetch("/.netlify/functions/signup", {
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body: JSON.stringify({
-    nom:"Test", prenom:"User", email:"test@example.com",
-    telephone:"0700000000", adresse:"Alger"
-  })
-}).then(r=>r.text()).then(console.log).catch(console.error);
+  try{
+    const r = await fetch('/.netlify/functions/signup', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const txt = await r.text();
+    console.log('[signup] resp', txt);
+    if(!r.ok) throw new Error(txt);
 
-fetch("/.netlify/functions/order", {
-  method:"POST",
-  headers:{ "Content-Type":"application/json" },
-  body: JSON.stringify({
-    orderId: "LNJ-"+Date.now(),
-    payment: "COD",
-    delivery: "standard",
-    items: [{id:"SET001", name:"Parure Lune Or", qty:1, price:199}],
-    total: 199,
-    client: { nom:"Test", prenom:"User", email:"test@example.com", telephone:"0700", adresse:"Alger" }
-  })
-}).then(r=>r.text()).then(console.log).catch(console.error);
+    // mémoriser le profil pour la commande
+    localStorage.setItem('signupProfile', JSON.stringify(payload));
+
+    // fermer le modal d’inscription si Bootstrap
+    bootstrap.Modal.getInstance(document.getElementById('account-modal'))?.hide();
+  }catch(err){
+    alert('Inscription échouée : ' + err.message);
+  }
+});
+// Bouton "Confirmer la commande" : ENVOIE seulement à la commande
+document.getElementById('confirmBuyBtn')?.addEventListener('click', async ()=>{
+  const profile = JSON.parse(localStorage.getItem('signupProfile') || '{}');
+  if(!profile.nom || !profile.telephone || !profile.adresse){
+    alert("Veuillez vous inscrire (nom, téléphone, adresse).");
+    new bootstrap.Modal(document.getElementById('account-modal')).show();
+    return;
+  }
+
+  const qty = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1',10));
+  const pay = document.querySelector('input[name="pay"]:checked')?.value || 'cod';
+  const del = document.getElementById('deliverySelect').value;
+  const p   = window.__currentBuy || {};   // rempli par openBuyModal
+  const orderId = 'LNJ-' + Date.now().toString().slice(-6);
+
+  const order = {
+    __kind:'order',
+    orderId,
+    payment: pay.toUpperCase() === 'COD' ? 'COD' : 'CARD',
+    delivery: del,
+    items: [{ id:p.id, name:p.name, qty, price:p.price }],
+    total: qty * (p.price || 0),
+    client: profile
+  };
+  console.log('[order] body', order);
+
+  try{
+    const r = await fetch('/.netlify/functions/order', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(order)
+    });
+    const txt = await r.text();
+    console.log('[order] resp', txt);
+    if(!r.ok) throw new Error(txt);
+
+    // Ajouter au panier + animation (si tu veux)
+    for(let i=0;i<qty;i++) addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
+    if (p.sourceImgEl) flyToCart(p.sourceImgEl);
+
+    bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
+    showOrderToast(orderId, pay);
+  }catch(err){
+    alert('Commande échouée : ' + err.message);
+  }
+});
 
 // Récupère le modal, le bouton de fermeture et le formulaire
 const modal        = document.getElementById('account-modal');
