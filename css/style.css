@@ -1285,36 +1285,41 @@ html {
   border: 2px solid #fff; /* liseré blanc autour du badge */
 };
 
-/* ===== Fix mobile (iPhone/Android) — Shop uniquement ===== */
-@media (max-width: 576px){
-
-  /* Le layout shop prend toute la largeur en pile */
+/* ===== MOBILE ONLY: élargir les cartes Shop ===== */
+@media (max-width: 600px){
+  /* Le layout Shop ne doit pas avoir 2 colonnes en mobile */
   #shop-section .shop-layout{ display:block !important; }
-  #shop-section .shop-content,
-  #shop-section .shop-sidebar{ width:100% !important; }
 
-  /* 1 carte par ligne, large et complète */
+  /* Grille produits = 1 colonne large */
   #shop-section .products-grid,
   #shop-section .row.products-grid,
   #shop-section .shop-content .row{
-    display:grid !important;
+    display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 14px !important;
   }
-  /* si tu utilises Bootstrap .row/.col, on force 100% */
-  #shop-section .row.products-grid > [class*="col"],
-  #shop-section .shop-content .row > [class*="col"],
-  #shop-section .products-grid > *{
+
+  /* Neutraliser toutes les colonnes Bootstrap dans la grille */
+  #shop-section .products-grid > *,
+  #shop-section .row.products-grid > *,
+  #shop-section .shop-content .row > *,
+  #shop-section :is(.col, .col-auto, [class*="col-"]){
     flex: 0 0 100% !important;
     max-width: 100% !important;
     width: 100% !important;
   }
 
-  /* La carte remplit bien, rien n’est coupé */
-  #shop-section .product-card{ width:100% !important; min-width:0 !important; }
-  #shop-section .product-media{ aspect-ratio: 1 / 1; overflow:hidden; border-radius:12px; }
-  #shop-section .product-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  /* Sécurité: pas de largeur fixe sur la carte */
+  #shop-section .product-card{
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
 
-  /* Au cas où du texte serait serré/coupé */
+  /* Image carrée, bien cadrée */
+  #shop-section .product-media{ aspect-ratio: 1 / 1; overflow: hidden; border-radius: 12px; }
+  #shop-section .product-img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Texte non coupé */
   #shop-section .product-info{ white-space: normal !important; }
 }

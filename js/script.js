@@ -776,3 +776,21 @@ function showOrderToast(orderId, pay){
   const t = new bootstrap.Toast(document.getElementById('orderToast'), { delay: 4500 });
   t.show();
 }
+
+
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.matchMedia('(max-width: 600px)').matches) {
+    document.querySelectorAll('#shop-section .products-grid > *, #shop-section .row.products-grid > *, #shop-section .shop-content .row > *')
+      .forEach(el => {
+        el.style.flex = '0 0 100%';
+        el.style.maxWidth = '100%';
+        el.style.width = '100%';
+      });
+  }
+});
