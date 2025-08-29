@@ -913,9 +913,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 .chip-reset:hover { color: var(--gold); }
 
-.col-lg-3{
-  width:28%;
-}
+
 
 /* Segmented control moderne */
 .segmented-metal {
@@ -1285,41 +1283,63 @@ html {
   border: 2px solid #fff; /* liseré blanc autour du badge */
 };
 
-/* ===== MOBILE ONLY: élargir les cartes Shop ===== */
-@media (max-width: 600px){
-  /* Le layout Shop ne doit pas avoir 2 colonnes en mobile */
-  #shop-section .shop-layout{ display:block !important; }
 
-  /* Grille produits = 1 colonne large */
-  #shop-section .products-grid,
-  #shop-section .row.products-grid,
-  #shop-section .shop-content .row{
-    display: grid !important;
+
+/* ===== SHOP — FIX MOBILE UNIQUEMENT ===== */
+@media (max-width: 600px){
+
+  /* 1) Le layout du shop ne doit pas garder 2 colonnes */
+  #shop-section .shop-layout{ display:block !important; }
+  #shop-section .shop-content{ width:100% !important; max-width:100% !important; }
+  /* (option si c’est trop serré) #shop-section .shop-sidebar{ display:none !important; } */
+
+  /* 2) La grille: une seule colonne large */
+  #products-grid{
+    width:100% !important;
+    max-width:100% !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    display:grid !important;
     grid-template-columns: 1fr !important;
     gap: 14px !important;
   }
 
-  /* Neutraliser toutes les colonnes Bootstrap dans la grille */
-  #shop-section .products-grid > *,
-  #shop-section .row.products-grid > *,
-  #shop-section .shop-content .row > *,
-  #shop-section :is(.col, .col-auto, [class*="col-"]){
+  /* 3) Neutraliser les classes Bootstrap qui forcent 2 colonnes */
+  #products-grid > .col-6,
+  #products-grid > [class*="col-"]{
     flex: 0 0 100% !important;
     max-width: 100% !important;
     width: 100% !important;
-  }
-
-  /* Sécurité: pas de largeur fixe sur la carte */
-  #shop-section .product-card{
-    width: 100% !important;
-    max-width: none !important;
     min-width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    display: block !important;
   }
 
-  /* Image carrée, bien cadrée */
-  #shop-section .product-media{ aspect-ratio: 1 / 1; overflow: hidden; border-radius: 12px; }
-  #shop-section .product-img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* 4) Sécuriser la carte et son image */
+  #products-grid .product-card{
+    display:block !important;
+    width:100% !important;
+    max-width:none !important;
+    min-width:0 !important;
+  }
+  #products-grid .product-media{
+    aspect-ratio: 1 / 1;
+    overflow:hidden;
+    border-radius:12px;
+  }
+  #products-grid .product-img{
+    width:100%; height:100%;
+    object-fit:cover; display:block;
+  }
 
-  /* Texte non coupé */
-  #shop-section .product-info{ white-space: normal !important; }
+  /* 5) Au cas où un style “scale/width” resterait collé quelque part */
+  #shop-section .products-grid,
+  #shop-section .product-card{
+    transform:none !important;
+  }
+
+  /* 6) Texte non coupé */
+  #products-grid .product-info{ white-space: normal !important; }
 }
+
