@@ -266,10 +266,10 @@ document.querySelector('.segmented-metal')
       step: 5,
       range: { min: 0, max: 500 },
       tooltips: [{
-        to: v => `€${Math.round(v)}`,
+        to: v => `DA${Math.round(v)}`,
         from: v => Number(String(v).replace(/[^\d.]/g,'')) 
       },{
-        to: v => `€${Math.round(v)}`,
+        to: v => `DA${Math.round(v)}`,
         from: v => Number(String(v).replace(/[^\d.]/g,'')) 
       }],
       pips: { mode: 'positions', values: [0,20,40,60,80,100], density: 4 }
@@ -279,7 +279,7 @@ document.querySelector('.segmented-metal')
     sliderEl.noUiSlider.on('update', (values) => {
       const [v1, v2] = values.map(v => Math.round(Number(String(v).replace(/[^\d.]/g,''))));
       minIn.value = v1; maxIn.value = v2;
-      bMin.textContent = `€${v1}`; bMax.textContent = `€${v2}`;
+      bMin.textContent = `DA${v1}`; bMax.textContent = `DA${v2}`;
     });
   
     // inputs -> slider
@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let current = { id:'', name:'', price:0, img:'' , sourceImgEl:null };
 
-  function format(n){ return '€' + Number(n).toFixed(0); }
+  function format(n){ return 'DA' + Number(n).toFixed(0); }
   function updateTotal(){
     const q = Math.max(1, parseInt(qtyIn.value||'1',10));
     totalEl.textContent = format(q * current.price);
