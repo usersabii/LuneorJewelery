@@ -1286,7 +1286,7 @@ html {
 
 
 /* ===== SHOP — FIX MOBILE UNIQUEMENT ===== */
-@media (max-width: 600px){
+@media (max-width: 500px){
 
   /* 1) Le layout du shop ne doit pas garder 2 colonnes */
   #shop-section .shop-layout{ display:block !important; }
