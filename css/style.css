@@ -1285,61 +1285,47 @@ html {
 
 
 
-/* ===== SHOP — FIX MOBILE UNIQUEMENT ===== */
-@media (max-width: 500px){
+/* Cartes: jamais de coupe du bas */
+.product-card,
+.product-info,
+.product-meta{ overflow: visible !important; }
 
-  /* 1) Le layout du shop ne doit pas garder 2 colonnes */
-  #shop-section .shop-layout{ display:block !important; }
-  #shop-section .shop-content{ width:100% !important; max-width:100% !important; }
-  /* (option si c’est trop serré) #shop-section .shop-sidebar{ display:none !important; } */
-
-  /* 2) La grille: une seule colonne large */
-  #products-grid{
-    width:100% !important;
-    max-width:100% !important;
-    margin-left:0 !important;
-    margin-right:0 !important;
-    display:grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 14px !important;
-  }
-
-  /* 3) Neutraliser les classes Bootstrap qui forcent 2 colonnes */
-  #products-grid > .col-6,
-  #products-grid > [class*="col-"]{
-    flex: 0 0 100% !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    display: block !important;
-  }
-
-  /* 4) Sécuriser la carte et son image */
-  #products-grid .product-card{
-    display:block !important;
-    width:100% !important;
-    max-width:none !important;
-    min-width:0 !important;
-  }
-  #products-grid .product-media{
-    aspect-ratio: 1 / 1;
-    overflow:hidden;
-    border-radius:12px;
-  }
-  #products-grid .product-img{
-    width:100%; height:100%;
-    object-fit:cover; display:block;
-  }
-
-  /* 5) Au cas où un style “scale/width” resterait collé quelque part */
-  #shop-section .products-grid,
-  #shop-section .product-card{
-    transform:none !important;
-  }
-
-  /* 6) Texte non coupé */
-  #products-grid .product-info{ white-space: normal !important; }
+/* Ligne prix + boutons : flex propre */
+.product-meta{
+  display:flex; align-items:center; gap:8px;
+  flex-wrap: nowrap;                 /* desktop par défaut */
 }
+.product-meta .price{ margin-right:auto; }
 
+/* Boutons */
+.product-meta .btn-add,
+.product-meta .btn-buy{
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+/* Téléphone uniquement */
+@media (max-width: 575.98px){
+
+  /* La grille peut rester en 2 colonnes si tu veux (col-6) */
+  /* On reformate juste la ligne du bas pour laisser la place */
+
+  #products-grid .product-meta{
+    flex-wrap: wrap !important;
+    row-gap: 8px;
+  }
+  /* Le prix passe sur toute la ligne */
+  #products-grid .product-meta .price{
+    flex: 1 1 100%;
+    order: -1;
+  }
+  /* Les deux boutons prennent chacun ~50% (et ne sont jamais coupés) */
+  #products-grid .product-meta .btn-add,
+  #products-grid .product-meta .btn-buy{
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  /* Sécurités dimension */
+  #products-grid .product-card{ width:100% !important; min-width:0 !important; }
+  #products-grid .product-media{ aspect-ratio: 1/1; overflow:hidden; border-radius:12px; }
+  #products-grid .product-img{ width:100%; height:100%; object-fit:cover; display:block; }
+}
