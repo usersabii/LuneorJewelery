@@ -1283,8 +1283,6 @@ html {
   border: 2px solid #fff; /* liseré blanc autour du badge */
 };
 
-
-
 /* Cartes: jamais de coupe du bas */
 .product-card,
 .product-info,
@@ -1370,3 +1368,18 @@ html {
     width: 286px;
   }
 }
+
+/* Panier offcanvas */
+#cartDrawer{ width:min(420px, 92vw); }
+.cart-row{
+  display:grid; grid-template-columns: 72px 1fr auto; gap:12px; align-items:center;
+}
+.cart-row img{ width:72px; height:72px; object-fit:cover; border-radius:10px; }
+.cart-title{ font-weight:600; margin:0; }
+.cart-meta{ font-size:.9rem; color:#555; }
+.cart-controls{ display:flex; align-items:center; gap:6px; }
+.cart-qty{ width:46px; text-align:center; }
+.cart-price{ white-space:nowrap; font-weight:700; }
+.cart-remove{ border:0; background:transparent; font-size:1.1rem; line-height:1; }
+@media (max-width: 575.98px){ #cartDrawer{ width:100vw; } }
+

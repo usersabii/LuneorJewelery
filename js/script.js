@@ -776,3 +776,177 @@ function showOrderToast(orderId, pay){
   const t = new bootstrap.Toast(document.getElementById('orderToast'), { delay: 4500 });
   t.show();
 }
+
+/* ================== PANIER — BLOC COMPLET ================== */
+(function(){
+  const CURRENCY = 'DA';
+  const money = n => Math.round(Number(n||0)) + ' ' + CURRENCY;
+  const toNumber = x => Number(String(x||'').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
+
+  // État global
+  window.cart = Array.isArray(window.cart) ? window.cart : JSON.parse(localStorage.getItem('cart') || '[]');
+
+  function updateCartBubble(){
+    const el = document.querySelector('.cart-count');
+    if (!el) return;
+    const n = window.cart.reduce((s,i)=> s + (i.qty||1), 0);
+    el.textContent = String(n);
+  }
+  function saveCart(){ localStorage.setItem('cart', JSON.stringify(window.cart)); updateCartBubble(); }
+  updateCartBubble();
+
+  // Fonctions globales utiles ailleurs (ne plantent pas si déjà définies)
+  window.addToCart = window.addToCart || function(item){
+    if (!item || !item.id) return;
+    const f = window.cart.find(x => x.id === item.id);
+    if (f) f.qty = (f.qty||1)+1; else window.cart.push({ ...item, qty:1 });
+    saveCart();
+  };
+  window.flyToCart = window.flyToCart || function(sourceImgEl){
+    if (!sourceImgEl) return;
+    const bubble = document.querySelector('.cart-bubble'); if (!bubble) return;
+    const r1 = sourceImgEl.getBoundingClientRect(); const r2 = bubble.getBoundingClientRect();
+    const ghost = sourceImgEl.cloneNode(true);
+    Object.assign(ghost.style,{
+      position:'fixed', left:r1.left+'px', top:r1.top+'px',
+      width:sourceImgEl.clientWidth+'px', height:sourceImgEl.clientHeight+'px',
+      transition:'transform .6s cubic-bezier(.22,.75,.2,1), opacity .6s',
+      zIndex:'9999', pointerEvents:'none'
+    });
+    document.body.appendChild(ghost);
+    const tx = r2.left - r1.left, ty = r2.top - r1.top;
+    requestAnimationFrame(()=>{ ghost.style.transform = `translate(${tx}px,${ty}px) scale(.2)`; ghost.style.opacity='0.3'; });
+    setTimeout(()=> ghost.remove(), 650);
+  };
+
+  // AJOUTER (délégation globale)
+  document.addEventListener('click', function(e){
+    const addBtn = e.target.closest('.btn-add'); if (!addBtn) return;
+    e.preventDefault();
+    const card = addBtn.closest('.product-card');
+    const img  = card?.querySelector('.product-img, img');
+    const priceText = addBtn.dataset.price || card?.querySelector('.price, .price-chip')?.textContent;
+
+    const item = {
+      id:   addBtn.dataset.id || card?.dataset.id || addBtn.textContent.trim(),
+      name: addBtn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
+      price: toNumber(priceText),
+      img:  addBtn.dataset.img || img?.src || ''
+    };
+    const f = window.cart.find(x => x.id === item.id);
+    if (f) f.qty = (f.qty||1) + 1; else window.cart.push({ ...item, qty: 1 });
+    saveCart();
+    if (img) window.flyToCart(img);
+  });
+
+  // Ouvrir le tiroir sur la bulle
+  const cartDrawerEl = document.getElementById('cartDrawer');
+  const cartOC = cartDrawerEl ? bootstrap.Offcanvas.getOrCreateInstance(cartDrawerEl) : null;
+  document.querySelector('.cart-bubble')?.addEventListener('click', ()=>{
+    renderCart();
+    cartOC ? cartOC.show() : cartDrawerEl?.classList.add('show'); // fallback
+  });
+
+  // Rendu du panier
+  function renderCart(){
+    const wrap = document.getElementById('cartItems'); if (!wrap) return;
+    if (!Array.isArray(window.cart) || window.cart.length === 0){
+      wrap.innerHTML = `<div class="text-center text-muted">Votre panier est vide.</div>`;
+      const subEl = document.getElementById('cartSubtotal'); if (subEl) subEl.textContent = money(0);
+      document.getElementById('cartConfirmBtn')?.setAttribute('disabled','disabled');
+      document.getElementById('cartClearBtn')?.setAttribute('disabled','disabled');
+      return;
+    }
+    document.getElementById('cartConfirmBtn')?.removeAttribute('disabled');
+    document.getElementById('cartClearBtn')?.removeAttribute('disabled');
+
+    let html = '', sub = 0;
+    window.cart.forEach((it, idx)=>{
+      const line = (Number(it.price||0) * Number(it.qty||1));
+      sub += line;
+      html += `
+        <div class="cart-row" data-idx="${idx}">
+          <img src="${it.img||''}" alt="">
+          <div>
+            <p class="cart-title">${it.name||''}</p>
+            <div class="cart-meta">Ref: ${it.id||''}</div>
+            <div class="cart-controls mt-1">
+              <button class="btn btn-sm btn-outline-dark qty-minus" type="button">−</button>
+              <input class="form-control form-control-sm cart-qty" type="number" min="1" value="${it.qty||1}">
+              <button class="btn btn-sm btn-outline-dark qty-plus" type="button">+</button>
+              <button class="cart-remove ms-2" title="Supprimer" aria-label="Supprimer l’article">✕</button>
+            </div>
+          </div>
+          <div class="cart-price">${money(line)}</div>
+        </div>`;
+    });
+    wrap.innerHTML = html;
+    const subEl = document.getElementById('cartSubtotal'); if (subEl) subEl.textContent = money(sub);
+  }
+
+  // + / − / supprimer / input qty
+  document.getElementById('cartItems')?.addEventListener('click', (e)=>{
+    const row = e.target.closest('.cart-row'); if (!row) return;
+    const idx = Number(row.dataset.idx||-1); if (idx<0 || !window.cart[idx]) return;
+    if (e.target.classList.contains('qty-minus')){ window.cart[idx].qty = Math.max(1,(window.cart[idx].qty||1)-1); saveCart(); renderCart(); }
+    if (e.target.classList.contains('qty-plus')) { window.cart[idx].qty = (window.cart[idx].qty||1)+1; saveCart(); renderCart(); }
+    if (e.target.classList.contains('cart-remove')){ window.cart.splice(idx,1); saveCart(); renderCart(); }
+  });
+  document.getElementById('cartItems')?.addEventListener('input', (e)=>{
+    if (!e.target.classList.contains('cart-qty')) return;
+    const row = e.target.closest('.cart-row'); const idx = Number(row.dataset.idx||-1);
+    const q = Math.max(1, parseInt(e.target.value||'1',10));
+    if (idx>=0 && window.cart[idx]){ window.cart[idx].qty = q; saveCart(); renderCart(); }
+  });
+
+  // Vider
+  document.getElementById('cartClearBtn')?.addEventListener('click', ()=>{
+    if (!confirm('Vider le panier ?')) return;
+    window.cart = []; saveCart(); renderCart();
+  });
+
+  // Confirmer la commande (→ Google Sheets via Netlify Function order)
+  document.getElementById('cartConfirmBtn')?.addEventListener('click', async ()=>{
+    if (!Array.isArray(window.cart) || window.cart.length===0) return;
+
+    const profile = JSON.parse(localStorage.getItem('signupProfile') || '{}');
+    if (!profile.nom || !profile.telephone || !profile.adresse){
+      alert("Veuillez d’abord vous inscrire (nom, téléphone, adresse).");
+      const acc = document.getElementById('account-modal');
+      if (acc) bootstrap.Modal.getOrCreateInstance(acc).show();
+      return;
+    }
+
+    const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+    const payRadio  = document.querySelector('input[name="cartPay"]:checked');
+    const payment   = (payRadio?.value || 'cod').toUpperCase() === 'COD' ? 'COD' : 'CARD';
+
+    const items = window.cart.map(it => ({
+      id: it.id, name: it.name, qty: Number(it.qty||1), price: Number(it.price||0)
+    }));
+    const total = items.reduce((s,i)=> s + i.qty*i.price, 0);
+    const orderId = 'LNJ-' + Date.now().toString().slice(-6);
+
+    try{
+      const r = await fetch('/.netlify/functions/order', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ __kind:'order', orderId, payment, delivery, items, total, client: profile })
+      });
+      const txt = await r.text();
+      if (!r.ok) throw new Error(txt);
+
+      window.cart = []; saveCart(); renderCart();
+      const oc = bootstrap.Offcanvas.getInstance(document.getElementById('cartDrawer'));
+      oc?.hide();
+      if (typeof showOrderToast === 'function'){
+        showOrderToast(orderId, payment==='COD'?'cod':'card');
+      } else {
+        alert('Commande confirmée : ' + orderId + ' — total ' + money(total));
+      }
+    }catch(err){
+      alert('Commande non enregistrée : ' + err.message);
+      console.error(err);
+    }
+  });
+})();
