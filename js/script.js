@@ -780,53 +780,125 @@ function showOrderToast(orderId, pay){
 function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
-function renderCart(){
-  const wrap = document.getElementById('cartItems');
-  if (!wrap) return;
-  const cart = JSON.parse(localStorage.getItem('cart')||'[]');
-  if (!cart.length){
-    wrap.innerHTML = '<div class="text-center text-muted">Votre panier est vide.</div>';
-    document.getElementById('cartSubtotal').textContent = money(0);
-    return;
-  }
-  let sub = 0, html = '';
-  cart.forEach((it, idx)=>{
-    const line = (Number(it.price||0) * Number(it.qty||1)); sub += line;
-    html += `
-      <div class="cart-row" data-idx="${idx}">
-        <img src="${it.img||''}" alt="">
-        <div>
-          <p class="cart-title">${it.name||''}</p>
-          <div class="cart-meta">Ref: ${it.id||''}</div>
-        </div>
-        <div class="cart-price">${money(line)}</div>
-      </div>`;
-  });
-  wrap.innerHTML = html;
-  document.getElementById('cartSubtotal').textContent = money(sub);
-}
-
-// Quand le tiroir s'ouvre via data-bs-toggle → on (re)rend
-document.getElementById('cartDrawer')?.addEventListener('show.bs.offcanvas', renderCart);
-
-function saveCart(arr){ localStorage.setItem('cart', JSON.stringify(arr)); }
-
-document.addEventListener('click', (e)=>{
-  const btn = e.target.closest('.btn-add'); if (!btn) return;
-  const card = btn.closest('.product-card');
-  const price = Number(btn.dataset.price || (card?.querySelector('.price')?.textContent||'').replace(/[^\d]/g,'')) || 0;
-  const item = {
-    id: btn.dataset.id || crypto.randomUUID(),
-    name: btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
-    price, qty: 1,
-    img: btn.dataset.img || card?.querySelector('img')?.src || ''
+/* ================== PANIER — BLOC COMPLET, AUTONOME ================== */
+(function(){
+  const CURRENCY = 'DA';
+  const money    = n => Math.round(Number(n||0)) + ' ' + CURRENCY;
+  const toNumber = x => {
+    const num = String(x||'').replace(/\s/g,'').replace(/[^0-9.,-]/g,'').replace(',', '.');
+    const n = parseFloat(num);
+    return isNaN(n) ? 0 : n;
   };
-  const cart = JSON.parse(localStorage.getItem('cart')||'[]');
-  const found = cart.find(x => x.id === item.id);
-  if (found) found.qty += 1; else cart.push(item);
-  saveCart(cart);
-});
 
-// 1) Force un article pour tester l’affichage
-localStorage.setItem('cart', JSON.stringify([{id:'TEST', name:'Parure Test', price:1990, qty:1, img:''}]));
-// 2) Clique la bulle : le tiroir doit s’ouvrir avec la ligne TEST
+  // --- Storage helpers ---
+  function getCart(){ try{ return JSON.parse(localStorage.getItem('cart')||'[]'); }catch(_){ return []; } }
+  function setCart(arr){ localStorage.setItem('cart', JSON.stringify(arr)); updateCartBubble(arr); }
+  function updateCartBubble(cart){
+    cart = cart || getCart();
+    const el = document.querySelector('.cart-count');
+    if (el){
+      const n = cart.reduce((s,i)=> s + (i.qty||1), 0);
+      el.textContent = String(n);
+    }
+  }
+  updateCartBubble();
+
+  // --- Ajouter au panier (delegation globale) ---
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-add'); if (!btn) return;
+    e.preventDefault();
+
+    const card = btn.closest('.product-card');
+    const imgEl= card?.querySelector('.product-img, img');
+    const priceText = btn.dataset.price || card?.querySelector('.price, .price-chip')?.textContent;
+    const item = {
+      id:   btn.dataset.id   || card?.dataset.id || 'ID-'+Date.now(),
+      name: btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
+      price: toNumber(priceText),
+      img:  btn.dataset.img  || imgEl?.src || '',
+      qty:  1
+    };
+
+    const cart = getCart();
+    const found = cart.find(x => x.id === item.id);
+    if (found) found.qty = (found.qty||1)+1; else cart.push(item);
+    setCart(cart);
+
+    // Anim facultative si tu l'as
+    if (typeof flyToCart === 'function' && imgEl) flyToCart(imgEl);
+  });
+
+  // --- Ouvrir le tiroir (contenu rendu à l’ouverture) ---
+  const cartDrawerEl = document.getElementById('cartDrawer');
+  cartDrawerEl?.addEventListener('show.bs.offcanvas', renderCart);
+
+  function renderCart(){
+    const cart = getCart();
+    const wrap = document.getElementById('cartItems');
+    const subEl= document.getElementById('cartSubtotal');
+    if (!wrap) return;
+
+    if (!cart.length){
+      wrap.innerHTML = '<div class="text-center text-muted">Votre panier est vide.</div>';
+      if (subEl) subEl.textContent = money(0);
+      document.getElementById('cartConfirmBtn')?.setAttribute('disabled','disabled');
+      document.getElementById('cartClearBtn')?.setAttribute('disabled','disabled');
+      return;
+    }
+    document.getElementById('cartConfirmBtn')?.removeAttribute('disabled');
+    document.getElementById('cartClearBtn')?.removeAttribute('disabled');
+
+    let sub = 0;
+    wrap.innerHTML = cart.map((it, idx)=>{
+      const line = (Number(it.price||0) * Number(it.qty||1)); sub += line;
+      return `
+        <div class="cart-row" data-idx="${idx}">
+          <img src="${it.img||''}" alt="">
+          <div>
+            <p class="cart-title">${(it.name||'')}</p>
+            <div class="cart-meta">Ref: ${it.id||''}</div>
+            <div class="cart-controls mt-1">
+              <button class="btn btn-sm btn-outline-dark qty-minus" type="button">−</button>
+              <input class="form-control form-control-sm cart-qty" type="number" min="1" value="${it.qty||1}">
+              <button class="btn btn-sm btn-outline-dark qty-plus" type="button">+</button>
+              <button class="cart-remove ms-2" title="Supprimer" aria-label="Supprimer l’article">✕</button>
+            </div>
+          </div>
+          <div class="cart-price">${money(line)}</div>
+        </div>`;
+    }).join('');
+    if (subEl) subEl.textContent = money(sub);
+  }
+
+  // --- + / − / supprimer / saisie directe ---
+  document.getElementById('cartItems')?.addEventListener('click', (e)=>{
+    const row = e.target.closest('.cart-row'); if (!row) return;
+    const idx = Number(row.dataset.idx||-1); const cart = getCart(); if (idx<0 || !cart[idx]) return;
+
+    if (e.target.classList.contains('qty-minus')){ cart[idx].qty = Math.max(1,(cart[idx].qty||1)-1); setCart(cart); renderCart(); }
+    if (e.target.classList.contains('qty-plus')) { cart[idx].qty = (cart[idx].qty||1)+1; setCart(cart); renderCart(); }
+    if (e.target.classList.contains('cart-remove')){ cart.splice(idx,1); setCart(cart); renderCart(); }
+  });
+  document.getElementById('cartItems')?.addEventListener('input', (e)=>{
+    if (!e.target.classList.contains('cart-qty')) return;
+    const row = e.target.closest('.cart-row'); const idx = Number(row.dataset.idx||-1);
+    const cart = getCart(); if (idx<0 || !cart[idx]) return;
+    const q = Math.max(1, parseInt(e.target.value||'1',10));
+    cart[idx].qty = q; setCart(cart); renderCart();
+  });
+
+  // --- Vider ---
+  document.getElementById('cartClearBtn')?.addEventListener('click', ()=>{
+    if (!confirm('Vider le panier ?')) return;
+    setCart([]); renderCart();
+  });
+
+  // --- Compteur à l’ouverture de page ---
+  document.addEventListener('DOMContentLoaded', updateCartBubble);
+})();
+
+
+// 1) Simule 1 article pour voir l'affichage
+localStorage.setItem('cart', JSON.stringify([{id:'TEST1', name:'Parure Test', price:1990, qty:1, img:''}]));
+// 2) Clique la bulle : tu dois voir "Parure Test" + sous-total 1990 DA
+
