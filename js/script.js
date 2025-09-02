@@ -902,3 +902,5 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 localStorage.setItem('cart', JSON.stringify([{id:'TEST1', name:'Parure Test', price:1990, qty:1, img:''}]));
 // 2) Clique la bulle : tu dois voir "Parure Test" + sous-total 1990 DA
 
+
+
