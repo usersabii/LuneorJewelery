@@ -337,102 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  const grid = document.getElementById('products-grid');
-  const bubble = document.getElementById('cart-bubble');
-  const countEl = document.getElementById('cart-count');
-
-  // Panier simple en mémoire (tu peux remplacer par localStorage si tu veux)
-  const cart = [];
-
-  function updateCartCount(){
-    const total = cart.reduce((sum, item) => sum + item.qty, 0);
-    if (countEl) countEl.textContent = String(total);
-  }
-
-  function addToCart(data){
-    // Cherche si déjà présent
-    const found = cart.find(p => p.id === data.id);
-    if (found) found.qty += 1;
-    else cart.push({ ...data, qty: 1 });
-    updateCartCount();
-    // petit effet sur la bulle
-    bubble?.classList.remove('pulse'); // reset
-    void bubble?.offsetWidth;          // reflow pour rejouer l’anim
-    bubble?.classList.add('pulse');
-  }
-
-  function flyToCart(imgEl){
-    if (!imgEl || !bubble) return;
-
-    const imgRect = imgEl.getBoundingClientRect();
-    const bubRect = bubble.getBoundingClientRect();
-
-    // Clone visuel
-    const clone = imgEl.cloneNode(true);
-    clone.style.position = 'fixed';
-    clone.style.left = imgRect.left + 'px';
-    clone.style.top  = imgRect.top + 'px';
-    clone.style.width  = imgRect.width + 'px';
-    clone.style.height = imgRect.height + 'px';
-    clone.style.borderRadius = '12px';
-    clone.style.zIndex = 9999;
-    clone.style.pointerEvents = 'none';
-    clone.style.transition = 'transform .7s cubic-bezier(.2,.7,.2,1), opacity .7s ease';
-
-    document.body.appendChild(clone);
-
-    // Calcul du vecteur → centre de la bulle
-    const fromX = imgRect.left + imgRect.width/2;
-    const fromY = imgRect.top  + imgRect.height/2;
-    const toX   = bubRect.left + bubRect.width/2;
-    const toY   = bubRect.top  + bubRect.height/2;
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-
-    // Lance l’anim au prochain frame
-    requestAnimationFrame(() => {
-      clone.style.transform = `translate(${dx}px, ${dy}px) scale(.15)`;
-      clone.style.opacity = '0.6';
-    });
-
-    clone.addEventListener('transitionend', () => {
-      clone.remove();
-    }, { once: true });
-  }
-
- // remplace l'ancien grid?.addEventListener('click', ...)
-document.addEventListener('click', (e) => {
-  // BUY
-  const buyBtn = e.target.closest('.btn-buy');
-  if (buyBtn) {
-    const card = buyBtn.closest('.product-card');
-    const img  = card?.querySelector('.product-img, img');
-    openBuyModal({
-      id: buyBtn.dataset.id,
-      name: buyBtn.dataset.name,
-      price: Number(buyBtn.dataset.price || 0),
-      img: buyBtn.dataset.img,
-      sourceImgEl: img || null
-    });
-    return;
-  }
-
-  // ADD
-  const addBtn = e.target.closest('.btn-add');
-  if (addBtn) {
-    const card = addBtn.closest('.product-card');
-    const img  = card?.querySelector('.product-img, img');
-    addToCart({
-      id: addBtn.dataset.id,
-      name: addBtn.dataset.name,
-      price: Number(addBtn.dataset.price || 0),
-      img: addBtn.dataset.img
-    });
-    flyToCart(img);
-  }
-});
-});
 
 document.addEventListener('DOMContentLoaded', () => {
   const buyModalEl   = document.getElementById('buyNowModal');
@@ -897,10 +801,172 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   document.addEventListener('DOMContentLoaded', updateCartBubble);
 })();
 
+/* === PATCH 1: bulle + animation + compteur unifiés === */
+(function(){
+  const toNumber = x => {
+    const num = String(x||'').replace(/\s/g,'').replace(/[^0-9.,-]/g,'').replace(',', '.');
+    const n = parseFloat(num); return isNaN(n) ? 0 : n;
+  };
 
-// 1) Simule 1 article pour voir l'affichage
-localStorage.setItem('cart', JSON.stringify([{id:'TEST1', name:'Parure Test', price:1990, qty:1, img:''}]));
-// 2) Clique la bulle : tu dois voir "Parure Test" + sous-total 1990 DA
+  // Trouve la bulle (accepte #cart-bubble, .cart-bubble, #cartCount, .cart-count)
+  window.__getCartBubble = () =>
+    document.getElementById('cart-bubble') ||
+    document.querySelector('.cart-bubble') ||
+    document.getElementById('cartCount') ||
+    document.querySelector('.cart-count');
+
+  // Met à jour le chiffre de la bulle
+  window.updateCartBubble = function(){
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const n = cart.reduce((s,i)=> s + (Number(i.qty)||1), 0);
+    // essaie plusieurs sélecteurs possibles
+    const countEl = document.getElementById('cart-count') ||
+                    document.querySelector('#cartCount, .cart-count');
+    if (countEl) countEl.textContent = String(n);
+
+    // petit pulse sur la bulle si présente
+    const bubble = window.__getCartBubble();
+    if (bubble){
+      bubble.classList.remove('pulse'); void bubble.offsetWidth; bubble.classList.add('pulse');
+    }
+  };
+
+  // Animation vers la bulle
+  window.flyToCart = function(sourceImgEl){
+    const bubble = window.__getCartBubble();
+    if (!sourceImgEl || !bubble) return;
+
+    const r1 = sourceImgEl.getBoundingClientRect();
+    const r2 = bubble.getBoundingClientRect();
+    const ghost = sourceImgEl.cloneNode(true);
+    Object.assign(ghost.style, {
+      position:'fixed', left:r1.left+'px', top:r1.top+'px',
+      width:r1.width+'px', height:r1.height+'px',
+      borderRadius:'12px', zIndex:9999, pointerEvents:'none',
+      transition:'transform .7s cubic-bezier(.2,.7,.2,1), opacity .7s'
+    });
+    document.body.appendChild(ghost);
+
+    const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
+    const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
+    requestAnimationFrame(()=>{ ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.15)`; ghost.style.opacity = '0.6'; });
+    ghost.addEventListener('transitionend', ()=> ghost.remove(), { once:true });
+  };
+
+  // addToCart unique (écrit en localStorage et met à jour la bulle)
+  window.addToCart = function({id, name, price, img, qty=1}){
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const p = toNumber(price);
+    const i = cart.findIndex(x => x.id === id);
+    if (i > -1) cart[i].qty += qty; else cart.push({ id, name, price:p, img:img||'', qty });
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.updateCartBubble();
+    // si le drawer est ouvert, redemande un render
+    document.getElementById('cartDrawer')?.dispatchEvent(new Event('pc:force-render', {bubbles:true}));
+  };
+
+  // synchro au chargement
+  document.addEventListener('DOMContentLoaded', window.updateCartBubble);
+})();
 
 
+/* === PATCH 2: wiring sûr du bouton .btn-add === */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-add'); if (!btn) return;
+  e.preventDefault();
+
+  const card = btn.closest('.product-card');
+  const img  = card?.querySelector('.product-img, img');
+
+  addToCart({
+    id:   btn.dataset.id || card?.dataset.id || ('ID-'+Date.now()),
+    name: btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
+    price: btn.dataset.price || card?.querySelector('.price, .price-chip')?.textContent || 0,
+    img:  btn.dataset.img || img?.getAttribute('src') || '',
+    qty:  1
+  });
+
+  flyToCart(img);
+
+  // Ouvrir le panier après ajout ? décommente si tu veux :
+  // bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cartDrawer'))?.show();
+});
+
+/* === PATCH 3: render à l’ouverture + refresh forcé === */
+(function(){
+  const money = n => Math.round(Number(n||0)) + ' DA';
+
+  function renderCart(){
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const wrap = document.getElementById('cartItems');
+    const sub  = document.getElementById('cartSubtotal');
+    const btnConfirm = document.getElementById('cartConfirmBtn');
+    const btnClear   = document.getElementById('cartClearBtn');
+    if (!wrap) return;
+
+    if (!cart.length){
+      wrap.innerHTML = '<div class="text-center text-muted">Votre panier est vide.</div>';
+      if (sub) sub.textContent = money(0);
+      btnConfirm?.setAttribute('disabled','disabled');
+      btnClear?.setAttribute('disabled','disabled');
+      return;
+    }
+    btnConfirm?.removeAttribute('disabled');
+    btnClear?.removeAttribute('disabled');
+
+    let total = 0;
+    wrap.innerHTML = cart.map((it, idx) => {
+      const line = (Number(it.price)||0) * (Number(it.qty)||1); total += line;
+      return `
+        <div class="cart-row" data-idx="${idx}">
+          <img src="${it.img||''}" alt="" class="me-2" style="width:64px;height:64px;object-fit:cover;border-radius:8px;">
+          <div class="flex-grow-1">
+            <div class="cart-title">${it.name||''}</div>
+            <div class="cart-meta text-muted">Ref: ${it.id||''}</div>
+            <div class="cart-controls mt-1">
+              <button class="btn btn-sm btn-outline-dark qty-minus" type="button">−</button>
+              <input class="form-control form-control-sm cart-qty d-inline-block" style="width:64px" type="number" min="1" value="${it.qty||1}">
+              <button class="btn btn-sm btn-outline-dark qty-plus" type="button">+</button>
+              <button class="btn btn-link text-danger cart-remove ms-2" title="Supprimer">Supprimer</button>
+            </div>
+          </div>
+          <div class="cart-price ms-2 fw-semibold">${money(line)}</div>
+        </div>`;
+    }).join('');
+    if (sub) sub.textContent = money(total);
+  }
+
+  // Ouvre → render
+  document.getElementById('cartDrawer')?.addEventListener('show.bs.offcanvas', renderCart);
+
+  // Boutons internes
+  document.getElementById('cartItems')?.addEventListener('click', (e)=>{
+    const row = e.target.closest('.cart-row'); if (!row) return;
+    const idx = Number(row.dataset.idx||-1);
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]'); if (!cart[idx]) return;
+
+    if (e.target.classList.contains('qty-minus')) { cart[idx].qty = Math.max(1,(cart[idx].qty||1)-1); }
+    if (e.target.classList.contains('qty-plus'))  { cart[idx].qty = (cart[idx].qty||1)+1; }
+    if (e.target.classList.contains('cart-remove')) { cart.splice(idx,1); }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.updateCartBubble(); renderCart();
+  });
+  document.getElementById('cartItems')?.addEventListener('input', (e)=>{
+    if (!e.target.classList.contains('cart-qty')) return;
+    const row = e.target.closest('.cart-row'); const idx = Number(row.dataset.idx||-1);
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]'); if (!cart[idx]) return;
+    cart[idx].qty = Math.max(1, parseInt(e.target.value||'1',10));
+    localStorage.setItem('cart', JSON.stringify(cart));
+    window.updateCartBubble(); renderCart();
+  });
+
+  // Vider
+  document.getElementById('cartClearBtn')?.addEventListener('click', ()=>{
+    localStorage.setItem('cart','[]');
+    window.updateCartBubble(); renderCart();
+  });
+
+  // Refresh live déclenché par PATCH 1
+  document.getElementById('cartDrawer')?.addEventListener('pc:force-render', renderCart);
+})();
 
