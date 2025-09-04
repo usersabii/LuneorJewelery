@@ -1,28 +1,137 @@
+/* === Animation + compteur pour .btn-add (sans rien casser) === */
+(function () {
+  // éviter d'attacher deux fois si tu reloads souvent
+  if (window.__flyHooked) return;
+  window.__flyHooked = true;
+
+  // 1) Animation d'aspiration vers la bulle
+  function flyToCart(sourceImgEl, bubbleEl) {
+    if (!sourceImgEl || !bubbleEl) return;
+
+    const r1 = sourceImgEl.getBoundingClientRect();
+    const r2 = bubbleEl.getBoundingClientRect();
+
+    const ghost = sourceImgEl.cloneNode(true);
+    ghost.style.position = 'fixed';
+    ghost.style.left = r1.left + 'px';
+    ghost.style.top = r1.top + 'px';
+    ghost.style.width = sourceImgEl.clientWidth + 'px';
+    ghost.style.height = sourceImgEl.clientHeight + 'px';
+    ghost.style.borderRadius = '12px';
+    ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
+    ghost.style.zIndex = '9999';
+    ghost.style.pointerEvents = 'none';
+    document.body.appendChild(ghost);
+
+    const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
+    const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
+
+    requestAnimationFrame(() => {
+      ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.18)`;
+      ghost.style.opacity = '0.35';
+    });
+
+    ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
+  }
+
+  // 3) Accroche sur tous les boutons .btn-add (délégation globale)
+  document.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('.btn-add');
+    if (!addBtn) return;
+
+    // Trouver l’image de la carte pour l’anim
+    const card = addBtn.closest('.product-card');
+    const imgEl = card?.querySelector('.product-img, img');
+    const bubbleEl = document.querySelector('.cart-bubble, #cart-bubble');
+
+    // D’abord on ajoute au panier via ta fonction existante si elle existe
+    if (typeof window.addToCart === 'function') {
+      window.addToCart({
+        id: addBtn.dataset.id,
+        name: addBtn.dataset.name,
+        price: Number(addBtn.dataset.price || 0),
+        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+        qty: 1
+      });
+    } else {
+      // Fallback ultra léger qui ne perturbe pas ton code
+      let cart = [];
+      try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch(_) {}
+      const id = addBtn.dataset.id;
+      const found = cart.find(x => x.id === id);
+      if (found) found.qty = (found.qty || 1) + 1;
+      else cart.push({
+        id,
+        name: addBtn.dataset.name,
+        price: Number(addBtn.dataset.price || 0),
+        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+        qty: 1
+      });
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+
+    // Lance l’animation d’aspiration
+    flyToCart(imgEl, bubbleEl);
+  });
+})();
+
+// === Panier : helpers uniques (source de vérité) ===
+(function () {
+  const STORAGE_KEY = 'cart';
+
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function setCart(arr) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr || []));
+    updateCartBubble(arr);
+  }
+
+  function updateCartBubble(cart) {
+    cart = Array.isArray(cart) ? cart : getCart();
+    const total = cart.reduce((s, it) => s + (parseInt(it.qty, 10) > 0 ? parseInt(it.qty, 10) : 1), 0);
+    const el = document.querySelector('.cart-count'); // <span class="cart-count" id="cart-count">
+    if (el) el.textContent = String(total); // affiche 0 si panier vide
+  }
+
+  // Init au chargement : crée [] si absent et affiche 0
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY, '[]');
+    updateCartBubble(); // démarre bien à 0
+  });
+
+  // Expose proprement
+  window.getCart = getCart;
+  window.setCart = setCart;
+  window.updateCartBubble = updateCartBubble;
+})();
+
+// --- Démarrer le panier à 0 à CHAQUE rechargement ---
+(function () {
+  const STORAGE_KEY = 'cart';
+  const RESET_CART_ON_EVERY_LOAD = true; // mets false si un jour tu veux persister
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (RESET_CART_ON_EVERY_LOAD) {
+      // Vide le panier à chaque reload => bulle = 0
+      localStorage.setItem(STORAGE_KEY, '[]');
+    } else if (!localStorage.getItem(STORAGE_KEY)) {
+      // (mode persistant) initialise seulement s'il n'existe pas
+      localStorage.setItem(STORAGE_KEY, '[]');
+    }
+    // force l’affichage du compteur (sera 0 juste après le set([]))
+    if (typeof window.updateCartBubble === 'function') {
+      window.updateCartBubble([]);
+    }
+  });
+})();
+
+
 // --- Panier minimal global (évite le crash si absent) ---
 window.cart = JSON.parse(localStorage.getItem('cart') || '[]');
-
-function updateCartBubble(){
-  const countEl = document.querySelector('.cart-count');
-  if (!countEl) return;
-  const totalQty = window.cart.reduce((s, i) => s + (i.qty || 1), 0);
-  countEl.textContent = String(totalQty);
-}
-function saveCart(){
-  localStorage.setItem('cart', JSON.stringify(window.cart));
-  updateCartBubble();
-}
-
-// Ajout au panier (global)
-window.addToCart = function(item){
-  if (!item || !item.id) return;
-  const found = window.cart.find(x => x.id === item.id);
-  if (found) {
-    found.qty = (found.qty || 1) + 1;
-  } else {
-    window.cart.push({ ...item, qty: 1 });
-  }
-  saveCart();
-};
 
 // Animation vers la bulle (facultative si elem pas dispo)
 window.flyToCart = function(sourceImgEl){
@@ -611,12 +720,6 @@ document.getElementById('confirmBuyBtn')?.addEventListener('click', () => {
   bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
 });
 
-// après succès d'inscription
-localStorage.setItem('signupProfile', JSON.stringify({
-  nom: payload.nom, prenom: payload.prenom, email: payload.email,
-  telephone: payload.telephone, adresse: payload.adresse
-}));
-
 document.getElementById('confirmBuyBtn')?.addEventListener('click', async () => {
   const qty = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1',10));
   const pay = document.querySelector('input[name="pay"]:checked')?.value || 'card';
@@ -684,289 +787,45 @@ function showOrderToast(orderId, pay){
 function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
-/* ================== PANIER — BLOC COMPLET, AUTONOME ================== */
-(function(){
-  const CURRENCY = 'DA';
-  const money    = n => Math.round(Number(n||0)) + ' ' + CURRENCY;
-  const toNumber = x => {
-    const num = String(x||'').replace(/\s/g,'').replace(/[^0-9.,-]/g,'').replace(',', '.');
-    const n = parseFloat(num);
-    return isNaN(n) ? 0 : n;
-  };
+/* === LNJ — Compteur bulle panier 100% passif (n'affecte pas l'animation) === */
+(function () {
+  const KEY = 'cart';
+  const BUBBLE_SEL = '.cart-count';
 
-  // --- Storage helpers ---
-  function getCart(){ try{ return JSON.parse(localStorage.getItem('cart')||'[]'); }catch(_){ return []; } }
-  function setCart(arr){ localStorage.setItem('cart', JSON.stringify(arr)); updateCartBubble(arr); }
-  function updateCartBubble(cart){
-    cart = cart || getCart();
-    const el = document.querySelector('.cart-count');
-    if (el){
-      const n = cart.reduce((s,i)=> s + (i.qty||1), 0);
-      el.textContent = String(n);
-    }
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+    catch { return []; }
   }
-  updateCartBubble();
-
-  // --- Ajouter au panier (delegation globale) ---
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-add'); if (!btn) return;
-    e.preventDefault();
-
-    const card = btn.closest('.product-card');
-    const imgEl= card?.querySelector('.product-img, img');
-    const priceText = btn.dataset.price || card?.querySelector('.price, .price-chip')?.textContent;
-    const item = {
-      id:   btn.dataset.id   || card?.dataset.id || 'ID-'+Date.now(),
-      name: btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
-      price: toNumber(priceText),
-      img:  btn.dataset.img  || imgEl?.src || '',
-      qty:  1
-    };
-
-    const cart = getCart();
-    const found = cart.find(x => x.id === item.id);
-    if (found) found.qty = (found.qty||1)+1; else cart.push(item);
-    setCart(cart);
-
-    // Anim facultative si tu l'as
-    if (typeof flyToCart === 'function' && imgEl) flyToCart(imgEl);
-  });
-
-  // --- Ouvrir le tiroir (contenu rendu à l’ouverture) ---
-  const cartDrawerEl = document.getElementById('cartDrawer');
-  cartDrawerEl?.addEventListener('show.bs.offcanvas', renderCart);
-
-  function renderCart(){
-    const cart = getCart();
-    const wrap = document.getElementById('cartItems');
-    const subEl= document.getElementById('cartSubtotal');
-    if (!wrap) return;
-
-    if (!cart.length){
-      wrap.innerHTML = '<div class="text-center text-muted">Votre panier est vide.</div>';
-      if (subEl) subEl.textContent = money(0);
-      document.getElementById('cartConfirmBtn')?.setAttribute('disabled','disabled');
-      document.getElementById('cartClearBtn')?.setAttribute('disabled','disabled');
-      return;
-    }
-    document.getElementById('cartConfirmBtn')?.removeAttribute('disabled');
-    document.getElementById('cartClearBtn')?.removeAttribute('disabled');
-
-    let sub = 0;
-    wrap.innerHTML = cart.map((it, idx)=>{
-      const line = (Number(it.price||0) * Number(it.qty||1)); sub += line;
-      return `
-        <div class="cart-row" data-idx="${idx}">
-          <img src="${it.img||''}" alt="">
-          <div>
-            <p class="cart-title">${(it.name||'')}</p>
-            <div class="cart-meta">Ref: ${it.id||''}</div>
-            <div class="cart-controls mt-1">
-              <button class="btn btn-sm btn-outline-dark qty-minus" type="button">−</button>
-              <input class="form-control form-control-sm cart-qty" type="number" min="1" value="${it.qty||1}">
-              <button class="btn btn-sm btn-outline-dark qty-plus" type="button">+</button>
-              <button class="cart-remove ms-2" title="Supprimer" aria-label="Supprimer l’article">✕</button>
-            </div>
-          </div>
-          <div class="cart-price">${money(line)}</div>
-        </div>`;
-    }).join('');
-    if (subEl) subEl.textContent = money(sub);
+  function computeCount(c) {
+    return (c || []).reduce((s, i) => s + (parseInt(i?.qty || 1, 10) || 1), 0);
+  }
+  function updateBubble() {
+    const el = document.querySelector(BUBBLE_SEL);
+    if (!el) return;
+    el.textContent = String(computeCount(getCart()));
   }
 
-  // --- + / − / supprimer / saisie directe ---
-  document.getElementById('cartItems')?.addEventListener('click', (e)=>{
-    const row = e.target.closest('.cart-row'); if (!row) return;
-    const idx = Number(row.dataset.idx||-1); const cart = getCart(); if (idx<0 || !cart[idx]) return;
-
-    if (e.target.classList.contains('qty-minus')){ cart[idx].qty = Math.max(1,(cart[idx].qty||1)-1); setCart(cart); renderCart(); }
-    if (e.target.classList.contains('qty-plus')) { cart[idx].qty = (cart[idx].qty||1)+1; setCart(cart); renderCart(); }
-    if (e.target.classList.contains('cart-remove')){ cart.splice(idx,1); setCart(cart); renderCart(); }
-  });
-  document.getElementById('cartItems')?.addEventListener('input', (e)=>{
-    if (!e.target.classList.contains('cart-qty')) return;
-    const row = e.target.closest('.cart-row'); const idx = Number(row.dataset.idx||-1);
-    const cart = getCart(); if (idx<0 || !cart[idx]) return;
-    const q = Math.max(1, parseInt(e.target.value||'1',10));
-    cart[idx].qty = q; setCart(cart); renderCart();
+  // 0 au chargement, puis synchro avec localStorage
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.querySelector(BUBBLE_SEL);
+    if (el) el.textContent = '0';
+    updateBubble();
   });
 
-  // --- Vider ---
-  document.getElementById('cartClearBtn')?.addEventListener('click', ()=>{
-    if (!confirm('Vider le panier ?')) return;
-    setCart([]); renderCart();
-  });
-
-  // --- Compteur à l’ouverture de page ---
-  document.addEventListener('DOMContentLoaded', updateCartBubble);
-})();
-
-/* === PATCH 1: bulle + animation + compteur unifiés === */
-(function(){
-  const toNumber = x => {
-    const num = String(x||'').replace(/\s/g,'').replace(/[^0-9.,-]/g,'').replace(',', '.');
-    const n = parseFloat(num); return isNaN(n) ? 0 : n;
+  // Patch non intrusif: on observe quand 'cart' est écrit
+  const _setItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function (k, v) {
+    _setItem(k, v);
+    if (k === KEY) document.dispatchEvent(new Event('cart:updated'));
   };
 
-  // Trouve la bulle (accepte #cart-bubble, .cart-bubble, #cartCount, .cart-count)
-  window.__getCartBubble = () =>
-    document.getElementById('cart-bubble') ||
-    document.querySelector('.cart-bubble') ||
-    document.getElementById('cartCount') ||
-    document.querySelector('.cart-count');
-
-  // Met à jour le chiffre de la bulle
-  window.updateCartBubble = function(){
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const n = cart.reduce((s,i)=> s + (Number(i.qty)||1), 0);
-    // essaie plusieurs sélecteurs possibles
-    const countEl = document.getElementById('cart-count') ||
-                    document.querySelector('#cartCount, .cart-count');
-    if (countEl) countEl.textContent = String(n);
-
-    // petit pulse sur la bulle si présente
-    const bubble = window.__getCartBubble();
-    if (bubble){
-      bubble.classList.remove('pulse'); void bubble.offsetWidth; bubble.classList.add('pulse');
-    }
-  };
-
-  // Animation vers la bulle
-  window.flyToCart = function(sourceImgEl){
-    const bubble = window.__getCartBubble();
-    if (!sourceImgEl || !bubble) return;
-
-    const r1 = sourceImgEl.getBoundingClientRect();
-    const r2 = bubble.getBoundingClientRect();
-    const ghost = sourceImgEl.cloneNode(true);
-    Object.assign(ghost.style, {
-      position:'fixed', left:r1.left+'px', top:r1.top+'px',
-      width:r1.width+'px', height:r1.height+'px',
-      borderRadius:'12px', zIndex:9999, pointerEvents:'none',
-      transition:'transform .7s cubic-bezier(.2,.7,.2,1), opacity .7s'
-    });
-    document.body.appendChild(ghost);
-
-    const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
-    const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
-    requestAnimationFrame(()=>{ ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.15)`; ghost.style.opacity = '0.6'; });
-    ghost.addEventListener('transitionend', ()=> ghost.remove(), { once:true });
-  };
-
-  // addToCart unique (écrit en localStorage et met à jour la bulle)
-  window.addToCart = function({id, name, price, img, qty=1}){
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const p = toNumber(price);
-    const i = cart.findIndex(x => x.id === id);
-    if (i > -1) cart[i].qty += qty; else cart.push({ id, name, price:p, img:img||'', qty });
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.updateCartBubble();
-    // si le drawer est ouvert, redemande un render
-    document.getElementById('cartDrawer')?.dispatchEvent(new Event('pc:force-render', {bubbles:true}));
-  };
-
-  // synchro au chargement
-  document.addEventListener('DOMContentLoaded', window.updateCartBubble);
-})();
-
-
-/* === PATCH 2: wiring sûr du bouton .btn-add === */
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.btn-add'); if (!btn) return;
-  e.preventDefault();
-
-  const card = btn.closest('.product-card');
-  const img  = card?.querySelector('.product-img, img');
-
-  addToCart({
-    id:   btn.dataset.id || card?.dataset.id || ('ID-'+Date.now()),
-    name: btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || 'Article',
-    price: btn.dataset.price || card?.querySelector('.price, .price-chip')?.textContent || 0,
-    img:  btn.dataset.img || img?.getAttribute('src') || '',
-    qty:  1
+  // Mises à jour: onglet courant + autres onglets
+  document.addEventListener('cart:updated', updateBubble);
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY) updateBubble();
   });
 
-  flyToCart(img);
-
-  // Ouvrir le panier après ajout ? décommente si tu veux :
-  // bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cartDrawer'))?.show();
-});
-
-/* === PATCH 3: render à l’ouverture + refresh forcé === */
-(function(){
-  const money = n => Math.round(Number(n||0)) + ' DA';
-
-  function renderCart(){
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const wrap = document.getElementById('cartItems');
-    const sub  = document.getElementById('cartSubtotal');
-    const btnConfirm = document.getElementById('cartConfirmBtn');
-    const btnClear   = document.getElementById('cartClearBtn');
-    if (!wrap) return;
-
-    if (!cart.length){
-      wrap.innerHTML = '<div class="text-center text-muted">Votre panier est vide.</div>';
-      if (sub) sub.textContent = money(0);
-      btnConfirm?.setAttribute('disabled','disabled');
-      btnClear?.setAttribute('disabled','disabled');
-      return;
-    }
-    btnConfirm?.removeAttribute('disabled');
-    btnClear?.removeAttribute('disabled');
-
-    let total = 0;
-    wrap.innerHTML = cart.map((it, idx) => {
-      const line = (Number(it.price)||0) * (Number(it.qty)||1); total += line;
-      return `
-        <div class="cart-row" data-idx="${idx}">
-          <img src="${it.img||''}" alt="" class="me-2" style="width:64px;height:64px;object-fit:cover;border-radius:8px;">
-          <div class="flex-grow-1">
-            <div class="cart-title">${it.name||''}</div>
-            <div class="cart-meta text-muted">Ref: ${it.id||''}</div>
-            <div class="cart-controls mt-1">
-              <button class="btn btn-sm btn-outline-dark qty-minus" type="button">−</button>
-              <input class="form-control form-control-sm cart-qty d-inline-block" style="width:64px" type="number" min="1" value="${it.qty||1}">
-              <button class="btn btn-sm btn-outline-dark qty-plus" type="button">+</button>
-              <button class="btn btn-link text-danger cart-remove ms-2" title="Supprimer">Supprimer</button>
-            </div>
-          </div>
-          <div class="cart-price ms-2 fw-semibold">${money(line)}</div>
-        </div>`;
-    }).join('');
-    if (sub) sub.textContent = money(total);
-  }
-
-  // Ouvre → render
-  document.getElementById('cartDrawer')?.addEventListener('show.bs.offcanvas', renderCart);
-
-  // Boutons internes
-  document.getElementById('cartItems')?.addEventListener('click', (e)=>{
-    const row = e.target.closest('.cart-row'); if (!row) return;
-    const idx = Number(row.dataset.idx||-1);
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]'); if (!cart[idx]) return;
-
-    if (e.target.classList.contains('qty-minus')) { cart[idx].qty = Math.max(1,(cart[idx].qty||1)-1); }
-    if (e.target.classList.contains('qty-plus'))  { cart[idx].qty = (cart[idx].qty||1)+1; }
-    if (e.target.classList.contains('cart-remove')) { cart.splice(idx,1); }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.updateCartBubble(); renderCart();
-  });
-  document.getElementById('cartItems')?.addEventListener('input', (e)=>{
-    if (!e.target.classList.contains('cart-qty')) return;
-    const row = e.target.closest('.cart-row'); const idx = Number(row.dataset.idx||-1);
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]'); if (!cart[idx]) return;
-    cart[idx].qty = Math.max(1, parseInt(e.target.value||'1',10));
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.updateCartBubble(); renderCart();
-  });
-
-  // Vider
-  document.getElementById('cartClearBtn')?.addEventListener('click', ()=>{
-    localStorage.setItem('cart','[]');
-    window.updateCartBubble(); renderCart();
-  });
-
-  // Refresh live déclenché par PATCH 1
-  document.getElementById('cartDrawer')?.addEventListener('pc:force-render', renderCart);
+  // Expose au besoin
+  window.LNJ_updateCartBubble = updateBubble;
 })();
 
