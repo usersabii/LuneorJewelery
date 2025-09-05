@@ -1,3 +1,4 @@
+
 /* === Animation + compteur pour .btn-add (sans rien casser) === */
 (function () {
   // éviter d'attacher deux fois si tu reloads souvent
@@ -829,3 +830,327 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   window.LNJ_updateCartBubble = updateBubble;
 })();
 
+
+
+
+
+
+
+
+
+
+
+
+/* =========================================================
+   LUNEOR SHOP FILTERS — PRÊT À COLLER
+   - Recherche texte
+   - Types (chips) SÉLECTION EXCLUSIVE (1 actif max)
+   - Métal (radio) exclusif
+   - Prix min/max + presets
+   - Reset global
+   - Masque la colonne Bootstrap parente d'une .product-card
+   ========================================================= */
+
+   (() => {
+    'use strict';
+  
+    /* ---------- CONFIG ---------- */
+    const CONFIG = {
+      sidebar:        '.shop-sidebar',
+      productCard:    '.product-card',
+      productTitle:   '.product-title',
+      productPriceEl: '.price',
+      gridWrapperSel: '[class*="col-"]',
+  
+      // Recherche
+      searchInput:    '.filter-search input[type="text"]',
+  
+      // Types (chips)
+      typeChipGroup:  '.chip-group',
+      typeChip:       '.chip[data-type]',
+      typeResetBtn:   '.chip-reset',
+  
+      // Métal (radios)
+      metalRadios:    'input[name="metal"]',
+  
+      // Prix
+      minInput:       '#price-min-input',
+      maxInput:       '#price-max-input',
+      priceBadgeMin:  '#price-badge-min',
+      priceBadgeMax:  '#price-badge-max',
+      pricePresets:   '.price-presets [data-range]',
+      priceSlider:    '#price-slider', // optionnel: noUiSlider
+  
+      // Reset global
+      resetBtn:       '.btn-reset',
+  
+      // Valeurs par défaut prix
+      PRICE_MIN_DEFAULT: 0,
+      PRICE_MAX_DEFAULT: 5000
+    };
+  
+    /* ---------- STATE ---------- */
+    const STATE = {
+      search: '',
+      types: new Set(),      // ex: ring, necklace, earring, bracelet, anklet, set
+      metal: null,           // 'gold' | 'silver' | null
+      priceMin: 0,
+      priceMax: Infinity
+    };
+  
+    /* ---------- UTILS ---------- */
+    const $  = (root, sel) => root?.querySelector(sel) || null;
+    const $$ = (root, sel) => Array.from(root?.querySelectorAll(sel) || []);
+    const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
+  
+    const toNumber = (str) => {
+      if (typeof str !== 'string') return NaN;
+      const cleaned = str.replace(/[^\d.,]/g, '').replace(',', '.');
+      return parseFloat(cleaned);
+    };
+  
+    const DA = (n) => (isFinite(n) ? `${n}DA` : '');
+  
+    const debounce = (fn, delay = 200) => {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+    };
+  
+    const getWrapper = (card) => card.closest(CONFIG.gridWrapperSel) || card;
+  
+    const getPrice = (card, selectors) => {
+      // 1) data-price sur la carte
+      const dp = card.getAttribute('data-price');
+      if (dp && !isNaN(parseFloat(dp))) return parseFloat(dp);
+  
+      // 2) élément prix textuel (ex: "1200DA")
+      const priceEl = card.querySelector(selectors.productPriceEl);
+      if (priceEl) {
+        const n = toNumber(priceEl.textContent || '');
+        if (!isNaN(n)) return n;
+      }
+  
+      // 3) inner [data-price] (ex: bouton)
+      const inner = card.querySelector('[data-price]');
+      if (inner) {
+        const n = parseFloat(inner.getAttribute('data-price') || '');
+        if (!isNaN(n)) return n;
+      }
+  
+      return NaN;
+    };
+  
+    /* ---------- CORE ---------- */
+    function applyFilters(dom) {
+      const products = dom.products;
+      const searchTerm = STATE.search.trim().toLowerCase();
+      const hasType = STATE.types.size > 0;
+      const hasMetal = !!STATE.metal;
+      const min = isFinite(STATE.priceMin) ? STATE.priceMin : -Infinity;
+      const max = isFinite(STATE.priceMax) ? STATE.priceMax : Infinity;
+  
+      products.forEach(card => {
+        const type  = (card.dataset.type  || '').toLowerCase();
+        const metal = (card.dataset.metal || '').toLowerCase();
+        const title = (card.querySelector(dom.selectors.productTitle)?.textContent || '').toLowerCase();
+        const price = getPrice(card, dom.selectors);
+  
+        const matchType   = !hasType  || STATE.types.has(type);
+        const matchMetal  = !hasMetal || (metal === STATE.metal);
+        const matchSearch = !searchTerm || title.includes(searchTerm) || type.includes(searchTerm) || metal.includes(searchTerm);
+        const matchPrice  = isNaN(price) ? true : (price >= min && price <= max);
+  
+        const visible = matchType && matchMetal && matchSearch && matchPrice;
+        getWrapper(card).style.display = visible ? '' : 'none';
+      });
+    }
+  
+    function updatePriceBadges(dom) {
+      if (dom.badgeMin) dom.badgeMin.textContent = isFinite(STATE.priceMin) ? STATE.priceMin : CONFIG.PRICE_MIN_DEFAULT;
+      if (dom.badgeMax) dom.badgeMax.textContent = isFinite(STATE.priceMax) ? DA(STATE.priceMax) : DA(CONFIG.PRICE_MAX_DEFAULT);
+    }
+  
+    function normalizePrice(dom) {
+      let minVal = toNumber(dom.minInput?.value || '');
+      let maxVal = toNumber(dom.maxInput?.value || '');
+      if (!isFinite(minVal)) minVal = CONFIG.PRICE_MIN_DEFAULT;
+      if (!isFinite(maxVal)) maxVal = CONFIG.PRICE_MAX_DEFAULT;
+      if (minVal > maxVal) [minVal, maxVal] = [maxVal, minVal];
+  
+      // Arrondis doux si slider
+      minVal = Math.round(minVal);
+      maxVal = Math.round(maxVal);
+  
+      STATE.priceMin = clamp(minVal, CONFIG.PRICE_MIN_DEFAULT, CONFIG.PRICE_MAX_DEFAULT);
+      STATE.priceMax = clamp(maxVal, CONFIG.PRICE_MIN_DEFAULT, CONFIG.PRICE_MAX_DEFAULT);
+      updatePriceBadges(dom);
+    }
+  
+    /* ---------- EVENTS ---------- */
+    function bindEvents(dom) {
+      // Recherche
+      dom.searchInput?.addEventListener('input', debounce((e) => {
+        STATE.search = String(e.target.value || '');
+        applyFilters(dom);
+      }, 250));
+  
+      // Types (chips) — SÉLECTION EXCLUSIVE (1 seul actif)
+      dom.chips.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = (btn.getAttribute('data-type') || '').toLowerCase();
+          const isActive = btn.getAttribute('aria-pressed') === 'true';
+  
+          // Réinitialise tous les chips
+          STATE.types.clear();
+          dom.chips.forEach(b => {
+            b.setAttribute('aria-pressed', 'false');
+            b.classList.remove('is-active');
+          });
+  
+          // Si le chip cliqué n'était pas actif, on l'active (sinon on laisse tout désélectionné)
+          if (!isActive) {
+            STATE.types.add(t);
+            btn.setAttribute('aria-pressed', 'true');
+            btn.classList.add('is-active');
+          }
+  
+          applyFilters(dom);
+        });
+      });
+  
+      // Reset des types (désactive tout)
+      dom.chipReset?.addEventListener('click', () => {
+        STATE.types.clear();
+        dom.chips.forEach(b => { b.setAttribute('aria-pressed', 'false'); b.classList.remove('is-active'); });
+        applyFilters(dom);
+      });
+  
+      // Métal (radios)
+      dom.metalRadios.forEach(r => {
+        r.addEventListener('change', () => {
+          const checked = dom.metalRadios.find(m => m.checked);
+          STATE.metal = checked ? (checked.value || '').toLowerCase() : null;
+          applyFilters(dom);
+        });
+      });
+  
+      // Prix (inputs)
+      dom.minInput?.addEventListener('input', () => { normalizePrice(dom); applyFilters(dom); });
+      dom.maxInput?.addEventListener('input', () => { normalizePrice(dom); applyFilters(dom); });
+  
+      // Prix (presets)
+      dom.presetButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const [a, b] = (btn.getAttribute('data-range') || '').split(',').map(toNumber);
+          if (dom.minInput && isFinite(a)) dom.minInput.value = a;
+          if (dom.maxInput && isFinite(b)) dom.maxInput.value = b;
+          normalizePrice(dom);
+          applyFilters(dom);
+        });
+      });
+  
+      // Slider (optionnel noUiSlider)
+      if (dom.slider && window.noUiSlider) {
+        const startMin = isFinite(toNumber(dom.minInput?.value || '')) ? toNumber(dom.minInput.value) : CONFIG.PRICE_MIN_DEFAULT;
+        const startMax = isFinite(toNumber(dom.maxInput?.value || '')) ? toNumber(dom.maxInput.value) : CONFIG.PRICE_MAX_DEFAULT;
+  
+        noUiSlider.create(dom.slider, {
+          start: [startMin, startMax],
+          connect: true,
+          range: { min: CONFIG.PRICE_MIN_DEFAULT, max: CONFIG.PRICE_MAX_DEFAULT },
+          step: 5
+        });
+  
+        dom.slider.noUiSlider.on('update', (values) => {
+          const [vMin, vMax] = values.map(v => Math.round(parseFloat(v)));
+          if (dom.minInput) dom.minInput.value = vMin;
+          if (dom.maxInput) dom.maxInput.value = vMax;
+          normalizePrice(dom);
+          applyFilters(dom);
+        });
+      }
+  
+      // Reset global
+      dom.resetBtn?.addEventListener('click', () => {
+        // Recherche
+        if (dom.searchInput) dom.searchInput.value = '';
+        STATE.search = '';
+  
+        // Types
+        STATE.types.clear();
+        dom.chips.forEach(b => { b.setAttribute('aria-pressed', 'false'); b.classList.remove('is-active'); });
+  
+        // Métal (décocher tous)
+        dom.metalRadios.forEach(r => { r.checked = false; });
+        STATE.metal = null;
+  
+        // Prix
+        if (dom.minInput) dom.minInput.value = String(CONFIG.PRICE_MIN_DEFAULT);
+        if (dom.maxInput) dom.maxInput.value = String(CONFIG.PRICE_MAX_DEFAULT);
+        if (dom.slider?.noUiSlider) dom.slider.noUiSlider.set([CONFIG.PRICE_MIN_DEFAULT, CONFIG.PRICE_MAX_DEFAULT]);
+        normalizePrice(dom);
+  
+        applyFilters(dom);
+      });
+    }
+  
+    /* ---------- INIT ---------- */
+    function init() {
+      const root = document;
+      const sidebar = $(root, CONFIG.sidebar);
+      if (!sidebar) return;
+  
+      const dom = {
+        selectors: {
+          productTitle:   CONFIG.productTitle,
+          productPriceEl: CONFIG.productPriceEl
+        },
+        products:      $$(root, CONFIG.productCard),
+        searchInput:   $(sidebar, CONFIG.searchInput),
+        chips:         $$(sidebar, CONFIG.typeChip),
+        chipReset:     $(sidebar, CONFIG.typeResetBtn),
+        metalRadios:   $$(sidebar, CONFIG.metalRadios),
+        minInput:      $(sidebar, CONFIG.minInput),
+        maxInput:      $(sidebar, CONFIG.maxInput),
+        badgeMin:      $(root,   CONFIG.priceBadgeMin),
+        badgeMax:      $(root,   CONFIG.priceBadgeMax),
+        presetButtons: $$(sidebar, CONFIG.pricePresets),
+        slider:        $(root, CONFIG.priceSlider),
+        resetBtn:      $(sidebar, CONFIG.resetBtn)
+      };
+  
+      // État initial (respecte ce qui est déjà coché/écrit dans le DOM)
+      STATE.search   = String(dom.searchInput?.value || '');
+      const checked  = dom.metalRadios.find(m => m.checked);
+      STATE.metal    = checked ? (checked.value || '').toLowerCase() : null;
+  
+      const initMin  = toNumber(dom.minInput?.value || '');
+      const initMax  = toNumber(dom.maxInput?.value || '');
+      STATE.priceMin = isFinite(initMin) ? initMin : CONFIG.PRICE_MIN_DEFAULT;
+      STATE.priceMax = isFinite(initMax) ? initMax : CONFIG.PRICE_MAX_DEFAULT;
+  
+      // Types init — si plusieurs sont marqués 'aria-pressed=true', on ne garde que le premier (exclusif)
+      const pressedChips = dom.chips.filter(b => b.getAttribute('aria-pressed') === 'true');
+      if (pressedChips.length > 0) {
+        const keep = pressedChips[0];
+        dom.chips.forEach(b => {
+          const on = (b === keep);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          b.classList.toggle('is-active', on);
+        });
+        const t = (keep.getAttribute('data-type') || '').toLowerCase();
+        STATE.types.clear();
+        STATE.types.add(t);
+      } else {
+        STATE.types.clear();
+        dom.chips.forEach(b => { b.setAttribute('aria-pressed', 'false'); b.classList.remove('is-active'); });
+      }
+  
+      updatePriceBadges(dom);
+      bindEvents(dom);
+      applyFilters(dom);
+    }
+  
+    document.addEventListener('DOMContentLoaded', init);
+  })();
+  
