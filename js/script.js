@@ -1153,4 +1153,96 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   
     document.addEventListener('DOMContentLoaded', init);
   })();
+
   
+
+
+  /* === PRODUCT MODAL JS === */
+(() => {
+  'use strict';
+
+  const SELECTORS = {
+    modal:     '#product-modal',
+    image:     '.pm__image',
+    title:     '.pm__title',
+    desc:      '.pm__desc',
+    prev:      '.pm__prev',
+    next:      '.pm__next',
+    closeAll:  '[data-pm-close]',
+    trigger:   '.product-card .product-media img.product-img' // clic sur l'image du produit
+  };
+
+  const modal = document.querySelector(SELECTORS.modal);
+  if (!modal) return;
+
+  const imgEl   = modal.querySelector(SELECTORS.image);
+  const titleEl = modal.querySelector(SELECTORS.title);
+  const descEl  = modal.querySelector(SELECTORS.desc);
+  const prevBtn = modal.querySelector(SELECTORS.prev);
+  const nextBtn = modal.querySelector(SELECTORS.next);
+
+  let gallery = [];
+  let index = 0;
+  let lastFocus = null;
+
+  const uniq = arr => [...new Set(arr.filter(Boolean))];
+
+  function openModal({ images, title, desc, startIndex = 0 }) {
+    gallery = Array.isArray(images) ? images : [];
+    index = Math.min(Math.max(parseInt(startIndex, 10) || 0, 0), Math.max(gallery.length - 1, 0));
+    updateSlide();
+    titleEl.textContent = title || '';
+    descEl.textContent  = desc  || '';
+
+    lastFocus = document.activeElement;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.querySelector(SELECTORS.closeAll)?.focus();
+    document.addEventListener('keydown', onKey);
+  }
+
+  function closeModal() {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.removeEventListener('keydown', onKey);
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  }
+
+  function updateSlide() {
+    if (!gallery.length) return;
+    if (index < 0) index = gallery.length - 1;
+    if (index >= gallery.length) index = 0;
+    imgEl.src = gallery[index];
+    imgEl.alt = `${titleEl.textContent || 'Image'} – ${index + 1}/${gallery.length}`;
+  }
+
+  function onKey(e) {
+    if (!modal.classList.contains('is-open')) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); index--; updateSlide(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); index++; updateSlide(); }
+  }
+
+  prevBtn?.addEventListener('click', () => { index--; updateSlide(); });
+  nextBtn?.addEventListener('click', () => { index++; updateSlide(); });
+  modal.querySelectorAll(SELECTORS.closeAll).forEach(el => el.addEventListener('click', closeModal));
+
+  // Délégation : ouverture au clic sur l'image du produit
+  document.addEventListener('click', (e) => {
+    const img = e.target.closest(SELECTORS.trigger);
+    if (!img) return;
+
+    const card = img.closest('.product-card');
+    if (!card) return;
+
+    const primary = img.getAttribute('src') || '';
+    const galleryAttr = (card.getAttribute('data-gallery') || '').trim();
+    const extra = galleryAttr ? galleryAttr.split(',').map(s => s.trim()) : [];
+    const images = uniq([primary, ...extra]);
+
+    const title = (card.querySelector('.product-title')?.textContent || '').trim();
+    const desc  = (card.getAttribute('data-desc') || '').trim();
+
+    openModal({ images, title, desc, startIndex: 0 });
+  });
+})();

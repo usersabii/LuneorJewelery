@@ -280,7 +280,25 @@
                          <button type="button" data-range="1000,2500">300-2500</button>
                          <button type="button" data-range="2500,5000">2500-5000</button>
                       </div>
-                  </div>         
+                  </div>   
+                   <!-- Réinitialiser -->
+                  <button class="btn-reset"><i class="bi bi-arrow-right me-2" style="width:30px;"></i>Réinitialiser les filtres</button>  
+                 <!-- Couleur -->
+                 <div class="filter-card">
+                      <h4>Métal</h4>
+                   
+                     <div class="segmented-metal" role="radiogroup" aria-label="Choix du métal">
+                         <input type="radio" name="metal" id="metal-gold"   value="gold"   checked>
+                         <label for="metal-gold"   data-metal="gold">
+                             <i class="bi bi-gem"></i> Or
+                         </label>
+                   
+                         <input type="radio" name="metal" id="metal-silver" value="silver">
+                         <label for="metal-silver" data-metal="silver">
+                             <i class="bi bi-gem"></i> Argent
+                         </label>               
+                      </div>
+                  </div>                  
                  <!-- Type de bijou -->
                  <div class="filter-card type-filter v2">
                      <h4>Type de bijou</h4>
@@ -297,31 +315,13 @@
                          <button type="button" class="chip-reset">Tout effacer</button>
                      </div>
                   </div>                  
-                      <!-- Couleur -->
-                  <div class="filter-card">
-                     <h4>Métal</h4>
-                
-                     <div class="segmented-metal" role="radiogroup" aria-label="Choix du métal">
-                         <input type="radio" name="metal" id="metal-gold"   value="gold"   checked>
-                         <label for="metal-gold"   data-metal="gold">
-                             <i class="bi bi-gem"></i> Or
-                         </label>
-                
-                         <input type="radio" name="metal" id="metal-silver" value="silver">
-                          <label for="metal-silver" data-metal="silver">
-                             <i class="bi bi-gem"></i> Argent
-                         </label>               
-                     </div>
-                  </div>              
-                 <!-- Réinitialiser -->
-                 <button class="btn-reset">Réinitialiser les filtres</button>
               </aside>              
       
               <!-- Contenu produits à droite -->
               <main class="shop-content">
                  <div class="products-grid row g-4" id="products-grid">
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                   <img src="img/collierrondnoir.png" alt="Collier Black Aura" class="product-img">
                                    <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -337,7 +337,7 @@
                          </article>
                       </div>
                       <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                   <img src="img/collier4carréptit.png" alt="Collier Harmonia" class="product-img">
                                   <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -353,7 +353,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierplumecoeurmilieu.png" alt="Collier Sky Heart" class="product-img">
                                   <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -369,7 +369,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierbaton.png" alt="Collier Line" class="product-img">
                                   <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -385,7 +385,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collier3rond.png" alt="Collier Tempus" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -401,7 +401,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierbateementsuppcoeurmininoir.png" alt="Collier Love" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -417,7 +417,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliercadenas.png" alt="Collier Cadenas" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -433,7 +433,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliercarretombantdouble.png" alt="collier Linéa" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -449,7 +449,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliercouronnenoir.png" alt="Collier Queen" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -465,7 +465,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierdoubleV.png" alt="Collier Vitta" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -481,7 +481,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliergrndtrianglemodele1.png" alt="Collier Mosaique" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -497,7 +497,7 @@
                           </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliergrndtrianglemodele2.png" alt="Collier Mosaiqua" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -513,7 +513,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierperle.png" alt="Collier Perle" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -529,7 +529,7 @@
                           </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrondflecheaccoeur.png" alt="Collier Amourette" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -545,7 +545,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliertrianglel'envers.png" alt="Collier Trianglo" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -561,7 +561,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierronfinacpetitperlebleu.png" alt="Collier Musa" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -577,7 +577,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                          <article class="product-card" data-type="necklace" data-metal="gold">
+                          <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierlunecoeur.png" alt="Collier Luna" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -593,7 +593,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierlongvanclefformenoir.png" alt="Collier Lucky" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -609,7 +609,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierlongtreflesuppnoir.png" alt="Collier Treflo" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -625,7 +625,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierlongcouluerplsrforme.png" alt="Collier Charmy" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -641,7 +641,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierlong1plumesuppperlenoir.png" alt="Collier Pluma" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -657,7 +657,7 @@
                           </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold">
+                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                               <div class="product-media">
                                  <img src="img/collierferyel.png" alt="Bague Prénom" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -706,7 +706,7 @@
                           </article>
                       </div>                     
                       <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="bracelet" data-metal="gold">
+                         <article class="product-card" data-type="bracelet" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/gourmettecouronne.png" alt="Bracelets Couronne" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -722,7 +722,7 @@
                           </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="bracelet" data-metal="gold">
+                         <article class="product-card" data-type="bracelet" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/gourmetteperleblanche.png" alt="Bracelet Blanco" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -738,7 +738,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="bracelet" data-metal="gold">
+                         <article class="product-card" data-type="bracelet" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/gourmetteplumeepaisse.png" alt="Bracelet Pluma" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -754,7 +754,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="earring" data-metal="gold">
+                         <article class="product-card" data-type="earring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/boucleperle.png" alt="Boucle Perle" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -770,7 +770,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/bagueetoile.png" alt="Bague Etoile" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -786,7 +786,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguefleur.png" alt="Bague Fleur" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -802,7 +802,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguenoir.png" alt="Bague Noir" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -818,7 +818,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/bagueboule.png" alt="Bague Boule" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -834,7 +834,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguecoeur.png" alt="Bague Coeur" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -850,7 +850,7 @@
                           </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/bagueflocon.png" alt="Bague Flocon" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -866,7 +866,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguepapillon.png" alt="Bague Papillon" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -882,7 +882,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguerond.png" alt="Bague Rond" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -898,7 +898,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguesimple.png" alt="Bague Simple" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -914,7 +914,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/baguetriangle.png" alt="Bague Triangle" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -930,7 +930,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collier3carré.png" alt="Collier Cubo" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -946,7 +946,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collier5coeur.png" alt="Collier Charo" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -962,7 +962,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliercoeurpetitrempli.png" alt="Collier Amoré" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -978,7 +978,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierdoublesuppboule.png" alt="Collier Caeli" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -994,7 +994,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierfleur.png" alt="Collier Aternus" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1010,7 +1010,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierfleurgrossepierreaumilieu.png" alt="Collier Hope" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1026,7 +1026,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliergrandcoeur.png" alt="Collier Grand Coeur" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1042,7 +1042,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierplumegf.png" alt="Collier Chance" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1058,7 +1058,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrock4etoiles.png" alt="Collier Stars" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1074,7 +1074,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrock4fleur.png" alt="Collier Fleurisse" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1090,7 +1090,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrondfullar.png" alt="Collier Tour" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1106,7 +1106,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png"> 
                              <div class="product-media">
                                  <img src="img/collierrondfullblack.png" alt="Collier Blackos" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1122,7 +1122,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collerinfiniformecoeur.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1138,7 +1138,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collier5perlesupptrianglebleu.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1154,7 +1154,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliercarreetferfar.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1170,7 +1170,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierdoubleetagesupppierre.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1186,7 +1186,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierdoublesuppvanclef.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1202,7 +1202,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierfleufuulblacksupppierre.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1218,7 +1218,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierflora2.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1234,7 +1234,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierinfinisupp2coeur.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1250,7 +1250,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/colliernoeud2.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1266,7 +1266,7 @@
                         </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collieroeilsupplarmebleu.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1282,7 +1282,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collieroiseausuppbranche.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1298,7 +1298,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierpierresuppcoeurtiffany.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1314,7 +1314,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrondfin.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1330,7 +1330,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrondfullargsuppptiteperle.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1346,7 +1346,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="silver">
+                         <article class="product-card" data-type="necklace" data-metal="silver" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/collierrondnoiargr.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1362,7 +1362,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1378,7 +1378,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1394,7 +1394,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1410,7 +1410,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1426,7 +1426,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1442,7 +1442,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1458,7 +1458,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1474,7 +1474,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1490,7 +1490,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                   <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1506,7 +1506,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1522,7 +1522,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1538,7 +1538,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1554,7 +1554,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1570,7 +1570,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1586,7 +1586,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1602,7 +1602,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1618,7 +1618,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1634,7 +1634,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                          <article class="product-card" data-type="ring" data-metal="gold">
+                          <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1650,7 +1650,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1666,7 +1666,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1682,7 +1682,7 @@
                          </article>
                      </div>*
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1698,7 +1698,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1714,7 +1714,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1730,7 +1730,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1746,7 +1746,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1762,7 +1762,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                          <article class="product-card" data-type="ring" data-metal="gold">
+                          <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1778,7 +1778,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1794,7 +1794,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1810,7 +1810,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1826,7 +1826,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1842,7 +1842,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1858,7 +1858,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1874,7 +1874,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1890,7 +1890,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1906,7 +1906,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1922,7 +1922,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1938,7 +1938,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1954,7 +1954,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1970,7 +1970,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -1986,7 +1986,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2002,7 +2002,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2018,7 +2018,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2034,7 +2034,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2050,7 +2050,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2066,7 +2066,7 @@
                          </article>
                      </div>
                      <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="ring" data-metal="gold">
+                         <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2082,7 +2082,7 @@
                          </article>
                       </div>
                       <div class="col-6 col-md-4 col-lg-3">
-                          <article class="product-card" data-type="ring" data-metal="gold">
+                          <article class="product-card" data-type="ring" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
                                  <img src="img/Capture d'écran 2025-07-26 201320.png" alt="Bague Lune Or" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
@@ -2101,7 +2101,25 @@
              </main>
           </div>
       </section>
-
+       <!-- === PRODUCT MODAL === -->
+       <div id="product-modal" class="pm" aria-hidden="true" role="dialog" aria-modal="true">
+         <div class="pm__backdrop" data-pm-close></div>
+         <div class="pm__dialog" role="document">
+             <button class="pm__close" aria-label="Fermer" data-pm-close>&times;</button>
+  
+             <div class="pm__media">
+                 <button class="pm__arrow pm__prev" aria-label="Image précédente">&#10094;</button>
+                 <img class="pm__image" src="" alt="">
+                 <button class="pm__arrow pm__next" aria-label="Image suivante">&#10095;</button>
+             </div>
+  
+             <div class="pm__info">
+                 <h3 class="pm__title"></h3>
+                 <p class="pm__desc"></p>
+             </div>
+          </div>
+      </div>
+  
       <!-- Panier (offcanvas à droite) -->
       <div class="offcanvas offcanvas-end" tabindex="-1" id="cartDrawer" aria-labelledby="cartDrawerLabel" data-bs-scroll="true">
          <div class="offcanvas-header">
