@@ -72,6 +72,24 @@
              </div>
          </div>
       </header>
+       <!-- === Luneor Announcement Ribbon === -->
+      <div id="ann-ribbon" class="ann" role="region" aria-label="Annonce boutique">
+          <div class="ann__inner">
+             <p class="ann__msg">✨ Nouveautés disponibles — découvre nos pièces du moment.</p>
+             <a href="/shop" class="ann__cta"><i class="bi bi-bag"></i><span>Voir le Shop</span></a>
+             <button class="ann__close" aria-label="Fermer l'annonce" title="Fermer">×</button>
+          </div>
+  
+          <!-- (Optionnel) Liens directs vers des catégories / métaux -->
+          <nav class="ann__chips" aria-label="Raccourcis catégories">
+              <a href="/shop?type=ring"      class="ann__chip">Bagues</a>
+              <a href="/shop?type=necklace"  class="ann__chip">Colliers</a>
+              <a href="/shop?type=bracelet"  class="ann__chip">Bracelets</a>
+              <a href="/shop?type=earring"   class="ann__chip">Boucles</a>
+              <a href="/shop?metal=silver"   class="ann__chip">Argent</a>
+              <a href="/shop?metal=gold"     class="ann__chip">Or</a>
+          </nav>
+      </div>
   
       <!-- Offcanvas menu -->
       <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
@@ -2158,11 +2176,7 @@
               </div>
           </div>
        </div> 
-       <div id="luneor-menu-hint" class="luneor-hint" aria-hidden="true">
-          <div class="luneor-hint__arrow"></div>
-          <p><strong>Astuce :</strong> le <em>Shop</em> est dans le menu.</p>
-      </div>
-      
+       
        <!-- Footer -->
        <footer class="footer">
           <div class="container grid-footer">

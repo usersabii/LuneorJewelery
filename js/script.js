@@ -1248,40 +1248,23 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 })();
 
 
-
-
-
-/* Luneor Menu Hint (mobile) */
+/* === Announcement Ribbon logic (close memory 7 days) === */
 (() => {
-  const hint = document.getElementById('luneor-menu-hint');
-  if (!hint) return;
-  const KEY = 'luneorMenuHintSeen';
-  if (localStorage.getItem(KEY) === '1') return;
+  const bar = document.getElementById('ann-ribbon');
+  if (!bar) return;
 
-  const target = document.querySelector('#burger, .menu-toggle');
-  function placeNear(el){
-    const r = el.getBoundingClientRect();
-    hint.style.top  = Math.max(12, r.bottom + 8) + 'px';
-    hint.style.right= Math.max(12, window.innerWidth - r.right) + 'px';
-  }
+  const CLOSE_KEY = 'annClosedUntil';
+  const saved = parseInt(localStorage.getItem(CLOSE_KEY) || '0', 10);
 
-  function show(){
-    if (target){ placeNear(target); }
-    hint.classList.add('is-visible');
-    hint.setAttribute('aria-hidden','false');
-    setTimeout(()=>{ localStorage.setItem(KEY,'1'); }, 2000);
-    // auto-hide après 5s
-    setTimeout(hide, 5000);
-  }
-  function hide(){
-    hint.classList.remove('is-visible');
-    hint.setAttribute('aria-hidden','true');
-  }
+  function hide(){ bar.style.display = 'none'; }
+  function show(){ bar.style.display = ''; }
 
-  // Affiche après 1.2s pour laisser charger la home
-  if (window.matchMedia('(max-width: 768px)').matches) {
-    setTimeout(show, 1200);
-    window.addEventListener('resize', () => target && placeNear(target));
-  }
+  if (Date.now() < saved) hide(); else show();
+
+  bar.querySelector('.ann__close')?.addEventListener('click', () => {
+    const sevenDays = 7*24*60*60*1000;
+    localStorage.setItem(CLOSE_KEY, String(Date.now() + sevenDays));
+    hide();
+  });
 })();
 
