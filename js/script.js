@@ -1251,23 +1251,37 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
-
-
-
-
-/* Luneor Sticky Shop (mobile) */
+/* Luneor Menu Hint (mobile) */
 (() => {
-  const bar = document.getElementById('luneor-sticky-shop');
-  if (!bar) return;
-  const KEY = 'luneorStickyClosed';
-  const closed = localStorage.getItem(KEY) === '1';
+  const hint = document.getElementById('luneor-menu-hint');
+  if (!hint) return;
+  const KEY = 'luneorMenuHintSeen';
+  if (localStorage.getItem(KEY) === '1') return;
 
-  function show(){ bar.style.display='flex'; document.body.classList.add('luneor-sticky-pad'); }
-  function hide(){ bar.style.display='none'; document.body.classList.remove('luneor-sticky-pad'); }
+  const target = document.querySelector('#burger, .menu-toggle');
+  function placeNear(el){
+    const r = el.getBoundingClientRect();
+    hint.style.top  = Math.max(12, r.bottom + 8) + 'px';
+    hint.style.right= Math.max(12, window.innerWidth - r.right) + 'px';
+  }
 
-  if (closed) { hide(); } else { show(); }
+  function show(){
+    if (target){ placeNear(target); }
+    hint.classList.add('is-visible');
+    hint.setAttribute('aria-hidden','false');
+    setTimeout(()=>{ localStorage.setItem(KEY,'1'); }, 2000);
+    // auto-hide après 5s
+    setTimeout(hide, 5000);
+  }
+  function hide(){
+    hint.classList.remove('is-visible');
+    hint.setAttribute('aria-hidden','true');
+  }
 
-  bar.querySelector('.luneor-sticky__close')?.addEventListener('click', () => {
-    localStorage.setItem(KEY,'1'); hide();
-  });
+  // Affiche après 1.2s pour laisser charger la home
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    setTimeout(show, 1200);
+    window.addEventListener('resize', () => target && placeNear(target));
+  }
 })();
+

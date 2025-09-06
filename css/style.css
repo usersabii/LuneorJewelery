@@ -1471,14 +1471,11 @@ html {
 
 
 @media (max-width:768px){
-  .luneor-sticky{position:fixed;left:12px;right:12px;bottom:12px;display:flex;gap:8px;
-    align-items:center;justify-content:space-between;padding:10px 12px;background:#111;color:#fff;
-    border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:9998}
-  .luneor-sticky__btn{flex:1;display:flex;gap:8px;align-items:center;justify-content:center;
-    background:#fff;color:#111;text-decoration:none;font-weight:700;padding:10px 12px;border-radius:10px}
-  .luneor-sticky__close{background:transparent;border:0;color:#fff;font-size:20px;line-height:1;cursor:pointer}
-  body.luneor-sticky-pad{padding-bottom:76px;} /* évite que le CTA recouvre le contenu */
+  .luneor-hint{position:fixed;top:58px;right:12px;background:#111;color:#fff;padding:10px 12px;
+    border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;display:none}
+  .luneor-hint__arrow{position:absolute;top:-8px;right:18px;width:0;height:0;border-left:8px solid transparent;
+    border-right:8px solid transparent;border-bottom:8px solid #111}
+  .luneor-hint.is-visible{display:block;animation:luneor-pop .18s ease-out}
+  @keyframes luneor-pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
 }
-@media (min-width:769px){#luneor-sticky-shop{display:none}}
-
-
+@media (min-width:769px){#luneor-menu-hint{display:none}}
