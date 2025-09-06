@@ -1248,23 +1248,36 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 })();
 
 
-/* === Announcement Ribbon logic (close memory 7 days) === */
+
+/* Ribbon Shop Hint (mobile only, mémoire 7 jours) */
 (() => {
-  const bar = document.getElementById('ann-ribbon');
+  // Exécuter uniquement sur mobile
+  if (!window.matchMedia('(max-width: 768px)').matches) return;
+
+  const bar = document.getElementById('ribbon-shop-hint');
   if (!bar) return;
 
-  const CLOSE_KEY = 'annClosedUntil';
-  const saved = parseInt(localStorage.getItem(CLOSE_KEY) || '0', 10);
+  const KEY = 'ribbonShopHintClosedUntil';
+  const now = Date.now();
+  const saved = parseInt(localStorage.getItem(KEY) || '0', 10);
 
-  function hide(){ bar.style.display = 'none'; }
-  function show(){ bar.style.display = ''; }
+  const hide = () => bar.remove();
+  const show = () => (bar.style.display = '');
 
-  if (Date.now() < saved) hide(); else show();
+  // Masquer si l'utilisateur l'a fermé (pendant 7 jours)
+  if (now < saved) hide(); else show();
 
-  bar.querySelector('.ann__close')?.addEventListener('click', () => {
-    const sevenDays = 7*24*60*60*1000;
-    localStorage.setItem(CLOSE_KEY, String(Date.now() + sevenDays));
+  // Bouton fermer
+  bar.querySelector('.ribbon__close')?.addEventListener('click', () => {
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem(KEY, String(Date.now() + sevenDays));
     hide();
   });
-})();
 
+  // Option : toucher le ruban (hors bouton) ouvre le menu burger
+  bar.addEventListener('click', (e) => {
+    if (e.target.closest('.ribbon__close')) return;
+    const burger = document.querySelector('#burger, .menu-toggle');
+    if (burger) burger.click();
+  });
+})();

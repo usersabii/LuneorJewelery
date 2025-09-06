@@ -1470,27 +1470,38 @@ html {
 
 
 
+/* --- Desktop: masqué --- */
+#ribbon-shop-hint { display: none; }
 
+/* --- Mobile only --- */
+@media (max-width: 768px){
+  :root{ --header-height:56px; } /* ajuste si ton header est sticky */
 
+  /* Afficher le ruban sur mobile (important: override l'ID) */
+  #ribbon-shop-hint { display: flex; }
 
-
-
-/* === Announcement Ribbon (mobile-first) === */
-.ann{background:linear-gradient(90deg,#f8f4ec,#ffffff);border-bottom:1px solid #e9e2d1}
-.ann__inner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px}
-.ann__msg{margin:0;font-size:14px;color:#222}
-.ann__cta{display:flex;align-items:center;gap:6px;background:#111;color:#fff;text-decoration:none;
-  font-weight:700;padding:8px 12px;border-radius:999px;flex-shrink:0}
-.ann__cta:active{transform:scale(.98)}
-.ann__close{background:transparent;border:0;color:#555;font-size:18px;line-height:1;cursor:pointer;margin-left:4px}
-.ann__chips{display:flex;gap:8px;overflow:auto;padding:0 12px 10px;scrollbar-width:none}
-.ann__chips::-webkit-scrollbar{display:none}
-.ann__chip{display:inline-block;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #e6e0cf;
-  color:#333;text-decoration:none;font-size:13px;white-space:nowrap}
-@media (min-width:768px){
-  .ann__msg{font-size:15px}
-  .ann__chips{justify-content:center}
+  .ribbon{
+    position: sticky;
+    top: var(--header-height);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #516a55; /* vert doux */
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+  .ribbon__text{ text-align: center; }
+  .ribbon__close{
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
 }
-/* (Optionnel) rends le ruban sticky sous un header fixe :
-.ann--sticky{position:sticky;top:var(--header-height,0px);z-index:999}
-*/
