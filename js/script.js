@@ -1246,3 +1246,28 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     openModal({ images, title, desc, startIndex: 0 });
   });
 })();
+
+
+
+
+
+
+
+
+
+/* Luneor Sticky Shop (mobile) */
+(() => {
+  const bar = document.getElementById('luneor-sticky-shop');
+  if (!bar) return;
+  const KEY = 'luneorStickyClosed';
+  const closed = localStorage.getItem(KEY) === '1';
+
+  function show(){ bar.style.display='flex'; document.body.classList.add('luneor-sticky-pad'); }
+  function hide(){ bar.style.display='none'; document.body.classList.remove('luneor-sticky-pad'); }
+
+  if (closed) { hide(); } else { show(); }
+
+  bar.querySelector('.luneor-sticky__close')?.addEventListener('click', () => {
+    localStorage.setItem(KEY,'1'); hide();
+  });
+})();
