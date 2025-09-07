@@ -1284,21 +1284,33 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================================================
-   Luneor — Cart SAFE RESET (n’interfère pas avec .btn-buy)
-   - .btn-add seulement (1 clic = +1)
-   - Expose window.addToCart pour l’animation flyToCart
-   - Confirmer la commande => envoi Google Sheet + fermeture offcanvas
+   Luneor — CART SAFE (n'interfère pas avec .btn-buy)
+   - Bouclier .btn-buy pour bloquer les écouteurs globaux
+   - .btn-add : 1 clic = +1 (compatible flyToCart)
+   - Confirmer (panier) -> Google Sheet + fermeture offcanvas
    ========================================================= */
    (() => {
     'use strict';
     if (window.__LNR_CART_SAFE__) return; window.__LNR_CART_SAFE__ = true;
   
-    /* -------- Config -------- */
-    // ⬇️ Mets ICI l’URL du Web App destiné AU PANIER (pas celui d’“Acheter”)
+    /* ---------- CONFIG ---------- */
+    // ⬇️ Mets ICI l’URL de ton Web App Google Apps Script (onglet PANIER, pas celui d’Acheter)
     const CART_WEBAPP_URL = 'https://script.google.com/macros/s/VOTRE_WEBAPP_PANIER/exec';
-    const DRAWER_ID = 'cartDrawer'; // ton offcanvas panier
+    const DRAWER_ID = 'cartDrawer'; // ton offcanvas
   
-    /* -------- Storage helpers (utilise tes helpers si présents) -------- */
+    /* ---------- BOUCLIER .btn-buy (PRO) ----------
+       Empêche tout écouteur global (document) d’attraper les clics "Acheter".
+       Votre propre handler sur .btn-buy continue de fonctionner (phase "target").
+    ------------------------------------------------ */
+    document.addEventListener('click', (e) => {
+      const buy = e.target.closest('.btn-buy');
+      if (!buy) return;
+      // On laisse le handler attaché directement sur le bouton fonctionner,
+      // mais on bloque la propagation vers document (où traînent les vieux listeners).
+      e.stopPropagation();
+    }, true); // en capture, donc avant les autres
+  
+    /* ---------- STORAGE HELPERS (clé "cart") ---------- */
     const readCart = () => {
       try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
       catch { return []; }
@@ -1309,10 +1321,9 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
       else {
         const b = document.querySelector('.cart-count');
-        if (b) b.textContent = String(arr.reduce((s,i)=>s+(parseInt(i.qty,10)||1),0));
+        if (b) b.textContent = String(arr.reduce((s,i)=> s + (parseInt(i.qty,10)||1), 0));
       }
     };
-  
     const parsePrice = (txt) => Number(String(txt||'').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
     const subtotal   = (cart) => cart.reduce((s,i)=> s + (Number(i.price)||0)*(Number(i.qty)||1), 0);
     const makeOrderId = () => {
@@ -1320,18 +1331,18 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       return `LNR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
     };
   
-    /* -------- API publique pour l’animation -------- */
-    // Ton script flyToCart appellera ceci (=> 1 seul ajout)
+    /* ---------- API PUBLIQUE POUR L’ANIMATION ---------- */
+    // Ton script flyToCart appelle addToCart → ici on fait l’addition (1 clic = +1)
     window.addToCart = function({ id, name, price, img, qty = 1 }) {
       if (!id) return;
       const cart = readCart();
       const i = cart.findIndex(x => x.id === id);
-      if (i >= 0) cart[i].qty = (cart[i].qty||0) + qty;
+      if (i >= 0) cart[i].qty = (cart[i].qty||0) + Number(qty)||1;
       else cart.push({ id, name: name||'Produit', price: Number(price)||0, img: img||'', qty: Number(qty)||1 });
       writeCart(cart);
     };
   
-    /* -------- Bind .btn-add seulement (jamais .btn-buy) -------- */
+    /* ---------- .btn-add SEULEMENT (jamais .btn-buy) ---------- */
     function bindAddButtons(){
       document.querySelectorAll('.btn-add').forEach(btn => {
         if (btn.dataset.lnrBound === '1') return;
@@ -1339,11 +1350,9 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-  
-          // Si ton animation est chargée, elle gère l’ajout via window.addToCart → on ne fait rien ici.
+          // Si ton script d’animation est là, il va lui-même appeler window.addToCart → ne rien faire ici
           if (window.__flyHooked) return;
   
-          // Fallback ajout si pas d’animation
           const card  = btn.closest('.product-card');
           const id    = (btn.dataset.id || card?.dataset.id || '').trim();
           const name  = (btn.dataset.name || card?.querySelector('.product-title')?.textContent || 'Produit').trim();
@@ -1356,11 +1365,11 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         });
       });
     }
-    // Rebind si des cartes s’injectent dynamiquement
+    // Rebind si contenu dynamique
     const mo = new MutationObserver(() => bindAddButtons());
     mo.observe(document.documentElement, { childList: true, subtree: true });
   
-    /* -------- Rendu offcanvas (quand il s’ouvre) -------- */
+    /* ---------- RENDU OFFCANVAS (à l’ouverture) ---------- */
     function renderCart(){
       const box = document.querySelector('#cartItems');
       const sub = document.querySelector('#cartSubtotal');
@@ -1389,16 +1398,13 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       `).join('');
       if (sub) sub.textContent = `${subtotal(cart)} DA`;
     }
-  
-    // Brancher le rendu à l’ouverture Bootstrap (sans casser l’animation)
     document.getElementById(DRAWER_ID)?.addEventListener('show.bs.offcanvas', renderCart);
   
-    // Actions dans le drawer
+    /* ---------- ACTIONS DANS LE DRAWER ---------- */
     (function bindDrawer(){
       const drawer = document.getElementById(DRAWER_ID);
       if (!drawer) return;
   
-      // qty +/- / supprimer
       drawer.addEventListener('click', (e) => {
         const row = e.target.closest('.cart-row'); if (!row) return;
         const id  = row.dataset.id;
@@ -1412,7 +1418,6 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         }
       });
   
-      // changement direct quantité
       drawer.addEventListener('input', (e) => {
         const input = e.target.closest('.qty-input'); if (!input) return;
         const row = e.target.closest('.cart-row'); const id = row?.dataset.id;
@@ -1425,13 +1430,12 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       document.getElementById('cartClearBtn')?.addEventListener('click', () => { writeCart([]); renderCart(); });
     })();
   
-    /* -------- Confirmer la commande (PANIER) -------- */
+    /* ---------- CONFIRMER LA COMMANDE (PANIER) ---------- */
     document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
       const btn = document.getElementById('cartConfirmBtn');
       const cart = readCart();
       if (!cart.length) { alert('Votre panier est vide.'); return; }
   
-      // UI
       if (btn){ btn.disabled = true; var _t = btn.textContent; btn.textContent = 'Envoi…'; }
   
       const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
@@ -1447,7 +1451,6 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         userAgent: navigator.userAgent
       };
   
-      // envoi vers TON onglet/URL du PANIER (ne touche pas à .btn-buy)
       try {
         const body = new URLSearchParams({ data: JSON.stringify(order) }).toString();
         await fetch(CART_WEBAPP_URL, {
@@ -1455,29 +1458,27 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body
         });
-      } catch(err) {
-        console.error('Envoi panier KO:', err);
+      } catch (err) {
+        console.error('[PANIER] Envoi KO:', err);
       }
   
-      // ferme offcanvas (animation Bootstrap)
+      // Ferme l’offcanvas (animation Bootstrap)
       const el = document.getElementById(DRAWER_ID);
       const BO = window.bootstrap && window.bootstrap.Offcanvas;
       if (el && BO) window.bootstrap.Offcanvas.getOrCreateInstance(el).hide();
       else if (el) { el.classList.remove('show'); el.setAttribute('aria-hidden','true'); }
   
-      // vide le panier (si tu veux le garder, commente la ligne suivante)
+      // Vide le panier (retire cette ligne si tu veux conserver)
       writeCart([]);
   
       if (btn){ btn.disabled = false; btn.textContent = _t; }
       alert('✅ Commande (panier) envoyée !');
     });
   
-    /* -------- Init -------- */
+    /* ---------- INIT ---------- */
     document.addEventListener('DOMContentLoaded', () => {
-      // MAJ bulle au démarrage
-      writeCart(readCart());
-      // bind .btn-add
-      bindAddButtons();
+      writeCart(readCart());   // met à jour la bulle
+      bindAddButtons();        // accroche .btn-add
     });
   })();
   
