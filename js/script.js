@@ -1281,3 +1281,158 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     if (burger) burger.click();
   });
 })();
+
+
+
+
+
+/* =========================================================
+   Luneor Cart — Compat Animation (v1.4)
+   - Compatible avec ton offcanvas #cartDrawer
+   - Expose window.addToCart pour que ton script d’animation l’utilise
+   - Ne bloque plus l’autre listener .btn-add (pas de stopImmediatePropagation, pas de capture)
+   - Si window.__flyHooked est présent (animation chargée), le handler panier n’ajoute pas (évite doublon)
+   ========================================================= */
+   (() => {
+    'use strict';
+  
+    /* --- Storage (clé: "cart"), utilise tes helpers si présents --- */
+    const Storage = {
+      get() {
+        try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
+        catch { return []; }
+      },
+      set(arr) {
+        if (typeof window.setCart === 'function') window.setCart(arr);
+        else localStorage.setItem('cart', JSON.stringify(arr || []));
+        if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
+        else {
+          const b = document.querySelector('.cart-count');
+          if (b) b.textContent = String((arr||[]).reduce((s,i)=> s + (parseInt(i.qty,10)||1), 0));
+        }
+      }
+    };
+  
+    /* --- Utils --- */
+    const parsePrice = (txt) => Number(String(txt || '').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
+  
+    // Fusionne si même (id+name+price+img), sinon crée une nouvelle ligne (suffixe #2, #3, …)
+    function upsertLine(cart, { id, name, price, img }) {
+      let line = cart.find(x => x.id === id && x.name === name && Number(x.price) === Number(price) && x.img === img);
+      if (line) { line.qty = (line.qty || 0) + 1; return cart; }
+  
+      if (cart.some(x => x.id === id)) {
+        let n = 2, candidate = `${id}#${n}`;
+        while (cart.some(x => x.id === candidate)) { n++; candidate = `${id}#${n}`; }
+        id = candidate;
+      }
+      cart.push({ id, name, price: Number(price)||0, img: img||'', qty: 1 });
+      return cart;
+    }
+  
+    /* --- Rendu offcanvas --- */
+    function renderCart() {
+      const box = document.querySelector('#cartItems');
+      const sub = document.querySelector('#cartSubtotal');
+      if (!box) return;
+      const cart = Storage.get();
+      if (!cart.length) {
+        box.innerHTML = `<div class="text-muted small">Votre panier est vide.</div>`;
+        if (sub) sub.textContent = `0 DA`;
+        return;
+      }
+      box.innerHTML = cart.map(it => `
+        <div class="d-flex align-items-start gap-2 border rounded p-2 cart-row" data-id="${it.id}">
+          <img src="${it.img||''}" alt="" class="rounded" style="width:64px;height:64px;object-fit:cover">
+          <div class="flex-grow-1">
+            <div class="fw-semibold small">${it.name||'Produit'}</div>
+            <div class="text-muted small">${Number(it.price)||0} DA</div>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <button class="btn btn-sm btn-outline-secondary qty-dec" type="button">−</button>
+              <input type="number" class="form-control form-control-sm qty-input" min="1" value="${it.qty||1}" style="width:70px">
+              <button class="btn btn-sm btn-outline-secondary qty-inc" type="button">+</button>
+              <button class="btn btn-sm btn-link text-danger ms-auto remove-item" type="button">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      if (sub) sub.textContent = `${cart.reduce((s,i)=> s + (Number(i.price)||0)*(i.qty||1), 0)} DA`;
+    }
+    // Rendu à l’ouverture Offcanvas (Bootstrap)
+    document.getElementById('cartDrawer')?.addEventListener('show.bs.offcanvas', renderCart);
+  
+    /* --- API publique pour l’animation : 1 clic = +1 --- */
+    window.addToCart = function ({ id, name, price, img, qty = 1 }) {
+      // On force qty=1 par clic (ton anim clique une fois = +1)
+      let cart = Storage.get();
+      cart = upsertLine(cart, { id, name: name || 'Produit', price: Number(price)||0, img: img || '' });
+      Storage.set(cart);
+    };
+  
+    /* --- Bouton Vider --- */
+    document.querySelector('#cartClearBtn')?.addEventListener('click', () => {
+      Storage.set([]); renderCart();
+    });
+  
+    /* --- Actions dans le drawer (qty +/- / supprimer) --- */
+    const drawer = document.getElementById('cartDrawer');
+    if (drawer) {
+      drawer.addEventListener('click', (e) => {
+        const row = e.target.closest('.cart-row'); if (!row) return;
+        const id  = row.dataset.id;
+  
+        if (e.target.closest('.qty-dec')) {
+          const cart = Storage.get();
+          const it = cart.find(x => x.id === id); if (!it) return;
+          it.qty = Math.max(1, (it.qty||1) - 1);
+          Storage.set(cart); renderCart(); return;
+        }
+        if (e.target.closest('.qty-inc')) {
+          const cart = Storage.get();
+          const it = cart.find(x => x.id === id); if (!it) return;
+          it.qty = (it.qty||1) + 1;
+          Storage.set(cart); renderCart(); return;
+        }
+        if (e.target.closest('.remove-item')) {
+          const cart = Storage.get().filter(x => x.id !== id);
+          Storage.set(cart); renderCart(); return;
+        }
+      });
+  
+      drawer.addEventListener('input', (e) => {
+        const input = e.target.closest('.qty-input'); if (!input) return;
+        const row = e.target.closest('.cart-row'); const id = row?.dataset.id;
+        const v = Math.max(1, parseInt(input.value,10) || 1);
+        const cart = Storage.get(); const it = cart.find(x => x.id === id); if (!it) return;
+        it.qty = v; Storage.set(cart); renderCart();
+      });
+    }
+  
+    /* --- Handler .btn-add (fallback SI l’animation n’est pas chargée) --- */
+    // Si ton script d’animation est présent, il met window.__flyHooked = true et
+    // appelle window.addToCart() lui-même → pas besoin de gérer ici.
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-add');
+      if (!btn) return;
+  
+      // Si l’animation est chargée, on laisse SON handler gérer l’ajout + l’anim
+      if (window.__flyHooked) return;
+  
+      e.preventDefault(); // évite lien/submit accidentel
+      const card  = btn.closest('.product-card');
+      const id    = (btn.dataset.id || card?.dataset.id || '').trim();
+      const name  = (btn.dataset.name || card?.querySelector('.product-title')?.textContent || 'Produit').trim();
+      const price = Number(btn.dataset.price)
+                 || Number(card?.dataset.price)
+                 || parsePrice(card?.querySelector('.price')?.textContent);
+      const img   = btn.dataset.img || card?.querySelector('.product-img')?.getAttribute('src') || '';
+  
+      window.addToCart({ id, name, price, img, qty: 1 });
+    });
+  
+    /* --- Init: bulle à jour --- */
+    document.addEventListener('DOMContentLoaded', () => {
+      Storage.set(Storage.get()); // met à jour la bulle au démarrage
+    });
+  })();
+  
