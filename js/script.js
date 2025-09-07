@@ -1434,109 +1434,100 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   })();
 
   
-  /* =========================================================
-   Luneor — Confirmer commande -> Google Sheet + fermer offcanvas
+ /* =========================================================
+   Luneor — CONFIRMER COMMANDE (Panier) → Google Sheet
+   - Isolé : n'écoute QUE #cartConfirmBtn (aucun impact sur .btn-buy)
+   - Ferme l'offcanvas proprement (animation Bootstrap OK)
+   - Envoi x-www-form-urlencoded (pas de preflight CORS)
    ========================================================= */
 (() => {
   'use strict';
+  if (window.__cartConfirmHooked) return; window.__cartConfirmHooked = true;
 
-  // ⬇️ Mets ici l'URL de ton Apps Script Web App (Deploy > New deployment > Web app)
-  const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
+  // ⬇️ Mets ici l'URL de TON Web App Apps Script (pour le PANIER)
+  const CART_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
 
-  // Helpers lecture/écriture du panier (compatible avec tes helpers existants)
+  /* Helpers panier — réutilise tes fonctions si présentes */
   const readCart = () => {
-    try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
+    try { return (typeof getCart === 'function') ? getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
     catch { return []; }
   };
-  const writeCart = (arr) => {
-    if (typeof window.setCart === 'function') window.setCart(arr || []);
-    else localStorage.setItem('cart', JSON.stringify(arr || []));
-    if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr || []);
+  const writeCart = (arr=[]) => {
+    if (typeof setCart === 'function') setCart(arr);
+    else localStorage.setItem('cart', JSON.stringify(arr));
+    if (typeof updateCartBubble === 'function') updateCartBubble(arr);
+  };
+  const subtotal = (cart) => cart.reduce((s,i)=> s + (Number(i.price)||0)*(Number(i.qty)||1), 0);
+
+  const makeOrderId = () => {
+    const d=new Date(), p=n=>String(n).padStart(2,'0');
+    return `LNR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
   };
 
-  const subtotal = (cart) => (cart || []).reduce((s,i) => s + (Number(i.price)||0) * (i.qty||1), 0);
-
-  function makeOrderId() {
-    const d = new Date();
-    const pad = (n)=> String(n).padStart(2,'0');
-    return `LNR-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
-  }
-
-  async function sendOrder(payload) {
-    // On envoie en x-www-form-urlencoded (simple request => évite preflight CORS)
+  async function sendToSheet(payload){
     const body = new URLSearchParams({ data: JSON.stringify(payload) }).toString();
-    try {
-      await fetch(SHEET_WEBAPP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body
-      });
-      // NB: on ne lit pas forcément la réponse (CORS). L’envoi suffit pour Google Sheets.
-      return true;
-    } catch (e) {
-      console.error('Envoi commande échoué:', e);
-      return false;
-    }
+    // Si ton Apps Script nécessite mode no-cors, tu peux ajouter:  // mode: 'no-cors',
+    return fetch(CART_WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body
+    });
   }
 
-  function closeOffcanvas() {
+  function closeCartOffcanvas(){
     const el = document.getElementById('cartDrawer');
     if (!el) return;
     const BO = window.bootstrap && window.bootstrap.Offcanvas;
-    if (BO) {
-      const inst = BO.getOrCreateInstance(el);
-      inst.hide(); // animation native Bootstrap
-    } else {
-      // fallback discret (pas d’animation)
-      el.classList.remove('show');
-      el.setAttribute('aria-hidden','true');
-      el.style.visibility = '';
-    }
+    if (BO) window.bootstrap.Offcanvas.getOrCreateInstance(el).hide(); // animation native OK
+    else { el.classList.remove('show'); el.setAttribute('aria-hidden','true'); }
   }
 
-  // Bind sur le bouton "Confirmer la commande"
-  document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('cartConfirmBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  /* ---- Bind unique sur #cartConfirmBtn ---- */
+  const confirmBtn = document.getElementById('cartConfirmBtn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+      const cart = readCart();
+      if (!cart.length) { alert('Votre panier est vide.'); return; }
 
-    const cart = readCart();
-    if (!cart.length) { if (btn) { btn.disabled=false; btn.textContent='Confirmer la commande'; } return; }
+      // état UI
+      confirmBtn.disabled = true;
+      const oldTxt = confirmBtn.textContent;
+      confirmBtn.textContent = 'Envoi…';
 
-    // Récupère options livraison/paiement depuis ton offcanvas
-    const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
-    const payRadio = document.querySelector('input[name="cartPay"]:checked');
-    const payment  = payRadio ? payRadio.value : 'cod';
+      // récupère options depuis l’offcanvas
+      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+      const payment  = document.querySelector('input[name="cartPay"]:checked')?.value || 'cod';
 
-    const order = {
-      orderId: makeOrderId(),
-      createdAt: new Date().toISOString(),
-      currency: 'DA',
-      delivery,
-      payment,
-      subtotal: subtotal(cart),
-      items: cart.map(({id,name,price,qty,img}) => ({ id, name, price: Number(price)||0, qty: Number(qty)||1, img })),
-      // Champs libres si tu ajoutes plus tard des infos client:
-      // customer: { name:'', phone:'', address:'' },
-      userAgent: navigator.userAgent
-    };
+      // payload pour le Sheet (garde tes champs actuels)
+      const order = {
+        orderId: makeOrderId(),
+        createdAt: new Date().toISOString(),
+        currency: 'DA',
+        delivery,
+        payment,
+        subtotal: subtotal(cart),
+        items: cart.map(({id,name,price,qty,img}) => ({ id, name, price:Number(price)||0, qty:Number(qty)||1, img })),
+        userAgent: navigator.userAgent
+      };
 
-    const ok = await sendOrder(order);
+      try {
+        await sendToSheet(order);
+        console.log('[PANIER] Commande envoyée:', order);
 
-    // Ferme immédiatement le panier (demande de l’utilisateur)
-    closeOffcanvas();
+        // ferme le panier immédiatement comme tu le veux
+        closeCartOffcanvas();
 
-    // Option : vider le panier après confirmation
-    writeCart([]);
-    // Si tu veux garder le panier rempli, commente la ligne ci-dessus.
+        // (option) vider le panier après envoi
+        writeCart([]);
 
-    // Feedback léger (toast/bootstrap ou alert)
-    try {
-      // Si tu as un système de toast, déclenche-le ici.
-      // Sinon:
-      if (ok) alert('✅ Commande envoyée ! Nous vous contacterons très vite.');
-      else alert('⚠️ Commande enregistrée localement, mais envoi au Sheet incertain.');
-    } finally {
-      if (btn) { btn.disabled=false; btn.textContent='Confirmer la commande'; }
-    }
-  });
+        alert('✅ Commande (panier) envoyée !');
+      } catch (err) {
+        console.error('[PANIER] Envoi échoué:', err);
+        alert('⚠️ Impossible d’envoyer la commande. Réessayez.');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = oldTxt;
+      }
+    }, { once: false });
+  }
 })();
