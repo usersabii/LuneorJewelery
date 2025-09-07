@@ -1441,7 +1441,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   'use strict';
 
   // ⬇️ Mets ici l'URL de ton Apps Script Web App (Deploy > New deployment > Web app)
-  const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwTlL13Lr13Pjz2TaeR5mCvu3v9dkt5qgpm-r_6ZKVIqOLuIIonU_ydd4TZ52I0rS9a1A/exec';
+  const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
 
   // Helpers lecture/écriture du panier (compatible avec tes helpers existants)
   const readCart = () => {
