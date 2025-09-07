@@ -1284,55 +1284,89 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================================================
-   Luneor Cart — Compat Animation (v1.4)
-   - Compatible avec ton offcanvas #cartDrawer
-   - Expose window.addToCart pour que ton script d’animation l’utilise
-   - Ne bloque plus l’autre listener .btn-add (pas de stopImmediatePropagation, pas de capture)
-   - Si window.__flyHooked est présent (animation chargée), le handler panier n’ajoute pas (évite doublon)
+   Luneor — Cart SAFE RESET (n’interfère pas avec .btn-buy)
+   - .btn-add seulement (1 clic = +1)
+   - Expose window.addToCart pour l’animation flyToCart
+   - Confirmer la commande => envoi Google Sheet + fermeture offcanvas
    ========================================================= */
    (() => {
     'use strict';
+    if (window.__LNR_CART_SAFE__) return; window.__LNR_CART_SAFE__ = true;
   
-    /* --- Storage (clé: "cart"), utilise tes helpers si présents --- */
-    const Storage = {
-      get() {
-        try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
-        catch { return []; }
-      },
-      set(arr) {
-        if (typeof window.setCart === 'function') window.setCart(arr);
-        else localStorage.setItem('cart', JSON.stringify(arr || []));
-        if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
-        else {
-          const b = document.querySelector('.cart-count');
-          if (b) b.textContent = String((arr||[]).reduce((s,i)=> s + (parseInt(i.qty,10)||1), 0));
-        }
+    /* -------- Config -------- */
+    // ⬇️ Mets ICI l’URL du Web App destiné AU PANIER (pas celui d’“Acheter”)
+    const CART_WEBAPP_URL = 'https://script.google.com/macros/s/VOTRE_WEBAPP_PANIER/exec';
+    const DRAWER_ID = 'cartDrawer'; // ton offcanvas panier
+  
+    /* -------- Storage helpers (utilise tes helpers si présents) -------- */
+    const readCart = () => {
+      try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
+      catch { return []; }
+    };
+    const writeCart = (arr=[]) => {
+      if (typeof window.setCart === 'function') window.setCart(arr);
+      else localStorage.setItem('cart', JSON.stringify(arr));
+      if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
+      else {
+        const b = document.querySelector('.cart-count');
+        if (b) b.textContent = String(arr.reduce((s,i)=>s+(parseInt(i.qty,10)||1),0));
       }
     };
   
-    /* --- Utils --- */
-    const parsePrice = (txt) => Number(String(txt || '').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
+    const parsePrice = (txt) => Number(String(txt||'').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
+    const subtotal   = (cart) => cart.reduce((s,i)=> s + (Number(i.price)||0)*(Number(i.qty)||1), 0);
+    const makeOrderId = () => {
+      const d=new Date(), p=n=>String(n).padStart(2,'0');
+      return `LNR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
+    };
   
-    // Fusionne si même (id+name+price+img), sinon crée une nouvelle ligne (suffixe #2, #3, …)
-    function upsertLine(cart, { id, name, price, img }) {
-      let line = cart.find(x => x.id === id && x.name === name && Number(x.price) === Number(price) && x.img === img);
-      if (line) { line.qty = (line.qty || 0) + 1; return cart; }
+    /* -------- API publique pour l’animation -------- */
+    // Ton script flyToCart appellera ceci (=> 1 seul ajout)
+    window.addToCart = function({ id, name, price, img, qty = 1 }) {
+      if (!id) return;
+      const cart = readCart();
+      const i = cart.findIndex(x => x.id === id);
+      if (i >= 0) cart[i].qty = (cart[i].qty||0) + qty;
+      else cart.push({ id, name: name||'Produit', price: Number(price)||0, img: img||'', qty: Number(qty)||1 });
+      writeCart(cart);
+    };
   
-      if (cart.some(x => x.id === id)) {
-        let n = 2, candidate = `${id}#${n}`;
-        while (cart.some(x => x.id === candidate)) { n++; candidate = `${id}#${n}`; }
-        id = candidate;
-      }
-      cart.push({ id, name, price: Number(price)||0, img: img||'', qty: 1 });
-      return cart;
+    /* -------- Bind .btn-add seulement (jamais .btn-buy) -------- */
+    function bindAddButtons(){
+      document.querySelectorAll('.btn-add').forEach(btn => {
+        if (btn.dataset.lnrBound === '1') return;
+        btn.dataset.lnrBound = '1';
+  
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+  
+          // Si ton animation est chargée, elle gère l’ajout via window.addToCart → on ne fait rien ici.
+          if (window.__flyHooked) return;
+  
+          // Fallback ajout si pas d’animation
+          const card  = btn.closest('.product-card');
+          const id    = (btn.dataset.id || card?.dataset.id || '').trim();
+          const name  = (btn.dataset.name || card?.querySelector('.product-title')?.textContent || 'Produit').trim();
+          const price = Number(btn.dataset.price)
+                     || Number(card?.dataset.price)
+                     || parsePrice(card?.querySelector('.price')?.textContent);
+          const img   = btn.dataset.img || card?.querySelector('.product-img')?.getAttribute('src') || '';
+  
+          window.addToCart({ id, name, price, img, qty: 1 });
+        });
+      });
     }
+    // Rebind si des cartes s’injectent dynamiquement
+    const mo = new MutationObserver(() => bindAddButtons());
+    mo.observe(document.documentElement, { childList: true, subtree: true });
   
-    /* --- Rendu offcanvas --- */
-    function renderCart() {
+    /* -------- Rendu offcanvas (quand il s’ouvre) -------- */
+    function renderCart(){
       const box = document.querySelector('#cartItems');
       const sub = document.querySelector('#cartSubtotal');
       if (!box) return;
-      const cart = Storage.get();
+      const cart = readCart();
+  
       if (!cart.length) {
         box.innerHTML = `<div class="text-muted small">Votre panier est vide.</div>`;
         if (sub) sub.textContent = `0 DA`;
@@ -1353,85 +1387,97 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
           </div>
         </div>
       `).join('');
-      if (sub) sub.textContent = `${cart.reduce((s,i)=> s + (Number(i.price)||0)*(i.qty||1), 0)} DA`;
+      if (sub) sub.textContent = `${subtotal(cart)} DA`;
     }
-    // Rendu à l’ouverture Offcanvas (Bootstrap)
-    document.getElementById('cartDrawer')?.addEventListener('show.bs.offcanvas', renderCart);
   
-    /* --- API publique pour l’animation : 1 clic = +1 --- */
-    window.addToCart = function ({ id, name, price, img, qty = 1 }) {
-      // On force qty=1 par clic (ton anim clique une fois = +1)
-      let cart = Storage.get();
-      cart = upsertLine(cart, { id, name: name || 'Produit', price: Number(price)||0, img: img || '' });
-      Storage.set(cart);
-    };
+    // Brancher le rendu à l’ouverture Bootstrap (sans casser l’animation)
+    document.getElementById(DRAWER_ID)?.addEventListener('show.bs.offcanvas', renderCart);
   
-    /* --- Bouton Vider --- */
-    document.querySelector('#cartClearBtn')?.addEventListener('click', () => {
-      Storage.set([]); renderCart();
-    });
+    // Actions dans le drawer
+    (function bindDrawer(){
+      const drawer = document.getElementById(DRAWER_ID);
+      if (!drawer) return;
   
-    /* --- Actions dans le drawer (qty +/- / supprimer) --- */
-    const drawer = document.getElementById('cartDrawer');
-    if (drawer) {
+      // qty +/- / supprimer
       drawer.addEventListener('click', (e) => {
         const row = e.target.closest('.cart-row'); if (!row) return;
         const id  = row.dataset.id;
+        const cart = readCart();
+        const it = cart.find(x => x.id === id); if (!it) return;
   
-        if (e.target.closest('.qty-dec')) {
-          const cart = Storage.get();
-          const it = cart.find(x => x.id === id); if (!it) return;
-          it.qty = Math.max(1, (it.qty||1) - 1);
-          Storage.set(cart); renderCart(); return;
-        }
-        if (e.target.closest('.qty-inc')) {
-          const cart = Storage.get();
-          const it = cart.find(x => x.id === id); if (!it) return;
-          it.qty = (it.qty||1) + 1;
-          Storage.set(cart); renderCart(); return;
-        }
+        if (e.target.closest('.qty-dec')) { it.qty = Math.max(1, (it.qty||1) - 1); writeCart(cart); renderCart(); return; }
+        if (e.target.closest('.qty-inc')) { it.qty = (it.qty||1) + 1; writeCart(cart); renderCart(); return; }
         if (e.target.closest('.remove-item')) {
-          const cart = Storage.get().filter(x => x.id !== id);
-          Storage.set(cart); renderCart(); return;
+          const next = cart.filter(x => x.id !== id); writeCart(next); renderCart(); return;
         }
       });
   
+      // changement direct quantité
       drawer.addEventListener('input', (e) => {
         const input = e.target.closest('.qty-input'); if (!input) return;
         const row = e.target.closest('.cart-row'); const id = row?.dataset.id;
         const v = Math.max(1, parseInt(input.value,10) || 1);
-        const cart = Storage.get(); const it = cart.find(x => x.id === id); if (!it) return;
-        it.qty = v; Storage.set(cart); renderCart();
+        const cart = readCart(); const it = cart.find(x => x.id === id); if (!it) return;
+        it.qty = v; writeCart(cart); renderCart();
       });
-    }
   
-    /* --- Handler .btn-add (fallback SI l’animation n’est pas chargée) --- */
-    // Si ton script d’animation est présent, il met window.__flyHooked = true et
-    // appelle window.addToCart() lui-même → pas besoin de gérer ici.
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-add');
-      if (!btn) return;
+      // Vider
+      document.getElementById('cartClearBtn')?.addEventListener('click', () => { writeCart([]); renderCart(); });
+    })();
   
-      // Si l’animation est chargée, on laisse SON handler gérer l’ajout + l’anim
-      if (window.__flyHooked) return;
+    /* -------- Confirmer la commande (PANIER) -------- */
+    document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('cartConfirmBtn');
+      const cart = readCart();
+      if (!cart.length) { alert('Votre panier est vide.'); return; }
   
-      e.preventDefault(); // évite lien/submit accidentel
-      const card  = btn.closest('.product-card');
-      const id    = (btn.dataset.id || card?.dataset.id || '').trim();
-      const name  = (btn.dataset.name || card?.querySelector('.product-title')?.textContent || 'Produit').trim();
-      const price = Number(btn.dataset.price)
-                 || Number(card?.dataset.price)
-                 || parsePrice(card?.querySelector('.price')?.textContent);
-      const img   = btn.dataset.img || card?.querySelector('.product-img')?.getAttribute('src') || '';
+      // UI
+      if (btn){ btn.disabled = true; var _t = btn.textContent; btn.textContent = 'Envoi…'; }
   
-      window.addToCart({ id, name, price, img, qty: 1 });
+      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+      const payment  = document.querySelector('input[name="cartPay"]:checked')?.value || 'cod';
+  
+      const order = {
+        orderId: makeOrderId(),
+        createdAt: new Date().toISOString(),
+        currency: 'DA',
+        delivery, payment,
+        subtotal: subtotal(cart),
+        items: cart.map(({id,name,price,qty,img}) => ({ id, name, price:Number(price)||0, qty:Number(qty)||1, img })),
+        userAgent: navigator.userAgent
+      };
+  
+      // envoi vers TON onglet/URL du PANIER (ne touche pas à .btn-buy)
+      try {
+        const body = new URLSearchParams({ data: JSON.stringify(order) }).toString();
+        await fetch(CART_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body
+        });
+      } catch(err) {
+        console.error('Envoi panier KO:', err);
+      }
+  
+      // ferme offcanvas (animation Bootstrap)
+      const el = document.getElementById(DRAWER_ID);
+      const BO = window.bootstrap && window.bootstrap.Offcanvas;
+      if (el && BO) window.bootstrap.Offcanvas.getOrCreateInstance(el).hide();
+      else if (el) { el.classList.remove('show'); el.setAttribute('aria-hidden','true'); }
+  
+      // vide le panier (si tu veux le garder, commente la ligne suivante)
+      writeCart([]);
+  
+      if (btn){ btn.disabled = false; btn.textContent = _t; }
+      alert('✅ Commande (panier) envoyée !');
     });
   
-    /* --- Init: bulle à jour --- */
+    /* -------- Init -------- */
     document.addEventListener('DOMContentLoaded', () => {
-      Storage.set(Storage.get()); // met à jour la bulle au démarrage
+      // MAJ bulle au démarrage
+      writeCart(readCart());
+      // bind .btn-add
+      bindAddButtons();
     });
   })();
-
   
- 
