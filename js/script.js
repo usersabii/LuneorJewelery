@@ -1249,38 +1249,35 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
-/* Ribbon Shop Hint (mobile only, mémoire 7 jours) */
+/* Ribbon Shop Hint — PERMANENT (mobile only) */
 (() => {
-  // Exécuter uniquement sur mobile
+  'use strict';
+
+  // S'exécute uniquement sur mobile
   if (!window.matchMedia('(max-width: 768px)').matches) return;
 
   const bar = document.getElementById('ribbon-shop-hint');
   if (!bar) return;
 
-  const KEY = 'ribbonShopHintClosedUntil';
-  const now = Date.now();
-  const saved = parseInt(localStorage.getItem(KEY) || '0', 10);
+  // 1) Ne mémorise plus la fermeture : on supprime toute ancienne clé
+  try { localStorage.removeItem('ribbonShopHintClosedUntil'); } catch (_) {}
 
-  const hide = () => bar.remove();
-  const show = () => (bar.style.display = '');
+  // 2) Toujours afficher le ruban (sur chaque page)
+  bar.style.display = '';
 
-  // Masquer si l'utilisateur l'a fermé (pendant 7 jours)
-  if (now < saved) hide(); else show();
-
-  // Bouton fermer
+  // 3) Le bouton fermer ne cache que pour la page en cours (aucune mémoire)
   bar.querySelector('.ribbon__close')?.addEventListener('click', () => {
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    localStorage.setItem(KEY, String(Date.now() + sevenDays));
-    hide();
+    bar.remove(); // il réapparaîtra au prochain chargement/navigation
   });
 
-  // Option : toucher le ruban (hors bouton) ouvre le menu burger
+  // 4) Option : toucher le ruban (hors bouton) ouvre le menu burger
   bar.addEventListener('click', (e) => {
     if (e.target.closest('.ribbon__close')) return;
     const burger = document.querySelector('#burger, .menu-toggle');
     if (burger) burger.click();
   });
 })();
+
 
 
 
@@ -1435,4 +1432,111 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       Storage.set(Storage.get()); // met à jour la bulle au démarrage
     });
   })();
+
   
+  /* =========================================================
+   Luneor — Confirmer commande -> Google Sheet + fermer offcanvas
+   ========================================================= */
+(() => {
+  'use strict';
+
+  // ⬇️ Mets ici l'URL de ton Apps Script Web App (Deploy > New deployment > Web app)
+  const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwTlL13Lr13Pjz2TaeR5mCvu3v9dkt5qgpm-r_6ZKVIqOLuIIonU_ydd4TZ52I0rS9a1A/exec';
+
+  // Helpers lecture/écriture du panier (compatible avec tes helpers existants)
+  const readCart = () => {
+    try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
+    catch { return []; }
+  };
+  const writeCart = (arr) => {
+    if (typeof window.setCart === 'function') window.setCart(arr || []);
+    else localStorage.setItem('cart', JSON.stringify(arr || []));
+    if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr || []);
+  };
+
+  const subtotal = (cart) => (cart || []).reduce((s,i) => s + (Number(i.price)||0) * (i.qty||1), 0);
+
+  function makeOrderId() {
+    const d = new Date();
+    const pad = (n)=> String(n).padStart(2,'0');
+    return `LNR-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
+  }
+
+  async function sendOrder(payload) {
+    // On envoie en x-www-form-urlencoded (simple request => évite preflight CORS)
+    const body = new URLSearchParams({ data: JSON.stringify(payload) }).toString();
+    try {
+      await fetch(SHEET_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body
+      });
+      // NB: on ne lit pas forcément la réponse (CORS). L’envoi suffit pour Google Sheets.
+      return true;
+    } catch (e) {
+      console.error('Envoi commande échoué:', e);
+      return false;
+    }
+  }
+
+  function closeOffcanvas() {
+    const el = document.getElementById('cartDrawer');
+    if (!el) return;
+    const BO = window.bootstrap && window.bootstrap.Offcanvas;
+    if (BO) {
+      const inst = BO.getOrCreateInstance(el);
+      inst.hide(); // animation native Bootstrap
+    } else {
+      // fallback discret (pas d’animation)
+      el.classList.remove('show');
+      el.setAttribute('aria-hidden','true');
+      el.style.visibility = '';
+    }
+  }
+
+  // Bind sur le bouton "Confirmer la commande"
+  document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('cartConfirmBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+
+    const cart = readCart();
+    if (!cart.length) { if (btn) { btn.disabled=false; btn.textContent='Confirmer la commande'; } return; }
+
+    // Récupère options livraison/paiement depuis ton offcanvas
+    const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+    const payRadio = document.querySelector('input[name="cartPay"]:checked');
+    const payment  = payRadio ? payRadio.value : 'cod';
+
+    const order = {
+      orderId: makeOrderId(),
+      createdAt: new Date().toISOString(),
+      currency: 'DA',
+      delivery,
+      payment,
+      subtotal: subtotal(cart),
+      items: cart.map(({id,name,price,qty,img}) => ({ id, name, price: Number(price)||0, qty: Number(qty)||1, img })),
+      // Champs libres si tu ajoutes plus tard des infos client:
+      // customer: { name:'', phone:'', address:'' },
+      userAgent: navigator.userAgent
+    };
+
+    const ok = await sendOrder(order);
+
+    // Ferme immédiatement le panier (demande de l’utilisateur)
+    closeOffcanvas();
+
+    // Option : vider le panier après confirmation
+    writeCart([]);
+    // Si tu veux garder le panier rempli, commente la ligne ci-dessus.
+
+    // Feedback léger (toast/bootstrap ou alert)
+    try {
+      // Si tu as un système de toast, déclenche-le ici.
+      // Sinon:
+      if (ok) alert('✅ Commande envoyée ! Nous vous contacterons très vite.');
+      else alert('⚠️ Commande enregistrée localement, mais envoi au Sheet incertain.');
+    } finally {
+      if (btn) { btn.disabled=false; btn.textContent='Confirmer la commande'; }
+    }
+  });
+})();
