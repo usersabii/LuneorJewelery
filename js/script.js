@@ -1284,38 +1284,26 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================================================
-   Luneor — CART SAFE (n'interfère pas avec .btn-buy)
-   - Bouclier .btn-buy pour bloquer les écouteurs globaux
-   - .btn-add : 1 clic = +1 (compatible flyToCart)
-   - Confirmer (panier) -> Google Sheet + fermeture offcanvas
+   Luneor — Cart (final clean)
+   - .btn-buy: jamais touché
+   - .btn-add: 1 clic = +1 (compatible flyToCart)
+   - Articles distincts même si data-id identique (composite)
+   - Confirmer: envoi Google Sheet + fermeture offcanvas
    ========================================================= */
    (() => {
     'use strict';
-    if (window.__LNR_CART_SAFE__) return; window.__LNR_CART_SAFE__ = true;
+    if (window.__LNR_CART_FINAL__) return; window.__LNR_CART_FINAL__ = true;
   
     /* ---------- CONFIG ---------- */
-    // ⬇️ Mets ICI l’URL de ton Web App Google Apps Script (onglet PANIER, pas celui d’Acheter)
-    const CART_WEBAPP_URL = 'https://script.google.com/macros/s/VOTRE_WEBAPP_PANIER/exec';
-    const DRAWER_ID = 'cartDrawer'; // ton offcanvas
+    const CART_WEBAPP_URL = 'https://script.google.com/macros/s/VOTRE_WEBAPP_PANIER/exec'; // ← remplace ici
+    const DRAWER_ID = 'cartDrawer';
   
-    /* ---------- BOUCLIER .btn-buy (PRO) ----------
-       Empêche tout écouteur global (document) d’attraper les clics "Acheter".
-       Votre propre handler sur .btn-buy continue de fonctionner (phase "target").
-    ------------------------------------------------ */
-    document.addEventListener('click', (e) => {
-      const buy = e.target.closest('.btn-buy');
-      if (!buy) return;
-      // On laisse le handler attaché directement sur le bouton fonctionner,
-      // mais on bloque la propagation vers document (où traînent les vieux listeners).
-      e.stopPropagation();
-    }, true); // en capture, donc avant les autres
-  
-    /* ---------- STORAGE HELPERS (clé "cart") ---------- */
-    const readCart = () => {
+    /* ---------- STORAGE HELPERS (utilise tes helpers si dispo) ---------- */
+    const getCart = () => {
       try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
       catch { return []; }
     };
-    const writeCart = (arr=[]) => {
+    const setCart = (arr=[]) => {
       if (typeof window.setCart === 'function') window.setCart(arr);
       else localStorage.setItem('cart', JSON.stringify(arr));
       if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
@@ -1324,6 +1312,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         if (b) b.textContent = String(arr.reduce((s,i)=> s + (parseInt(i.qty,10)||1), 0));
       }
     };
+  
+    /* ---------- UTILS ---------- */
     const parsePrice = (txt) => Number(String(txt||'').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
     const subtotal   = (cart) => cart.reduce((s,i)=> s + (Number(i.price)||0)*(Number(i.qty)||1), 0);
     const makeOrderId = () => {
@@ -1331,26 +1321,37 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       return `LNR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
     };
   
+    // Upsert COMPOSITE: même ligne seulement si (id+name+price+img) identiques
+    function upsertComposite(cart, { id, name, price, img }) {
+      const p = Number(price)||0, nm = name||'Produit', im = img||'', base = (id||'').trim();
+      // ligne identique ?
+      const same = cart.find(x => x.id === base && x.name === nm && Number(x.price) === p && x.img === im);
+      if (same) { same.qty = (same.qty||0) + 1; return cart; }
+      // collision d'id avec autre produit → suffixe
+      let finalId = base || `${nm}|${im}`;
+      if (cart.some(x => x.id === finalId && (x.name !== nm || Number(x.price)!==p || x.img!==im))) {
+        let n=2; while (cart.some(x => x.id === `${finalId}#${n}`)) n++; finalId = `${finalId}#${n}`;
+      }
+      cart.push({ id: finalId, name: nm, price: p, img: im, qty: 1 });
+      return cart;
+    }
+  
     /* ---------- API PUBLIQUE POUR L’ANIMATION ---------- */
-    // Ton script flyToCart appelle addToCart → ici on fait l’addition (1 clic = +1)
+    // Ton script flyToCart l’appelle → un seul ajout par clic
     window.addToCart = function({ id, name, price, img, qty = 1 }) {
-      if (!id) return;
-      const cart = readCart();
-      const i = cart.findIndex(x => x.id === id);
-      if (i >= 0) cart[i].qty = (cart[i].qty||0) + Number(qty)||1;
-      else cart.push({ id, name: name||'Produit', price: Number(price)||0, img: img||'', qty: Number(qty)||1 });
-      writeCart(cart);
+      const c = getCart();
+      for (let i=0;i<Math.max(1, Number(qty)||1);i++) upsertComposite(c, { id, name, price, img });
+      setCart(c);
     };
   
-    /* ---------- .btn-add SEULEMENT (jamais .btn-buy) ---------- */
-    function bindAddButtons(){
+    /* ---------- .btn-add UNIQUEMENT (jamais .btn-buy) ---------- */
+    function bindAdd(){
       document.querySelectorAll('.btn-add').forEach(btn => {
         if (btn.dataset.lnrBound === '1') return;
         btn.dataset.lnrBound = '1';
-  
         btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          // Si ton script d’animation est là, il va lui-même appeler window.addToCart → ne rien faire ici
+          e.preventDefault(); // évite <a href> de naviguer
+          // Si l’animation est chargée, ELLE appellera addToCart → ne rien faire ici
           if (window.__flyHooked) return;
   
           const card  = btn.closest('.product-card');
@@ -1365,16 +1366,15 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         });
       });
     }
-    // Rebind si contenu dynamique
-    const mo = new MutationObserver(() => bindAddButtons());
+    const mo = new MutationObserver(() => bindAdd());
     mo.observe(document.documentElement, { childList: true, subtree: true });
   
-    /* ---------- RENDU OFFCANVAS (à l’ouverture) ---------- */
+    /* ---------- RENDU PANIER ---------- */
     function renderCart(){
       const box = document.querySelector('#cartItems');
       const sub = document.querySelector('#cartSubtotal');
       if (!box) return;
-      const cart = readCart();
+      const cart = getCart();
   
       if (!cart.length) {
         box.innerHTML = `<div class="text-muted small">Votre panier est vide.</div>`;
@@ -1400,7 +1400,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     }
     document.getElementById(DRAWER_ID)?.addEventListener('show.bs.offcanvas', renderCart);
   
-    /* ---------- ACTIONS DANS LE DRAWER ---------- */
+    // Actions dans le drawer
     (function bindDrawer(){
       const drawer = document.getElementById(DRAWER_ID);
       if (!drawer) return;
@@ -1408,13 +1408,13 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       drawer.addEventListener('click', (e) => {
         const row = e.target.closest('.cart-row'); if (!row) return;
         const id  = row.dataset.id;
-        const cart = readCart();
+        const cart = getCart();
         const it = cart.find(x => x.id === id); if (!it) return;
   
-        if (e.target.closest('.qty-dec')) { it.qty = Math.max(1, (it.qty||1) - 1); writeCart(cart); renderCart(); return; }
-        if (e.target.closest('.qty-inc')) { it.qty = (it.qty||1) + 1; writeCart(cart); renderCart(); return; }
+        if (e.target.closest('.qty-dec')) { it.qty = Math.max(1, (it.qty||1) - 1); setCart(cart); renderCart(); return; }
+        if (e.target.closest('.qty-inc')) { it.qty = (it.qty||1) + 1; setCart(cart); renderCart(); return; }
         if (e.target.closest('.remove-item')) {
-          const next = cart.filter(x => x.id !== id); writeCart(next); renderCart(); return;
+          const next = cart.filter(x => x.id !== id); setCart(next); renderCart(); return;
         }
       });
   
@@ -1422,18 +1422,28 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         const input = e.target.closest('.qty-input'); if (!input) return;
         const row = e.target.closest('.cart-row'); const id = row?.dataset.id;
         const v = Math.max(1, parseInt(input.value,10) || 1);
-        const cart = readCart(); const it = cart.find(x => x.id === id); if (!it) return;
-        it.qty = v; writeCart(cart); renderCart();
+        const cart = getCart(); const it = cart.find(x => x.id === id); if (!it) return;
+        it.qty = v; setCart(cart); renderCart();
       });
   
       // Vider
-      document.getElementById('cartClearBtn')?.addEventListener('click', () => { writeCart([]); renderCart(); });
+      document.getElementById('cartClearBtn')?.addEventListener('click', () => { setCart([]); renderCart(); });
     })();
   
     /* ---------- CONFIRMER LA COMMANDE (PANIER) ---------- */
+    async function postToSheet(url, payload){
+      const body = new URLSearchParams({ data: JSON.stringify(payload) }).toString();
+      try {
+        await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' }, body });
+      } catch (e) {
+        // Fallback "no-cors" si besoin (pas de lecture de réponse possible)
+        try { await fetch(url, { method:'POST', mode:'no-cors', body }); } catch(_) {}
+      }
+    }
+  
     document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
       const btn = document.getElementById('cartConfirmBtn');
-      const cart = readCart();
+      const cart = getCart();
       if (!cart.length) { alert('Votre panier est vide.'); return; }
   
       if (btn){ btn.disabled = true; var _t = btn.textContent; btn.textContent = 'Envoi…'; }
@@ -1451,25 +1461,17 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         userAgent: navigator.userAgent
       };
   
-      try {
-        const body = new URLSearchParams({ data: JSON.stringify(order) }).toString();
-        await fetch(CART_WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body
-        });
-      } catch (err) {
-        console.error('[PANIER] Envoi KO:', err);
-      }
+      try { await postToSheet(CART_WEBAPP_URL, order); }
+      catch(e){ console.error('[PANIER] Envoi KO:', e); }
   
-      // Ferme l’offcanvas (animation Bootstrap)
+      // Ferme l’offcanvas
       const el = document.getElementById(DRAWER_ID);
       const BO = window.bootstrap && window.bootstrap.Offcanvas;
       if (el && BO) window.bootstrap.Offcanvas.getOrCreateInstance(el).hide();
       else if (el) { el.classList.remove('show'); el.setAttribute('aria-hidden','true'); }
   
-      // Vide le panier (retire cette ligne si tu veux conserver)
-      writeCart([]);
+      // Vide le panier (retire la ligne suivante si tu veux conserver)
+      setCart([]);
   
       if (btn){ btn.disabled = false; btn.textContent = _t; }
       alert('✅ Commande (panier) envoyée !');
@@ -1477,78 +1479,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   
     /* ---------- INIT ---------- */
     document.addEventListener('DOMContentLoaded', () => {
-      writeCart(readCart());   // met à jour la bulle
-      bindAddButtons();        // accroche .btn-add
+      setCart(getCart()); // met à jour la bulle
+      bindAdd();          // accroche .btn-add
     });
   })();
   
-
-
-
-
-
-
-
-  /* =========================================================
-   Anti-doublon "Acheter" — shield sans toucher à ton code existant
-   - Laisse ton handler .btn-buy s’exécuter UNE seule fois
-   - Bloque le 2e événement (touch/click) dans les 600ms
-   - Empêche un éventuel submit de <form> de rejouer l'envoi
-   - Ne touche PAS au panier
-   ========================================================= */
-(() => {
-  'use strict';
-
-  // 0) Si un ancien patch existe, évite le double chargement
-  if (window.__BUY_SHIELD__) return;
-  window.__BUY_SHIELD__ = true;
-
-  // 1) Évite les submit de formulaire involontaires
-  //    (si .btn-buy est "type=submit" dans un <form>, on le convertit en bouton simple)
-  document.querySelectorAll('.btn-buy').forEach(btn => {
-    try {
-      if (btn.tagName === 'BUTTON' && (btn.type || '').toLowerCase() === 'submit') {
-        btn.type = 'button';
-      }
-    } catch {}
-  });
-
-  // 2) Bouclier anti double-trigger (touchend+click / pointerup+click / double-clic)
-  //    Laisse passer le PREMIER event, bloque les suivants pendant 600ms
-  const lastFire = new WeakMap();
-  const guard = (ev) => {
-    const btn = ev.target.closest?.('.btn-buy');
-    if (!btn) return;
-
-    const now  = performance.now();
-    const prev = lastFire.get(btn) || 0;
-
-    if (now - prev < 600) {
-      // → 2e déclenchement très proche : on bloque pour éviter 2 envois
-      ev.stopImmediatePropagation();
-      ev.stopPropagation();
-      ev.preventDefault();
-      return;
-    }
-    lastFire.set(btn, now);
-    // Important : NE PAS preventDefault ici → ton handler existant reçoit le 1er event normalement
-  };
-
-  // Capture avant tous les autres listeners (y compris les délégués globaux)
-  ['pointerup', 'click'].forEach(t => {
-    document.addEventListener(t, guard, { capture: true, passive: false });
-  });
-
-  // 3) Si .btn-buy est DANS un <form>, empêcher le submit "en plus du click"
-  document.addEventListener('submit', (ev) => {
-    // e.submitter = bouton qui a déclenché le submit (Chrome, Edge, etc.)
-    const s = ev.submitter || document.activeElement;
-    if (s && s.closest && s.closest('.btn-buy')) {
-      ev.preventDefault(); // on laisse ton handler click faire l'envoi AJAX
-      ev.stopPropagation();
-    }
-  }, { capture: true });
-
-  // 4) Option: visibilité console pour diagnostic (désactive si ça t’embête)
-  // console.log('[BUY SHIELD] actif : anti-doublon .btn-buy en place');
-})();
