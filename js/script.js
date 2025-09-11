@@ -1237,262 +1237,279 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================
-   PANIER OFFCANVAS – FIX (spécifique à ton HTML)
+   PANIER OFFCANVAS – FIX FINAL
    ========================= */
    'use strict';
-   console.log('[CART FIX offcanvas] chargé');
+   console.log('[CART FIX FINAL] chargé');
    
-   // ←←← mets ici l’URL /exec du Web App Apps Script
-   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
+   // ← ← ← remplace par l’URL /exec de ton Web App
+   const WEBAPP_URL = (window.GAS_URL && String(window.GAS_URL)) || 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
    
    const SELECTORS = {
-     // Boutons
      addButtons : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
-     buyNow     : '#confirmBuyBtn',         // ton bouton "Acheter" (achat direct)
-     cartConfirm: '#btnConfirmerPanier',    // bouton "Confirmer la commande" dans l’offcanvas
+     buyNow     : '#confirmBuyBtn',
+     cartConfirm: '#btnConfirmerPanier',
      cartClear  : '#cartClearBtn',
-   
-     // Offcanvas panier
      drawer     : '#cartDrawer',
      itemsBox   : '#cartItems',
      subtotalEl : '#cartSubtotal',
      delivery   : '#cartDeliverySelect',
-     payName    : 'cartPay',                 // name des radios
-   
-     // Modal inscription (prioritaire si profil incomplet)
+     payName    : 'cartPay',
      accountModal: '#account-modal',
-   
-     // (optionnel) badge
      badge      : '#js-cart-badge, .cart-badge, [data-cart-badge]'
    };
    
-   /* ---------- Anti-double binding ---------- */
-   if (window.__BIND_CART__) {
-     console.log('[CART FIX offcanvas] déjà initialisé');
-   } else {
-     window.__BIND_CART__ = true;
-   
-     /* ---------- Storage panier ---------- */
-     const CART_KEY = 'cart';
-     const cart = {
-       load(){ try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } },
-       save(list){ localStorage.setItem(CART_KEY, JSON.stringify(list||[])); updateBadge(); renderIfOpen(); },
-       add(it){
-         const list = this.load();
-         const i = list.findIndex(x=>x.sku===it.sku);
-         if (i>=0) list[i].qty += it.qty; else list.push(it);
-         this.save(list);
-       },
-       clear(){ this.save([]); }
-     };
-   
-     /* ---------- Utils UI ---------- */
-     const q  = (s)=> document.querySelector(s);
-     const qa = (s)=> [...document.querySelectorAll(s)];
-     const DA = n => `${Number(n||0).toFixed(2)} DA`;
-     const totalQty   = list => list.reduce((s,i)=> s + Number(i.qty||0), 0);
-     const totalPrice = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-   
-     function updateBadge(){
-       const el = q(SELECTORS.badge);
-       if (el) el.textContent = String(totalQty(cart.load()));
+   /* ---------- anti double binding: strip direct listeners + capture ---------- */
+   (function stripAndGuard(){
+     const STRIP_SEL = [SELECTORS.addButtons, SELECTORS.buyNow, SELECTORS.cartConfirm].join(',');
+     function stripDirect(sel){
+       document.querySelectorAll(sel).forEach(el=>{
+         const c = el.cloneNode(true);
+         ['onclick','onmousedown','ontouchstart','onsubmit'].forEach(k=>{ c[k]=null; c.removeAttribute(k); });
+         if (c.tagName === 'BUTTON' && c.type !== 'button') c.type = 'button';
+         el.replaceWith(c);
+       });
      }
+     const doStrip = ()=> stripDirect(STRIP_SEL);
+     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', doStrip, {once:true});
+     else doStrip();
+     // strip aussi les éléments ajoutés dynamiquement
+     new MutationObserver(()=> doStrip()).observe(document.documentElement, {subtree:true, childList:true});
    
-     function renderCart(){
-       const list   = cart.load();
-       const box    = q(SELECTORS.itemsBox);
-       const subEl  = q(SELECTORS.subtotalEl);
-       if (!box) return;
+     // Swallow en capture pour couper les vieux handlers
+     document.addEventListener('click', (e)=>{
+       const targetSel = STRIP_SEL;
+       if (e.target.closest(targetSel)) {
+         // on ne preventDefault PAS ici, on laisse notre handler gérer
+         e.stopPropagation();
+         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+       }
+     }, true);
+   })();
    
-       if (!list.length){
-         box.innerHTML = `<div class="text-muted">Panier vide</div>`;
-       } else {
-         box.innerHTML = list.map(it => `
-           <div class="d-flex justify-content-between align-items-center" data-sku="${it.sku}">
-             <div class="me-2">
-               <div class="fw-semibold">${it.name || it.sku}</div>
-               <div class="small text-muted">× ${it.qty}</div>
-             </div>
-             <div class="ms-2 fw-semibold">${DA(Number(it.price||0)*Number(it.qty||0))}</div>
+   /* ---------- store panier ---------- */
+   const CART_KEY = 'cart';
+   const cart = {
+     load(){ try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } },
+     save(list){ localStorage.setItem(CART_KEY, JSON.stringify(list||[])); updateBadge(); renderIfOpen(); },
+     _key(it){
+       // clé de fusion stable même si sku absent
+       const k = String(it.sku || it.id || (it.name||'') + '|' + String(it.price||0));
+       return k;
+     },
+     add(it){
+       const list = this.load();
+       const key = this._key(it);
+       const i = list.findIndex(x => this._key(x) === key);
+       if (i >= 0) list[i].qty += Number(it.qty||1);
+       else list.push({...it, qty: Number(it.qty||1)});
+       this.save(list);
+     },
+     clear(){ this.save([]); }
+   };
+   
+   /* ---------- utils UI ---------- */
+   const q  = (s)=> document.querySelector(s);
+   const qa = (s)=> [...document.querySelectorAll(s)];
+   const DA = n => `${Number(n||0).toFixed(2)} DA`;
+   const totalQty   = list => list.reduce((s,i)=> s + Number(i.qty||0), 0);
+   const totalPrice = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
+   
+   function updateBadge(){
+     const el = q(SELECTORS.badge);
+     if (el) el.textContent = String(totalQty(cart.load()));
+   }
+   function renderCart(){
+     const list   = cart.load();
+     const box    = q(SELECTORS.itemsBox);
+     const subEl  = q(SELECTORS.subtotalEl);
+     if (!box) return;
+   
+     if (!list.length){
+       box.innerHTML = `<div class="text-muted">Panier vide</div>`;
+     } else {
+       box.innerHTML = list.map(it => `
+         <div class="d-flex justify-content-between align-items-center" data-key="${cart._key(it)}">
+           <div class="me-2">
+             <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
+             <div class="small text-muted">× ${it.qty}</div>
            </div>
-         `).join('');
-       }
-       if (subEl) subEl.textContent = DA(totalPrice(list));
-       updateBadge();
+           <div class="ms-2 fw-semibold">${DA(Number(it.price||0)*Number(it.qty||0))}</div>
+         </div>
+       `).join('');
      }
-   
-     function renderIfOpen(){
-       const el = q(SELECTORS.drawer);
-       if (el && el.classList.contains('show')) renderCart();
-     }
-   
-     // Rendu auto à l’ouverture de l’offcanvas
-     const drawerEl = q(SELECTORS.drawer);
-     if (drawerEl) {
-       drawerEl.addEventListener('show.bs.offcanvas', renderCart);
-     }
-   
-     /* ---------- Profil / inscription ---------- */
-     function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
-     function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); }
-     function hideAllOverlays(){
-       // Ferme offcanvas + modals
-       document.querySelectorAll('.offcanvas.show').forEach(c=>{
-         const inst = bootstrap.Offcanvas.getInstance(c) || new bootstrap.Offcanvas(c);
-         inst.hide();
-       });
-       document.querySelectorAll('.modal.show').forEach(m=>{
-         const inst = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
-         inst.hide();
-       });
-     }
-     function requireProfile(){
-       const p = getProfile();
-       if (isProfileComplete(p)) return p;
-       hideAllOverlays();
-       // ouvre le modal d’inscription en priorité
-       const account = q(SELECTORS.accountModal);
-       if (account){
-         setTimeout(()=> (bootstrap.Modal.getInstance(account) || new bootstrap.Modal(account, {backdrop:'static'})).show(), 160);
-       } else {
-         alert('Veuillez vous inscrire (nom, téléphone, adresse).');
-       }
-       return null;
-     }
-   
-     /* ---------- Envoi unique ---------- */
-     let sending = false;
-     async function sendOrder(payload){
-       if (sending) throw new Error('Envoi déjà en cours');
-       sending = true;
-       try{
-         const res = await fetch(WEBAPP_URL, {
-           method:'POST',
-           headers:{'Content-Type':'application/json'},
-           body: JSON.stringify(payload)
-         });
-         const data = await res.json();
-         if (!data.ok) throw new Error(data.error || 'Erreur serveur');
-         return data;
-       } finally { sending = false; }
-     }
-     const uuid = ()=> (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now());
-   
-     /* ---------- Handler unique ---------- */
-     document.addEventListener('click', async (e)=>{
-       const addBtn  = e.target.closest(SELECTORS.addButtons);
-       const buyBtn  = e.target.closest(SELECTORS.buyNow);
-       const confBtn = e.target.closest(SELECTORS.cartConfirm);
-       const clrBtn  = e.target.closest(SELECTORS.cartClear);
-   
-       if (!addBtn && !buyBtn && !confBtn && !clrBtn) return;
-   
-       e.preventDefault();
-       e.stopPropagation();
-       if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-   
-       // Ajouter au panier
-       if (addBtn){
-         if (addBtn.dataset.lock) return;
-         addBtn.dataset.lock = '1'; setTimeout(()=> delete addBtn.dataset.lock, 300);
-   
-         const sku   = addBtn.dataset.sku   || addBtn.getAttribute('data-id');
-         const name  = addBtn.dataset.name  || addBtn.getAttribute('data-title') || sku;
-         const price = Number(addBtn.dataset.price || addBtn.getAttribute('data-price') || 0);
-         if (!sku){ console.warn('[cart] SKU manquant'); return; }
-         cart.add({ sku, name, price, qty: 1 });
-         return;
-       }
-   
-       // Vider panier
-       if (clrBtn){
-         cart.clear();
-         renderCart();
-         return;
-       }
-   
-       // Achat direct (bouton "Acheter")
-       if (buyBtn){
-         const profile = requireProfile();
-         if (!profile) return;
-   
-         buyBtn.disabled = true;
-         try{
-           const orderId = buyBtn.dataset.orderId || (buyBtn.dataset.orderId = uuid());
-           const sku   = buyBtn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-           const name  = buyBtn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-           const price = Number(buyBtn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-           if (!sku) throw new Error('Produit introuvable (data-* ou window.__currentBuy)');
-   
-           const payload = {
-             __kind  : 'order',
-             orderId,
-             client  : profile,
-             payment : 'to-choose',
-             delivery: 'to-choose',
-             items   : [{ sku, name, price, qty: 1 }],
-             total   : price,
-             source  : 'buy_button'
-           };
-           const out = await sendOrder(payload);
-           alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-           hideAllOverlays();
-         } catch(err){
-           console.error(err);
-           alert('Échec achat direct ❌ ' + err.message);
-         } finally { buyBtn.disabled = false; }
-         return;
-       }
-   
-       // Confirmer la commande (dans l’offcanvas)
-       if (confBtn){
-         const profile = requireProfile();
-         if (!profile) return;
-   
-         const items = cart.load();
-         if (!items.length){ alert('Panier vide'); return; }
-   
-         const del   = q(SELECTORS.delivery)?.value || 'standard';
-         const payEl = document.querySelector(`input[name="${SELECTORS.payName}"]:checked`);
-         const pay   = (payEl?.value || 'cod').toLowerCase();
-   
-         confBtn.disabled = true;
-         try{
-           const orderId = confBtn.dataset.orderId || (confBtn.dataset.orderId = uuid());
-           const payload = {
-             __kind  : 'order',
-             orderId,
-             client  : profile,
-             payment : (pay === 'cod') ? 'COD' : 'CARD',
-             delivery: del,
-             items,
-             total   : totalPrice(items),
-             source  : 'cart'
-           };
-           const out = await sendOrder(payload);
-           alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-           cart.clear();
-           hideAllOverlays();
-         } catch(err){
-           console.error(err);
-           alert('Échec commande panier ❌ ' + err.message);
-         } finally { confBtn.disabled = false; }
-         return;
-       }
-     });
-   
-     /* ---------- Diag rapide ---------- */
-     (function diag(){
-       const addC  = qa(SELECTORS.addButtons).length;
-       const buyC  = qa(SELECTORS.buyNow).length;
-       const confC = qa(SELECTORS.cartConfirm).length;
-       const clrC  = qa(SELECTORS.cartClear).length;
-       console.log('[CART FIX offcanvas][DIAG] add:', addC, 'buy:', buyC, 'confirm:', confC, 'clear:', clrC, 'drawer:', !!q(SELECTORS.drawer));
-       if (!q(SELECTORS.itemsBox))   console.warn('➜ Manque le conteneur #cartItems');
-       if (!q(SELECTORS.subtotalEl)) console.warn('➜ Manque l’élément #cartSubtotal');
-     })();
-   
-     // MAJ badge au chargement
+     if (subEl) subEl.textContent = DA(totalPrice(list));
      updateBadge();
    }
+   function renderIfOpen(){
+     const el = q(SELECTORS.drawer);
+     if (el && el.classList.contains('show')) renderCart();
+   }
+   // rendre à l’ouverture de l’offcanvas
+   const drawerEl = q(SELECTORS.drawer);
+   if (drawerEl) drawerEl.addEventListener('show.bs.offcanvas', renderCart);
+   
+   /* ---------- profil / inscription ---------- */
+   function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
+   function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); }
+   function hideAllOverlays(){
+     document.querySelectorAll('.offcanvas.show').forEach(c=>{
+       const inst = bootstrap.Offcanvas.getInstance(c) || new bootstrap.Offcanvas(c);
+       inst.hide();
+     });
+     document.querySelectorAll('.modal.show').forEach(m=>{
+       const inst = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
+       inst.hide();
+     });
+   }
+   function requireProfile(){
+     const p = getProfile();
+     if (isProfileComplete(p)) return p;
+     hideAllOverlays();
+     const account = q(SELECTORS.accountModal);
+     if (account){
+       setTimeout(()=> (bootstrap.Modal.getInstance(account) || new bootstrap.Modal(account, {backdrop:'static'})).show(), 160);
+     } else {
+       alert('Veuillez renseigner nom, téléphone, adresse.');
+     }
+     return null;
+   }
+   
+   /* ---------- envoi unique ---------- */
+   let sending = false;
+   async function sendOrder(payload){
+     if (sending) throw new Error('Envoi déjà en cours');
+     sending = true;
+     try{
+       const res = await fetch(WEBAPP_URL, {
+         method:'POST',
+         headers:{'Content-Type':'application/json'},
+         body: JSON.stringify(payload)
+       });
+       const text = await res.text();
+       let data;
+       try { data = JSON.parse(text); } catch { data = { ok:false, error:'Réponse non-JSON', raw:text }; }
+       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
+       if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+       return data;
+     } finally { sending = false; }
+   }
+   const uuid = ()=> (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now());
+   
+   /* ---------- handler unique EN CAPTURE ---------- */
+   document.addEventListener('click', async (e)=>{
+     const addBtn  = e.target.closest(SELECTORS.addButtons);
+     const buyBtn  = e.target.closest(SELECTORS.buyNow);
+     const confBtn = e.target.closest(SELECTORS.cartConfirm);
+     const clrBtn  = e.target.closest(SELECTORS.cartClear);
+   
+     if (!addBtn && !buyBtn && !confBtn && !clrBtn) return;
+   
+     e.preventDefault();
+     e.stopPropagation();
+     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+   
+     // Ajouter
+     if (addBtn){
+       if (addBtn.dataset.lock) return;
+       addBtn.dataset.lock = '1'; setTimeout(()=> delete addBtn.dataset.lock, 250);
+   
+       // SKU robuste et unique
+       let sku = addBtn.dataset.sku || addBtn.getAttribute('data-id') || addBtn.id || '';
+       if (!sku){
+         // fallback: index aléatoire mémorisé sur le bouton pour garantir l’unicité
+         sku = addBtn.dataset.idx || (addBtn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9));
+         console.warn('[cart] data-sku manquant, fallback:', sku);
+       }
+       const name  = addBtn.dataset.name  || addBtn.getAttribute('data-title') || sku;
+       const price = Number(addBtn.dataset.price || addBtn.getAttribute('data-price') || 0);
+   
+       cart.add({ sku, name, price, qty: 1 });
+       return;
+     }
+   
+     // Vider
+     if (clrBtn){
+       cart.clear();
+       renderCart();
+       return;
+     }
+   
+     // Acheter (direct)
+     if (buyBtn){
+       const profile = requireProfile();
+       if (!profile) return;
+   
+       buyBtn.disabled = true;
+       try{
+         const orderId = buyBtn.dataset.orderId || (buyBtn.dataset.orderId = uuid());
+         const sku   = buyBtn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
+         const name  = buyBtn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
+         const price = Number(buyBtn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+         if (!sku) throw new Error('Produit introuvable (data-* ou window.__currentBuy)');
+   
+         const payload = {
+           __kind  : 'order',
+           orderId,
+           client  : profile,
+           payment : 'to-choose',
+           delivery: 'to-choose',
+           items   : [{ sku, name, price, qty: 1 }],
+           total   : price,
+           source  : 'buy_button'
+         };
+   
+         console.log('[buy] payload', payload);
+         const out = await sendOrder(payload);
+         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
+         hideAllOverlays();
+       } catch(err){
+         console.error('[buy] error', err);
+         alert('Échec achat direct ❌ ' + err.message);
+       } finally { buyBtn.disabled = false; }
+       return;
+     }
+   
+     // Confirmer panier
+     if (confBtn){
+       const profile = requireProfile();
+       if (!profile) return;
+   
+       const items = cart.load();
+       if (!items.length){ alert('Panier vide'); return; }
+   
+       const del   = q(SELECTORS.delivery)?.value || 'standard';
+       const payEl = document.querySelector(`input[name="${SELECTORS.payName}"]:checked`);
+       const pay   = (payEl?.value || 'cod').toLowerCase();
+   
+       confBtn.disabled = true;
+       try{
+         const orderId = confBtn.dataset.orderId || (confBtn.dataset.orderId = uuid());
+         const payload = {
+           __kind  : 'order',
+           orderId,
+           client  : profile,
+           payment : (pay === 'cod') ? 'COD' : 'CARD',
+           delivery: del,
+           items,
+           total   : totalPrice(items),
+           source  : 'cart'
+         };
+   
+         console.log('[cart-confirm] payload', payload);
+         const out = await sendOrder(payload);
+         console.log('[cart-confirm] resp', out);
+         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
+         cart.clear();
+         hideAllOverlays();
+       } catch(err){
+         console.error('[cart-confirm] error', err);
+         alert('Échec commande panier ❌ ' + err.message);
+       } finally { confBtn.disabled = false; }
+       return;
+     }
+   }, true); // EN CAPTURE pour couper les autres scripts
+   
+   // Init badge
+   updateBadge();
    
