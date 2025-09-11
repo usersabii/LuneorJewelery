@@ -1282,205 +1282,127 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
+// ==== CONFIG ====
+const WEBAPP_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ton URL Web App
 
-/* =========================================================
-   Luneor — Cart (final clean)
-   - .btn-buy: jamais touché
-   - .btn-add: 1 clic = +1 (compatible flyToCart)
-   - Articles distincts même si data-id identique (composite)
-   - Confirmer: envoi Google Sheet + fermeture offcanvas
-   ========================================================= */
-   (() => {
-    'use strict';
-    if (window.__LNR_CART_FINAL__) return; window.__LNR_CART_FINAL__ = true;
-  
-    /* ---------- CONFIG ---------- */
-    const CART_WEBAPP_URL = 'https://script.google.com/macros/s/VOTRE_WEBAPP_PANIER/exec'; // ← remplace ici
-    const DRAWER_ID = 'cartDrawer';
-  
-    /* ---------- STORAGE HELPERS (utilise tes helpers si dispo) ---------- */
-    const getCart = () => {
-      try { return (typeof window.getCart === 'function') ? window.getCart() : JSON.parse(localStorage.getItem('cart') || '[]'); }
-      catch { return []; }
-    };
-    const setCart = (arr=[]) => {
-      if (typeof window.setCart === 'function') window.setCart(arr);
-      else localStorage.setItem('cart', JSON.stringify(arr));
-      if (typeof window.updateCartBubble === 'function') window.updateCartBubble(arr);
-      else {
-        const b = document.querySelector('.cart-count');
-        if (b) b.textContent = String(arr.reduce((s,i)=> s + (parseInt(i.qty,10)||1), 0));
-      }
-    };
-  
-    /* ---------- UTILS ---------- */
-    const parsePrice = (txt) => Number(String(txt||'').replace(/[^\d.,]/g,'').replace(',', '.')) || 0;
-    const subtotal   = (cart) => cart.reduce((s,i)=> s + (Number(i.price)||0)*(Number(i.qty)||1), 0);
-    const makeOrderId = () => {
-      const d=new Date(), p=n=>String(n).padStart(2,'0');
-      return `LNR-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${Math.floor(Math.random()*9000+1000)}`;
-    };
-  
-    // Upsert COMPOSITE: même ligne seulement si (id+name+price+img) identiques
-    function upsertComposite(cart, { id, name, price, img }) {
-      const p = Number(price)||0, nm = name||'Produit', im = img||'', base = (id||'').trim();
-      // ligne identique ?
-      const same = cart.find(x => x.id === base && x.name === nm && Number(x.price) === p && x.img === im);
-      if (same) { same.qty = (same.qty||0) + 1; return cart; }
-      // collision d'id avec autre produit → suffixe
-      let finalId = base || `${nm}|${im}`;
-      if (cart.some(x => x.id === finalId && (x.name !== nm || Number(x.price)!==p || x.img!==im))) {
-        let n=2; while (cart.some(x => x.id === `${finalId}#${n}`)) n++; finalId = `${finalId}#${n}`;
-      }
-      cart.push({ id: finalId, name: nm, price: p, img: im, qty: 1 });
-      return cart;
-    }
-  
-    /* ---------- API PUBLIQUE POUR L’ANIMATION ---------- */
-    // Ton script flyToCart l’appelle → un seul ajout par clic
-    window.addToCart = function({ id, name, price, img, qty = 1 }) {
-      const c = getCart();
-      for (let i=0;i<Math.max(1, Number(qty)||1);i++) upsertComposite(c, { id, name, price, img });
-      setCart(c);
-    };
-  
-    /* ---------- .btn-add UNIQUEMENT (jamais .btn-buy) ---------- */
-    function bindAdd(){
-      document.querySelectorAll('.btn-add').forEach(btn => {
-        if (btn.dataset.lnrBound === '1') return;
-        btn.dataset.lnrBound = '1';
-        btn.addEventListener('click', (e) => {
-          e.preventDefault(); // évite <a href> de naviguer
-          // Si l’animation est chargée, ELLE appellera addToCart → ne rien faire ici
-          if (window.__flyHooked) return;
-  
-          const card  = btn.closest('.product-card');
-          const id    = (btn.dataset.id || card?.dataset.id || '').trim();
-          const name  = (btn.dataset.name || card?.querySelector('.product-title')?.textContent || 'Produit').trim();
-          const price = Number(btn.dataset.price)
-                     || Number(card?.dataset.price)
-                     || parsePrice(card?.querySelector('.price')?.textContent);
-          const img   = btn.dataset.img || card?.querySelector('.product-img')?.getAttribute('src') || '';
-  
-          window.addToCart({ id, name, price, img, qty: 1 });
-        });
-      });
-    }
-    const mo = new MutationObserver(() => bindAdd());
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  
-    /* ---------- RENDU PANIER ---------- */
-    function renderCart(){
-      const box = document.querySelector('#cartItems');
-      const sub = document.querySelector('#cartSubtotal');
-      if (!box) return;
-      const cart = getCart();
-  
-      if (!cart.length) {
-        box.innerHTML = `<div class="text-muted small">Votre panier est vide.</div>`;
-        if (sub) sub.textContent = `0 DA`;
-        return;
-      }
-      box.innerHTML = cart.map(it => `
-        <div class="d-flex align-items-start gap-2 border rounded p-2 cart-row" data-id="${it.id}">
-          <img src="${it.img||''}" alt="" class="rounded" style="width:64px;height:64px;object-fit:cover">
-          <div class="flex-grow-1">
-            <div class="fw-semibold small">${it.name||'Produit'}</div>
-            <div class="text-muted small">${Number(it.price)||0} DA</div>
-            <div class="d-flex align-items-center gap-2 mt-1">
-              <button class="btn btn-sm btn-outline-secondary qty-dec" type="button">−</button>
-              <input type="number" class="form-control form-control-sm qty-input" min="1" value="${it.qty||1}" style="width:70px">
-              <button class="btn btn-sm btn-outline-secondary qty-inc" type="button">+</button>
-              <button class="btn btn-sm btn-link text-danger ms-auto remove-item" type="button">Supprimer</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-      if (sub) sub.textContent = `${subtotal(cart)} DA`;
-    }
-    document.getElementById(DRAWER_ID)?.addEventListener('show.bs.offcanvas', renderCart);
-  
-    // Actions dans le drawer
-    (function bindDrawer(){
-      const drawer = document.getElementById(DRAWER_ID);
-      if (!drawer) return;
-  
-      drawer.addEventListener('click', (e) => {
-        const row = e.target.closest('.cart-row'); if (!row) return;
-        const id  = row.dataset.id;
-        const cart = getCart();
-        const it = cart.find(x => x.id === id); if (!it) return;
-  
-        if (e.target.closest('.qty-dec')) { it.qty = Math.max(1, (it.qty||1) - 1); setCart(cart); renderCart(); return; }
-        if (e.target.closest('.qty-inc')) { it.qty = (it.qty||1) + 1; setCart(cart); renderCart(); return; }
-        if (e.target.closest('.remove-item')) {
-          const next = cart.filter(x => x.id !== id); setCart(next); renderCart(); return;
-        }
-      });
-  
-      drawer.addEventListener('input', (e) => {
-        const input = e.target.closest('.qty-input'); if (!input) return;
-        const row = e.target.closest('.cart-row'); const id = row?.dataset.id;
-        const v = Math.max(1, parseInt(input.value,10) || 1);
-        const cart = getCart(); const it = cart.find(x => x.id === id); if (!it) return;
-        it.qty = v; setCart(cart); renderCart();
-      });
-  
-      // Vider
-      document.getElementById('cartClearBtn')?.addEventListener('click', () => { setCart([]); renderCart(); });
-    })();
-  
-    /* ---------- CONFIRMER LA COMMANDE (PANIER) ---------- */
-    async function postToSheet(url, payload){
-      const body = new URLSearchParams({ data: JSON.stringify(payload) }).toString();
-      try {
-        await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8' }, body });
-      } catch (e) {
-        // Fallback "no-cors" si besoin (pas de lecture de réponse possible)
-        try { await fetch(url, { method:'POST', mode:'no-cors', body }); } catch(_) {}
-      }
-    }
-  
-    document.getElementById('cartConfirmBtn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('cartConfirmBtn');
-      const cart = getCart();
-      if (!cart.length) { alert('Votre panier est vide.'); return; }
-  
-      if (btn){ btn.disabled = true; var _t = btn.textContent; btn.textContent = 'Envoi…'; }
-  
-      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
-      const payment  = document.querySelector('input[name="cartPay"]:checked')?.value || 'cod';
-  
-      const order = {
-        orderId: makeOrderId(),
-        createdAt: new Date().toISOString(),
-        currency: 'DA',
-        delivery, payment,
-        subtotal: subtotal(cart),
-        items: cart.map(({id,name,price,qty,img}) => ({ id, name, price:Number(price)||0, qty:Number(qty)||1, img })),
-        userAgent: navigator.userAgent
+// ==== STORE PANIER (exemple simple) ====
+const CART_KEY = 'cart';
+const cart = {
+  load() { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch(_) { return []; } },
+  save(items) { localStorage.setItem(CART_KEY, JSON.stringify(items)); },
+  add(item) {
+    const items = this.load();
+    const i = items.findIndex(x => x.sku === item.sku);
+    if (i >= 0) items[i].qty += item.qty;
+    else items.push(item);
+    this.save(items);
+  },
+  clear() { this.save([]); }
+};
+
+// ==== UTILS ====
+function total(items){ return items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0); }
+function uuid(){ return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now()); }
+
+// Un seul lock global d’envoi
+let sending = false;
+async function sendToSheet(payload){
+  if (sending) throw new Error('Envoi déjà en cours');
+  sending = true;
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+    return data;
+  } finally {
+    sending = false;
+  }
+}
+
+// Récupération client (form modal éventuellement)
+function getClient(){
+  return {
+    nom:       document.querySelector('#nom')?.value || '',
+    prenom:    document.querySelector('#prenom')?.value || '',
+    email:     document.querySelector('#email')?.value || '',
+    telephone: document.querySelector('#telephone')?.value || '',
+    adresse:   document.querySelector('#adresse')?.value || ''
+  };
+}
+
+// ==== ÉCOUTEURS (un seul endroit) ====
+document.addEventListener('click', async (e) => {
+  // Ajouter au PANIER (sur les cartes produits)
+  if (e.target.closest('.btn-add')) {
+    e.preventDefault(); e.stopPropagation();
+    const btn = e.target.closest('.btn-add');
+    const sku   = btn.dataset.sku;
+    const name  = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+    cart.add({ sku, name, price, qty: 1 });
+    // Optionnel: feedback UI
+    return;
+  }
+
+  // Achat direct (ne touche pas au panier)
+  if (e.target.id === 'btnAcheter') {
+    e.preventDefault(); e.stopPropagation();
+    const btn = e.target;
+    const sku   = btn.dataset.sku;
+    const name  = btn.dataset.name;
+    const price = parseFloat(btn.dataset.price);
+
+    btn.disabled = true;
+    try {
+      const payload = {
+        __kind: 'order',
+        orderId: uuid(),
+        client: getClient(),
+        payment: 'to-choose',
+        delivery: 'to-choose',
+        items: [{ sku, name, price, qty: 1 }],
+        total: price,
+        source: 'buy_button'
       };
-  
-      try { await postToSheet(CART_WEBAPP_URL, order); }
-      catch(e){ console.error('[PANIER] Envoi KO:', e); }
-  
-      // Ferme l’offcanvas
-      const el = document.getElementById(DRAWER_ID);
-      const BO = window.bootstrap && window.bootstrap.Offcanvas;
-      if (el && BO) window.bootstrap.Offcanvas.getOrCreateInstance(el).hide();
-      else if (el) { el.classList.remove('show'); el.setAttribute('aria-hidden','true'); }
-  
-      // Vide le panier (retire la ligne suivante si tu veux conserver)
-      setCart([]);
-  
-      if (btn){ btn.disabled = false; btn.textContent = _t; }
-      alert('✅ Commande (panier) envoyée !');
-    });
-  
-    /* ---------- INIT ---------- */
-    document.addEventListener('DOMContentLoaded', () => {
-      setCart(getCart()); // met à jour la bulle
-      bindAdd();          // accroche .btn-add
-    });
-  })();
-  
+      const out = await sendToSheet(payload);
+      alert('Commande achetée ✅ ID: ' + (out.orderId || payload.orderId));
+    } catch(err) {
+      console.error(err);
+      alert('Échec achat direct ❌ ' + err.message);
+    } finally { btn.disabled = false; }
+    return;
+  }
+
+  // Confirmer PANIER
+  if (e.target.id === 'btnConfirmerPanier') {
+    e.preventDefault(); e.stopPropagation();
+    const btn = e.target;
+    const items = cart.load();
+    if (!items.length) { alert('Panier vide'); return; }
+
+    btn.disabled = true;
+    try {
+      const payload = {
+        __kind: 'order',
+        orderId: uuid(),
+        client: getClient(),
+        payment: 'to-choose',
+        delivery: 'to-choose',
+        items,
+        total: total(items),
+        source: 'cart'
+      };
+      const out = await sendToSheet(payload);
+      alert('Commande envoyée ✅ ID: ' + (out.orderId || payload.orderId));
+      cart.clear();
+    } catch(err){
+      console.error(err);
+      alert('Échec commande panier ❌ ' + err.message);
+    } finally { btn.disabled = false; }
+    return;
+  }
+});
