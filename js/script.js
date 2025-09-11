@@ -1238,55 +1238,67 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================
-   Cart / Buy — FIX V3 (force)
+   Cart / Buy — FIX V4 (AUTODETECT + DEBUG)
    ========================= */
    'use strict';
-   console.log('[FIX V3] chargé');
+   console.log('[FIX V4] chargé');
    
    (function(){
-     // --- Sélecteurs tolérants (couvre tes noms actuels et anciens)
+     /* --------- CONFIG --------- */
+     const WEBAPP_URL =
+       (window.GAS_URL && String(window.GAS_URL)) ||
+       'https://script.google.com/macros/s/XXX/exec'; // ← remplace XXX par TON /exec
+   
+     if (!WEBAPP_URL.includes('/exec')) {
+       console.warn('[FIX V4] WEBAPP_URL semble invalide (pas /exec):', WEBAPP_URL);
+     }
+   
+     /* --------- SELECTEURS LARGES (et auto-détection) --------- */
      const SEL = {
-       add    : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
-       buy    : '#confirmBuyBtn, #js-buy-now, #btnAcheter',
-       confirm: '#js-cart-confirm, #btnConfirmerPanier, .cart-confirm',
-       openCart: '#js-open-cart, .open-cart',
-       badge  : '#js-cart-badge, .cart-badge',
-       list   : '#cart-list, .cart-list, tbody.cart-list',
-       total  : '#cart-total, .cart-total',
+       addCandidates: '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"], [data-add-to-cart], button[data-sku][data-price]',
+       buyCandidates: '#confirmBuyBtn, #js-buy-now, #btnAcheter, [data-buy], [data-action="buy"], button[id*="confirmBuy"], button[data-sku][data-buy]',
+       confCandidates: '#js-cart-confirm, #btnConfirmerPanier, .cart-confirm, [data-cart-confirm], [data-action="confirm-cart"], button[id*="confirmPanier"]',
+       openCartCandidates: '#js-open-cart, .open-cart, [data-open-cart], a[href="#cart-modal"]',
+       badge: '#js-cart-badge, .cart-badge, [data-cart-badge]',
+       list: '#cart-list, .cart-list, tbody.cart-list, [data-cart-list]',
+       total: '#cart-total, .cart-total, [data-cart-total]',
        modal: {
-         account: '#account-modal, #signup-modal',
-         cart   : '#cart-modal, #panier-modal',
-         buy    : '#buy-modal'
+         account: '#account-modal, #signup-modal, [data-modal="account"]',
+         cart   : '#cart-modal, #panier-modal, [data-modal="cart"]',
+         buy    : '#buy-modal, [data-modal="buy"]'
        }
      };
    
-     // --- Empêche les vieux handlers de s’exécuter (capture)
-     const TARGETS = [SEL.add, SEL.buy, SEL.confirm, SEL.openCart].join(',');
+     function q(sel){ return document.querySelector(sel); }
+     function qAll(sel){ return [...document.querySelectorAll(sel)]; }
+   
+     /* --------- BLOQUER LES ANCIENS LISTENERS (capture) --------- */
+     const TARGETS_CAPTURE = [SEL.addCandidates, SEL.buyCandidates, SEL.confCandidates, SEL.openCartCandidates].join(',');
      function swallow(e){
-       const t = e.target.closest(TARGETS);
+       const t = e.target.closest(TARGETS_CAPTURE);
        if (!t) return;
        e.stopPropagation();
        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
      }
      document.addEventListener('click', swallow, true);
    
-     // --- Clone les boutons pour retirer les onclick/listeners directs
+     /* --------- DÉNUDER LES ONCLICK DIRECTS --------- */
      function stripDirect(sel){
-       document.querySelectorAll(sel).forEach(el=>{
+       qAll(sel).forEach(el=>{
          const c = el.cloneNode(true);
-         ['onclick','onmousedown','ontouchstart','onsubmit'].forEach(k=>{
-           c[k] = null; c.removeAttribute(k);
-         });
+         ['onclick','onmousedown','ontouchstart','onsubmit'].forEach(k=>{ c[k]=null; c.removeAttribute(k); });
          if (c.tagName === 'BUTTON' && c.type !== 'button') c.type = 'button';
          el.replaceWith(c);
        });
      }
-     function stripAll(){ stripDirect(TARGETS); }
+     function stripAll(){
+       stripDirect(TARGETS_CAPTURE);
+     }
      if (document.readyState === 'loading') {
        document.addEventListener('DOMContentLoaded', stripAll, {once:true});
      } else { stripAll(); }
    
-     // --- Stockage panier
+     /* --------- PANIER (LocalStorage) --------- */
      const CART_KEY = 'cart';
      const cart = {
        load(){ try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } },
@@ -1300,39 +1312,58 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
        clear(){ this.save([]); }
      };
    
-     // --- Badge & rendu
-     function q(sel){ return document.querySelector(sel); }
-     function qAll(sel){ return [...document.querySelectorAll(sel)]; }
      function totalQty(list){ return list.reduce((s,i)=> s + Number(i.qty||0), 0); }
      function totalPrice(list){ return list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0); }
+   
      function updateBadge(){
        const el = q(SEL.badge);
        if (el) el.textContent = String(totalQty(cart.load()));
      }
+   
      function renderCart(){
        const items = cart.load();
-       const listEl = q(SEL.list);
-       const totalEl = q(SEL.total);
-       if (listEl){
-         if (!items.length){
+       let listEl = q(SEL.list);
+       let totalEl = q(SEL.total);
+   
+       // fallback si pas de conteneur
+       if (!listEl) {
+         const cm = q(SEL.modal.cart);
+         if (cm) {
+           listEl = cm.querySelector('.modal-body') || cm;
+           listEl.setAttribute('data-cart-list', '1');
+         } else {
+           console.warn('[FIX V4] Pas de conteneur liste panier (list).');
+         }
+       }
+       if (!totalEl) {
+         const cm = q(SEL.modal.cart);
+         if (cm) {
+           totalEl = cm.querySelector('[data-cart-total]') || document.createElement('span');
+           totalEl.setAttribute('data-cart-total', '1');
+           if (!cm.contains(totalEl)) cm.appendChild(totalEl);
+         }
+       }
+   
+       if (listEl) {
+         if (!items.length) {
            listEl.innerHTML = `<li class="text-muted">Panier vide</li>`;
          } else {
-           const rows = items.map(it=>`
+           listEl.innerHTML = items.map(it => `
              <li data-sku="${it.sku}">
                <strong>${it.name||it.sku}</strong> × ${it.qty} — ${(Number(it.price||0)*Number(it.qty||0)).toFixed(2)} €
              </li>
            `).join('');
-           listEl.innerHTML = rows;
          }
        }
        if (totalEl) totalEl.textContent = totalPrice(items).toFixed(2);
        updateBadge();
      }
+   
      updateBadge();
    
-     // --- Modals (Bootstrap 5)
+     /* --------- MODALS (Bootstrap 5) --------- */
      function hideAllModals(){
-       qAll('.modal.show').forEach(m=>{
+       document.querySelectorAll('.modal.show').forEach(m=>{
          const inst = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
          inst.hide();
        });
@@ -1346,29 +1377,27 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
        const el = q(sel);
        return !!(el && el.classList.contains('show'));
      }
-     // Render auto quand on ouvre le panier
      const cartModal = q(SEL.modal.cart);
      if (cartModal) cartModal.addEventListener('show.bs.modal', renderCart);
    
-     // --- Profil / inscription
+     /* --------- PROFIL --------- */
      function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
      function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); } // ajuste si besoin
      function requireProfile(){
        const p = getProfile();
        if (isProfileComplete(p)) return p;
-       // priorité à l’inscription : on ferme le reste et on ouvre le modal compte
        hideAllModals();
        setTimeout(()=> showModal(SEL.modal.account), 160);
        return null;
      }
    
-     // --- Envoi unique
+     /* --------- ENVOI UNIQUE --------- */
      let sending = false;
      async function sendOrder(payload){
        if (sending) throw new Error('Envoi déjà en cours');
        sending = true;
        try{
-         const res = await fetch('https://script.google.com/macros/s/XXX/exec'/* ← TON URL */, {
+         const res = await fetch(WEBAPP_URL, {
            method:'POST',
            headers:{'Content-Type':'application/json'},
            body: JSON.stringify(payload)
@@ -1376,26 +1405,27 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
          const data = await res.json();
          if (!data.ok) throw new Error(data.error || 'Erreur serveur');
          return data;
-       } finally {
-         sending = false;
-       }
+       } finally { sending = false; }
      }
      function uuid(){ return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now()); }
    
-     // --- Handler unique (capture déjà en place)
+     /* --------- HANDLER UNIQUE (document) --------- */
      document.addEventListener('click', async (e)=>{
-       const addBtn  = e.target.closest(SEL.add);
-       const buyBtn  = e.target.closest(SEL.buy);
-       const confBtn = e.target.closest(SEL.confirm);
-       const openBtn = e.target.closest(SEL.openCart);
+       const t = e.target;
+   
+       const addBtn  = t.closest(SEL.addCandidates);
+       const buyBtn  = t.closest(SEL.buyCandidates);
+       const confBtn = t.closest(SEL.confCandidates);
+       const openBtn = t.closest(SEL.openCartCandidates);
    
        if (!addBtn && !buyBtn && !confBtn && !openBtn) return;
+   
        e.preventDefault();
        e.stopPropagation();
        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
    
        // Ouvrir panier
-       if (openBtn){
+       if (openBtn) {
          renderCart();
          hideAllModals();
          setTimeout(()=> showModal(SEL.modal.cart), 160);
@@ -1403,59 +1433,48 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
        }
    
        // Ajouter au panier
-       if (addBtn){
+       if (addBtn) {
          if (addBtn.dataset.lock) return;
          addBtn.dataset.lock = '1'; setTimeout(()=>{ delete addBtn.dataset.lock; }, 350);
    
-         const sku = addBtn.dataset.sku || addBtn.getAttribute('data-id');
-         const name = addBtn.dataset.name || addBtn.getAttribute('data-title') || sku;
+         const sku   = addBtn.dataset.sku   || addBtn.getAttribute('data-id');
+         const name  = addBtn.dataset.name  || addBtn.getAttribute('data-title') || sku;
          const price = Number(addBtn.dataset.price || addBtn.getAttribute('data-price') || 0);
-         if (!sku){ console.warn('[FIX V3] SKU manquant sur bouton add'); return; }
    
+         if (!sku) { console.warn('[FIX V4] SKU manquant pour bouton add', addBtn); return; }
          cart.add({ sku, name, price, qty: 1 });
+         console.log('[FIX V4] ADD', {sku, name, price});
          return;
        }
    
-       // Achat direct (sans panier)
-       if (buyBtn){
+       // Achat direct
+       if (buyBtn) {
          const profile = requireProfile();
          if (!profile) return;
    
          buyBtn.disabled = true;
          try{
            const orderId = buyBtn.dataset.orderId || (buyBtn.dataset.orderId = uuid());
-   
-           // Produit depuis data-* ou, à défaut, window.__currentBuy (ton code existant)
-           const sku = buyBtn.dataset.sku || (window.__currentBuy && window.__currentBuy.id);
-           const name = buyBtn.dataset.name || (window.__currentBuy && window.__currentBuy.name) || sku;
+           const sku   = buyBtn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
+           const name  = buyBtn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
            const price = Number(buyBtn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
            if (!sku) throw new Error('SKU/produit introuvable (data-* ou window.__currentBuy)');
    
-           const payload = {
-             __kind  : 'order',
-             orderId,
-             client  : profile,
-             payment : 'to-choose',
-             delivery: 'to-choose',
-             items   : [{ sku, name, price, qty: 1 }],
-             total   : price,
-             source  : 'buy_button'
-           };
+           const payload = { __kind:'order', orderId, client:profile, payment:'to-choose', delivery:'to-choose',
+                             items:[{ sku, name, price, qty:1 }], total:price, source:'buy_button' };
            const out = await sendOrder(payload);
-           console.log('[FIX V3] Achat direct OK', out);
+           console.log('[FIX V4] BUY OK', out);
            alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
            hideAllModals();
          } catch(err){
            console.error(err);
            alert('Échec achat direct ❌ ' + err.message);
-         } finally {
-           buyBtn.disabled = false;
-         }
+         } finally { buyBtn.disabled = false; }
          return;
        }
    
        // Confirmer panier
-       if (confBtn){
+       if (confBtn) {
          const profile = requireProfile();
          if (!profile) return;
    
@@ -1465,30 +1484,35 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
          confBtn.disabled = true;
          try{
            const orderId = confBtn.dataset.orderId || (confBtn.dataset.orderId = uuid());
-           const payload = {
-             __kind  : 'order',
-             orderId,
-             client  : profile,
-             payment : 'to-choose',
-             delivery: 'to-choose',
-             items,
-             total   : totalPrice(items),
-             source  : 'cart'
-           };
+           const payload = { __kind:'order', orderId, client:profile, payment:'to-choose', delivery:'to-choose',
+                             items, total: totalPrice(items), source:'cart' };
            const out = await sendOrder(payload);
-           console.log('[FIX V3] Commande panier OK', out);
+           console.log('[FIX V4] CART CONFIRM OK', out);
            alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
            cart.clear();
            hideAllModals();
          } catch(err){
            console.error(err);
            alert('Échec commande panier ❌ ' + err.message);
-         } finally {
-           confBtn.disabled = false;
-         }
+         } finally { confBtn.disabled = false; }
          return;
        }
-     }, true); // (on reste en capture)
+     }, true);
+   
+     /* --------- DIAGNOSTIC IMMÉDIAT --------- */
+     function diag(){
+       const addC  = qAll(SEL.addCandidates).length;
+       const buyC  = qAll(SEL.buyCandidates).length;
+       const confC = qAll(SEL.confCandidates).length;
+       const openC = qAll(SEL.openCartCandidates).length;
+       console.log('[FIX V4][DIAG] matches => add:', addC, ' buy:', buyC, ' confirm:', confC, ' openCart:', openC);
+       if (!addC)  console.warn('>> Aucun bouton "Ajouter" détecté. Ajoute data-sku/data-price sur tes boutons ou donne-moi leur classe/id.');
+       if (!buyC)  console.warn('>> Aucun bouton "Acheter" détecté. Id communs : #confirmBuyBtn, #btnAcheter, #js-buy-now …');
+       if (!confC) console.warn('>> Aucun bouton "Confirmer panier" détecté. Id communs : #btnConfirmerPanier, #js-cart-confirm …');
+       if (!openC) console.warn('>> Aucun bouton pour OUVRIR LE PANIER détecté. Ajoute un bouton avec classe .open-cart ou id #js-open-cart.');
+     }
+     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', diag, {once:true});
+     else diag();
    
    })();
    
