@@ -1,4 +1,5 @@
 
+
 /* === Animation + compteur pour .btn-add (sans rien casser) === */
 (function () {
   // éviter d'attacher deux fois si tu reloads souvent
@@ -189,52 +190,6 @@ document.getElementById('account-form')?.addEventListener('submit', async (e)=>{
     bootstrap.Modal.getInstance(document.getElementById('account-modal'))?.hide();
   }catch(err){
     alert('Inscription échouée : ' + err.message);
-  }
-});
-// Bouton "Confirmer la commande" : ENVOIE seulement à la commande
-document.getElementById('confirmBuyBtn')?.addEventListener('click', async ()=>{
-  const profile = JSON.parse(localStorage.getItem('signupProfile') || '{}');
-  if(!profile.nom || !profile.telephone || !profile.adresse){
-    alert("Veuillez vous inscrire (nom, téléphone, adresse).");
-    new bootstrap.Modal(document.getElementById('account-modal')).show();
-    return;
-  }
-
-  const qty = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1',10));
-  const pay = document.querySelector('input[name="pay"]:checked')?.value || 'cod';
-  const del = document.getElementById('deliverySelect').value;
-  const p   = window.__currentBuy || {};   // rempli par openBuyModal
-  const orderId = 'LNJ-' + Date.now().toString().slice(-6);
-
-  const order = {
-    __kind:'order',
-    orderId,
-    payment: pay.toUpperCase() === 'COD' ? 'COD' : 'CARD',
-    delivery: del,
-    items: [{ id:p.id, name:p.name, qty, price:p.price }],
-    total: qty * (p.price || 0),
-    client: profile
-  };
-  console.log('[order] body', order);
-
-  try{
-    const r = await fetch('/.netlify/functions/order', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(order)
-    });
-    const txt = await r.text();
-    console.log('[order] resp', txt);
-    if(!r.ok) throw new Error(txt);
-
-    // Ajouter au panier + animation (si tu veux)
-    for(let i=0;i<qty;i++) addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
-    if (p.sourceImgEl) flyToCart(p.sourceImgEl);
-
-    bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
-    showOrderToast(orderId, pay);
-  }catch(err){
-    alert('Commande échouée : ' + err.message);
   }
 });
 
@@ -1282,127 +1237,258 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
-// ==== CONFIG ====
-const WEBAPP_URL = 'https://script.google.com/macros/s/XXXXXXXX/exec'; // ton URL Web App
-
-// ==== STORE PANIER (exemple simple) ====
-const CART_KEY = 'cart';
-const cart = {
-  load() { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch(_) { return []; } },
-  save(items) { localStorage.setItem(CART_KEY, JSON.stringify(items)); },
-  add(item) {
-    const items = this.load();
-    const i = items.findIndex(x => x.sku === item.sku);
-    if (i >= 0) items[i].qty += item.qty;
-    else items.push(item);
-    this.save(items);
-  },
-  clear() { this.save([]); }
-};
-
-// ==== UTILS ====
-function total(items){ return items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0); }
-function uuid(){ return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now()); }
-
-// Un seul lock global d’envoi
-let sending = false;
-async function sendToSheet(payload){
-  if (sending) throw new Error('Envoi déjà en cours');
-  sending = true;
-  try {
-    const res = await fetch(WEBAPP_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Erreur serveur');
-    return data;
-  } finally {
-    sending = false;
-  }
-}
-
-// Récupération client (form modal éventuellement)
-function getClient(){
-  return {
-    nom:       document.querySelector('#nom')?.value || '',
-    prenom:    document.querySelector('#prenom')?.value || '',
-    email:     document.querySelector('#email')?.value || '',
-    telephone: document.querySelector('#telephone')?.value || '',
-    adresse:   document.querySelector('#adresse')?.value || ''
-  };
-}
-
-// ==== ÉCOUTEURS (un seul endroit) ====
-document.addEventListener('click', async (e) => {
-  // Ajouter au PANIER (sur les cartes produits)
-  if (e.target.closest('.btn-add')) {
-    e.preventDefault(); e.stopPropagation();
-    const btn = e.target.closest('.btn-add');
-    const sku   = btn.dataset.sku;
-    const name  = btn.dataset.name;
-    const price = parseFloat(btn.dataset.price);
-    cart.add({ sku, name, price, qty: 1 });
-    // Optionnel: feedback UI
-    return;
-  }
-
-  // Achat direct (ne touche pas au panier)
-  if (e.target.id === 'btnAcheter') {
-    e.preventDefault(); e.stopPropagation();
-    const btn = e.target;
-    const sku   = btn.dataset.sku;
-    const name  = btn.dataset.name;
-    const price = parseFloat(btn.dataset.price);
-
-    btn.disabled = true;
-    try {
-      const payload = {
-        __kind: 'order',
-        orderId: uuid(),
-        client: getClient(),
-        payment: 'to-choose',
-        delivery: 'to-choose',
-        items: [{ sku, name, price, qty: 1 }],
-        total: price,
-        source: 'buy_button'
-      };
-      const out = await sendToSheet(payload);
-      alert('Commande achetée ✅ ID: ' + (out.orderId || payload.orderId));
-    } catch(err) {
-      console.error(err);
-      alert('Échec achat direct ❌ ' + err.message);
-    } finally { btn.disabled = false; }
-    return;
-  }
-
-  // Confirmer PANIER
-  if (e.target.id === 'btnConfirmerPanier') {
-    e.preventDefault(); e.stopPropagation();
-    const btn = e.target;
-    const items = cart.load();
-    if (!items.length) { alert('Panier vide'); return; }
-
-    btn.disabled = true;
-    try {
-      const payload = {
-        __kind: 'order',
-        orderId: uuid(),
-        client: getClient(),
-        payment: 'to-choose',
-        delivery: 'to-choose',
-        items,
-        total: total(items),
-        source: 'cart'
-      };
-      const out = await sendToSheet(payload);
-      alert('Commande envoyée ✅ ID: ' + (out.orderId || payload.orderId));
-      cart.clear();
-    } catch(err){
-      console.error(err);
-      alert('Échec commande panier ❌ ' + err.message);
-    } finally { btn.disabled = false; }
-    return;
-  }
-});
+/* =========================
+   Cart / Buy — FIX V3 (force)
+   ========================= */
+   'use strict';
+   console.log('[FIX V3] chargé');
+   
+   (function(){
+     // --- Sélecteurs tolérants (couvre tes noms actuels et anciens)
+     const SEL = {
+       add    : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
+       buy    : '#confirmBuyBtn, #js-buy-now, #btnAcheter',
+       confirm: '#js-cart-confirm, #btnConfirmerPanier, .cart-confirm',
+       openCart: '#js-open-cart, .open-cart',
+       badge  : '#js-cart-badge, .cart-badge',
+       list   : '#cart-list, .cart-list, tbody.cart-list',
+       total  : '#cart-total, .cart-total',
+       modal: {
+         account: '#account-modal, #signup-modal',
+         cart   : '#cart-modal, #panier-modal',
+         buy    : '#buy-modal'
+       }
+     };
+   
+     // --- Empêche les vieux handlers de s’exécuter (capture)
+     const TARGETS = [SEL.add, SEL.buy, SEL.confirm, SEL.openCart].join(',');
+     function swallow(e){
+       const t = e.target.closest(TARGETS);
+       if (!t) return;
+       e.stopPropagation();
+       if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+     }
+     document.addEventListener('click', swallow, true);
+   
+     // --- Clone les boutons pour retirer les onclick/listeners directs
+     function stripDirect(sel){
+       document.querySelectorAll(sel).forEach(el=>{
+         const c = el.cloneNode(true);
+         ['onclick','onmousedown','ontouchstart','onsubmit'].forEach(k=>{
+           c[k] = null; c.removeAttribute(k);
+         });
+         if (c.tagName === 'BUTTON' && c.type !== 'button') c.type = 'button';
+         el.replaceWith(c);
+       });
+     }
+     function stripAll(){ stripDirect(TARGETS); }
+     if (document.readyState === 'loading') {
+       document.addEventListener('DOMContentLoaded', stripAll, {once:true});
+     } else { stripAll(); }
+   
+     // --- Stockage panier
+     const CART_KEY = 'cart';
+     const cart = {
+       load(){ try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } },
+       save(list){ localStorage.setItem(CART_KEY, JSON.stringify(list||[])); updateBadge(); if (isOpen(SEL.modal.cart)) renderCart(); },
+       add(it){
+         const list = this.load();
+         const i = list.findIndex(x=>x.sku===it.sku);
+         if (i>=0) list[i].qty += it.qty; else list.push(it);
+         this.save(list);
+       },
+       clear(){ this.save([]); }
+     };
+   
+     // --- Badge & rendu
+     function q(sel){ return document.querySelector(sel); }
+     function qAll(sel){ return [...document.querySelectorAll(sel)]; }
+     function totalQty(list){ return list.reduce((s,i)=> s + Number(i.qty||0), 0); }
+     function totalPrice(list){ return list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0); }
+     function updateBadge(){
+       const el = q(SEL.badge);
+       if (el) el.textContent = String(totalQty(cart.load()));
+     }
+     function renderCart(){
+       const items = cart.load();
+       const listEl = q(SEL.list);
+       const totalEl = q(SEL.total);
+       if (listEl){
+         if (!items.length){
+           listEl.innerHTML = `<li class="text-muted">Panier vide</li>`;
+         } else {
+           const rows = items.map(it=>`
+             <li data-sku="${it.sku}">
+               <strong>${it.name||it.sku}</strong> × ${it.qty} — ${(Number(it.price||0)*Number(it.qty||0)).toFixed(2)} €
+             </li>
+           `).join('');
+           listEl.innerHTML = rows;
+         }
+       }
+       if (totalEl) totalEl.textContent = totalPrice(items).toFixed(2);
+       updateBadge();
+     }
+     updateBadge();
+   
+     // --- Modals (Bootstrap 5)
+     function hideAllModals(){
+       qAll('.modal.show').forEach(m=>{
+         const inst = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
+         inst.hide();
+       });
+     }
+     function showModal(sel){
+       const el = q(sel); if (!el) return;
+       const inst = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el, {backdrop:'static'});
+       inst.show();
+     }
+     function isOpen(sel){
+       const el = q(sel);
+       return !!(el && el.classList.contains('show'));
+     }
+     // Render auto quand on ouvre le panier
+     const cartModal = q(SEL.modal.cart);
+     if (cartModal) cartModal.addEventListener('show.bs.modal', renderCart);
+   
+     // --- Profil / inscription
+     function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
+     function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); } // ajuste si besoin
+     function requireProfile(){
+       const p = getProfile();
+       if (isProfileComplete(p)) return p;
+       // priorité à l’inscription : on ferme le reste et on ouvre le modal compte
+       hideAllModals();
+       setTimeout(()=> showModal(SEL.modal.account), 160);
+       return null;
+     }
+   
+     // --- Envoi unique
+     let sending = false;
+     async function sendOrder(payload){
+       if (sending) throw new Error('Envoi déjà en cours');
+       sending = true;
+       try{
+         const res = await fetch('https://script.google.com/macros/s/XXX/exec'/* ← TON URL */, {
+           method:'POST',
+           headers:{'Content-Type':'application/json'},
+           body: JSON.stringify(payload)
+         });
+         const data = await res.json();
+         if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+         return data;
+       } finally {
+         sending = false;
+       }
+     }
+     function uuid(){ return (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now()); }
+   
+     // --- Handler unique (capture déjà en place)
+     document.addEventListener('click', async (e)=>{
+       const addBtn  = e.target.closest(SEL.add);
+       const buyBtn  = e.target.closest(SEL.buy);
+       const confBtn = e.target.closest(SEL.confirm);
+       const openBtn = e.target.closest(SEL.openCart);
+   
+       if (!addBtn && !buyBtn && !confBtn && !openBtn) return;
+       e.preventDefault();
+       e.stopPropagation();
+       if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+   
+       // Ouvrir panier
+       if (openBtn){
+         renderCart();
+         hideAllModals();
+         setTimeout(()=> showModal(SEL.modal.cart), 160);
+         return;
+       }
+   
+       // Ajouter au panier
+       if (addBtn){
+         if (addBtn.dataset.lock) return;
+         addBtn.dataset.lock = '1'; setTimeout(()=>{ delete addBtn.dataset.lock; }, 350);
+   
+         const sku = addBtn.dataset.sku || addBtn.getAttribute('data-id');
+         const name = addBtn.dataset.name || addBtn.getAttribute('data-title') || sku;
+         const price = Number(addBtn.dataset.price || addBtn.getAttribute('data-price') || 0);
+         if (!sku){ console.warn('[FIX V3] SKU manquant sur bouton add'); return; }
+   
+         cart.add({ sku, name, price, qty: 1 });
+         return;
+       }
+   
+       // Achat direct (sans panier)
+       if (buyBtn){
+         const profile = requireProfile();
+         if (!profile) return;
+   
+         buyBtn.disabled = true;
+         try{
+           const orderId = buyBtn.dataset.orderId || (buyBtn.dataset.orderId = uuid());
+   
+           // Produit depuis data-* ou, à défaut, window.__currentBuy (ton code existant)
+           const sku = buyBtn.dataset.sku || (window.__currentBuy && window.__currentBuy.id);
+           const name = buyBtn.dataset.name || (window.__currentBuy && window.__currentBuy.name) || sku;
+           const price = Number(buyBtn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+           if (!sku) throw new Error('SKU/produit introuvable (data-* ou window.__currentBuy)');
+   
+           const payload = {
+             __kind  : 'order',
+             orderId,
+             client  : profile,
+             payment : 'to-choose',
+             delivery: 'to-choose',
+             items   : [{ sku, name, price, qty: 1 }],
+             total   : price,
+             source  : 'buy_button'
+           };
+           const out = await sendOrder(payload);
+           console.log('[FIX V3] Achat direct OK', out);
+           alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
+           hideAllModals();
+         } catch(err){
+           console.error(err);
+           alert('Échec achat direct ❌ ' + err.message);
+         } finally {
+           buyBtn.disabled = false;
+         }
+         return;
+       }
+   
+       // Confirmer panier
+       if (confBtn){
+         const profile = requireProfile();
+         if (!profile) return;
+   
+         const items = cart.load();
+         if (!items.length){ alert('Panier vide'); return; }
+   
+         confBtn.disabled = true;
+         try{
+           const orderId = confBtn.dataset.orderId || (confBtn.dataset.orderId = uuid());
+           const payload = {
+             __kind  : 'order',
+             orderId,
+             client  : profile,
+             payment : 'to-choose',
+             delivery: 'to-choose',
+             items,
+             total   : totalPrice(items),
+             source  : 'cart'
+           };
+           const out = await sendOrder(payload);
+           console.log('[FIX V3] Commande panier OK', out);
+           alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
+           cart.clear();
+           hideAllModals();
+         } catch(err){
+           console.error(err);
+           alert('Échec commande panier ❌ ' + err.message);
+         } finally {
+           confBtn.disabled = false;
+         }
+         return;
+       }
+     }, true); // (on reste en capture)
+   
+   })();
+   
