@@ -1465,3 +1465,64 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   }).observe(document.documentElement, { childList: true, subtree: true });
 
 })();
+
+
+
+
+/* PATCH 1: swallow capture on add/buy/confirm */
+(function(){
+  const TARGETS = '.btn-add, .btn-buy, #btnConfirmerPanier';
+  document.addEventListener('click', function(e){
+    if (!e.target.closest(TARGETS)) return;
+    // On laisse le comportement par défaut possible, mais on coupe
+    // tous les autres écouteurs (en capture et en bubble après nous).
+    e.stopPropagation();
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+  }, true); // <= CAPTURE
+})();
+
+
+
+
+/* PATCH 2: bind (et re-bind) buy/confirm quand le DOM change */
+(function(){
+  function bind(){
+    const buyBtn  = document.querySelector('#confirmBuyBtn');
+    if (buyBtn && buyBtn.getAttribute('onclick') !== 'return window.__buyOnce(event);'){
+      if (buyBtn.tagName === 'BUTTON' && buyBtn.type !== 'button') buyBtn.type = 'button';
+      buyBtn.setAttribute('onclick', 'return window.__buyOnce(event);');
+    }
+    const cartBtn = document.querySelector('#btnConfirmerPanier');
+    if (cartBtn && cartBtn.getAttribute('onclick') !== 'return window.__confirmCartOnce(event);'){
+      if (cartBtn.tagName === 'BUTTON' && cartBtn.type !== 'button') cartBtn.type = 'button';
+      cartBtn.setAttribute('onclick', 'return window.__confirmCartOnce(event);');
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind, {once:true});
+  } else {
+    bind();
+  }
+  // Si des éléments sont injectés après, on rebinde
+  new MutationObserver(bind).observe(document.documentElement, {childList:true, subtree:true});
+})();
+
+
+
+
+
+
+/* PATCH 3: renforce __addOnce (stop immédiat + preventDefault) */
+(function(){
+  const prev = window.__addOnce;
+  window.__addOnce = function(ev){
+    // coupe tout le reste pour ce clic
+    if (ev) {
+      ev.preventDefault && ev.preventDefault();
+      ev.stopImmediatePropagation && ev.stopImmediatePropagation();
+      ev.stopPropagation && ev.stopPropagation();
+    }
+    // appelle ta version actuelle (qui gère le lock + stockage)
+    return prev ? prev(ev) : false;
+  };
+})();
