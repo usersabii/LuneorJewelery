@@ -1244,7 +1244,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     console.log('[CART HOTFIX] chargé');
   
     // 1) CONFIG — adapte juste l'URL Apps Script /exec
-    const WEBAPP_URL = 'https://script.google.com/macros/s/XXX/exec'; // ← remplace XXX
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec'; // ← remplace XXX
   
     // Sélecteurs selon ton HTML d’offcanvas
     const S = {
