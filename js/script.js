@@ -1237,279 +1237,189 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================
-   PANIER OFFCANVAS – FIX FINAL
+   CART HOTFIX (safe & minimal)
    ========================= */
-   'use strict';
-   console.log('[CART FIX FINAL] chargé');
-   
-   // ← ← ← remplace par l’URL /exec de ton Web App
-   const WEBAPP_URL = (window.GAS_URL && String(window.GAS_URL)) || 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
-   
-   const SELECTORS = {
-     addButtons : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
-     buyNow     : '#confirmBuyBtn',
-     cartConfirm: '#btnConfirmerPanier',
-     cartClear  : '#cartClearBtn',
-     drawer     : '#cartDrawer',
-     itemsBox   : '#cartItems',
-     subtotalEl : '#cartSubtotal',
-     delivery   : '#cartDeliverySelect',
-     payName    : 'cartPay',
-     accountModal: '#account-modal',
-     badge      : '#js-cart-badge, .cart-badge, [data-cart-badge]'
-   };
-   
-   /* ---------- anti double binding: strip direct listeners + capture ---------- */
-   (function stripAndGuard(){
-     const STRIP_SEL = [SELECTORS.addButtons, SELECTORS.buyNow, SELECTORS.cartConfirm].join(',');
-     function stripDirect(sel){
-       document.querySelectorAll(sel).forEach(el=>{
-         const c = el.cloneNode(true);
-         ['onclick','onmousedown','ontouchstart','onsubmit'].forEach(k=>{ c[k]=null; c.removeAttribute(k); });
-         if (c.tagName === 'BUTTON' && c.type !== 'button') c.type = 'button';
-         el.replaceWith(c);
-       });
-     }
-     const doStrip = ()=> stripDirect(STRIP_SEL);
-     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', doStrip, {once:true});
-     else doStrip();
-     // strip aussi les éléments ajoutés dynamiquement
-     new MutationObserver(()=> doStrip()).observe(document.documentElement, {subtree:true, childList:true});
-   
-     // Swallow en capture pour couper les vieux handlers
-     document.addEventListener('click', (e)=>{
-       const targetSel = STRIP_SEL;
-       if (e.target.closest(targetSel)) {
-         // on ne preventDefault PAS ici, on laisse notre handler gérer
-         e.stopPropagation();
-         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-       }
-     }, true);
-   })();
-   
-   /* ---------- store panier ---------- */
-   const CART_KEY = 'cart';
-   const cart = {
-     load(){ try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } },
-     save(list){ localStorage.setItem(CART_KEY, JSON.stringify(list||[])); updateBadge(); renderIfOpen(); },
-     _key(it){
-       // clé de fusion stable même si sku absent
-       const k = String(it.sku || it.id || (it.name||'') + '|' + String(it.price||0));
-       return k;
-     },
-     add(it){
-       const list = this.load();
-       const key = this._key(it);
-       const i = list.findIndex(x => this._key(x) === key);
-       if (i >= 0) list[i].qty += Number(it.qty||1);
-       else list.push({...it, qty: Number(it.qty||1)});
-       this.save(list);
-     },
-     clear(){ this.save([]); }
-   };
-   
-   /* ---------- utils UI ---------- */
-   const q  = (s)=> document.querySelector(s);
-   const qa = (s)=> [...document.querySelectorAll(s)];
-   const DA = n => `${Number(n||0).toFixed(2)} DA`;
-   const totalQty   = list => list.reduce((s,i)=> s + Number(i.qty||0), 0);
-   const totalPrice = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-   
-   function updateBadge(){
-     const el = q(SELECTORS.badge);
-     if (el) el.textContent = String(totalQty(cart.load()));
-   }
-   function renderCart(){
-     const list   = cart.load();
-     const box    = q(SELECTORS.itemsBox);
-     const subEl  = q(SELECTORS.subtotalEl);
-     if (!box) return;
-   
-     if (!list.length){
-       box.innerHTML = `<div class="text-muted">Panier vide</div>`;
-     } else {
-       box.innerHTML = list.map(it => `
-         <div class="d-flex justify-content-between align-items-center" data-key="${cart._key(it)}">
-           <div class="me-2">
-             <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
-             <div class="small text-muted">× ${it.qty}</div>
-           </div>
-           <div class="ms-2 fw-semibold">${DA(Number(it.price||0)*Number(it.qty||0))}</div>
-         </div>
-       `).join('');
-     }
-     if (subEl) subEl.textContent = DA(totalPrice(list));
-     updateBadge();
-   }
-   function renderIfOpen(){
-     const el = q(SELECTORS.drawer);
-     if (el && el.classList.contains('show')) renderCart();
-   }
-   // rendre à l’ouverture de l’offcanvas
-   const drawerEl = q(SELECTORS.drawer);
-   if (drawerEl) drawerEl.addEventListener('show.bs.offcanvas', renderCart);
-   
-   /* ---------- profil / inscription ---------- */
-   function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
-   function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); }
-   function hideAllOverlays(){
-     document.querySelectorAll('.offcanvas.show').forEach(c=>{
-       const inst = bootstrap.Offcanvas.getInstance(c) || new bootstrap.Offcanvas(c);
-       inst.hide();
-     });
-     document.querySelectorAll('.modal.show').forEach(m=>{
-       const inst = bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m);
-       inst.hide();
-     });
-   }
-   function requireProfile(){
-     const p = getProfile();
-     if (isProfileComplete(p)) return p;
-     hideAllOverlays();
-     const account = q(SELECTORS.accountModal);
-     if (account){
-       setTimeout(()=> (bootstrap.Modal.getInstance(account) || new bootstrap.Modal(account, {backdrop:'static'})).show(), 160);
-     } else {
-       alert('Veuillez renseigner nom, téléphone, adresse.');
-     }
-     return null;
-   }
-   
-   /* ---------- envoi unique ---------- */
-   let sending = false;
-   async function sendOrder(payload){
-     if (sending) throw new Error('Envoi déjà en cours');
-     sending = true;
-     try{
-       const res = await fetch(WEBAPP_URL, {
-         method:'POST',
-         headers:{'Content-Type':'application/json'},
-         body: JSON.stringify(payload)
-       });
-       const text = await res.text();
-       let data;
-       try { data = JSON.parse(text); } catch { data = { ok:false, error:'Réponse non-JSON', raw:text }; }
-       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
-       if (!data.ok) throw new Error(data.error || 'Erreur serveur');
-       return data;
-     } finally { sending = false; }
-   }
-   const uuid = ()=> (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now());
-   
-   /* ---------- handler unique EN CAPTURE ---------- */
-   document.addEventListener('click', async (e)=>{
-     const addBtn  = e.target.closest(SELECTORS.addButtons);
-     const buyBtn  = e.target.closest(SELECTORS.buyNow);
-     const confBtn = e.target.closest(SELECTORS.cartConfirm);
-     const clrBtn  = e.target.closest(SELECTORS.cartClear);
-   
-     if (!addBtn && !buyBtn && !confBtn && !clrBtn) return;
-   
-     e.preventDefault();
-     e.stopPropagation();
-     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-   
-     // Ajouter
-     if (addBtn){
-       if (addBtn.dataset.lock) return;
-       addBtn.dataset.lock = '1'; setTimeout(()=> delete addBtn.dataset.lock, 250);
-   
-       // SKU robuste et unique
-       let sku = addBtn.dataset.sku || addBtn.getAttribute('data-id') || addBtn.id || '';
-       if (!sku){
-         // fallback: index aléatoire mémorisé sur le bouton pour garantir l’unicité
-         sku = addBtn.dataset.idx || (addBtn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9));
-         console.warn('[cart] data-sku manquant, fallback:', sku);
-       }
-       const name  = addBtn.dataset.name  || addBtn.getAttribute('data-title') || sku;
-       const price = Number(addBtn.dataset.price || addBtn.getAttribute('data-price') || 0);
-   
-       cart.add({ sku, name, price, qty: 1 });
-       return;
-     }
-   
-     // Vider
-     if (clrBtn){
-       cart.clear();
-       renderCart();
-       return;
-     }
-   
-     // Acheter (direct)
-     if (buyBtn){
-       const profile = requireProfile();
-       if (!profile) return;
-   
-       buyBtn.disabled = true;
-       try{
-         const orderId = buyBtn.dataset.orderId || (buyBtn.dataset.orderId = uuid());
-         const sku   = buyBtn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-         const name  = buyBtn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-         const price = Number(buyBtn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-         if (!sku) throw new Error('Produit introuvable (data-* ou window.__currentBuy)');
-   
-         const payload = {
-           __kind  : 'order',
-           orderId,
-           client  : profile,
-           payment : 'to-choose',
-           delivery: 'to-choose',
-           items   : [{ sku, name, price, qty: 1 }],
-           total   : price,
-           source  : 'buy_button'
-         };
-   
-         console.log('[buy] payload', payload);
-         const out = await sendOrder(payload);
-         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-         hideAllOverlays();
-       } catch(err){
-         console.error('[buy] error', err);
-         alert('Échec achat direct ❌ ' + err.message);
-       } finally { buyBtn.disabled = false; }
-       return;
-     }
-   
-     // Confirmer panier
-     if (confBtn){
-       const profile = requireProfile();
-       if (!profile) return;
-   
-       const items = cart.load();
-       if (!items.length){ alert('Panier vide'); return; }
-   
-       const del   = q(SELECTORS.delivery)?.value || 'standard';
-       const payEl = document.querySelector(`input[name="${SELECTORS.payName}"]:checked`);
-       const pay   = (payEl?.value || 'cod').toLowerCase();
-   
-       confBtn.disabled = true;
-       try{
-         const orderId = confBtn.dataset.orderId || (confBtn.dataset.orderId = uuid());
-         const payload = {
-           __kind  : 'order',
-           orderId,
-           client  : profile,
-           payment : (pay === 'cod') ? 'COD' : 'CARD',
-           delivery: del,
-           items,
-           total   : totalPrice(items),
-           source  : 'cart'
-         };
-   
-         console.log('[cart-confirm] payload', payload);
-         const out = await sendOrder(payload);
-         console.log('[cart-confirm] resp', out);
-         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-         cart.clear();
-         hideAllOverlays();
-       } catch(err){
-         console.error('[cart-confirm] error', err);
-         alert('Échec commande panier ❌ ' + err.message);
-       } finally { confBtn.disabled = false; }
-       return;
-     }
-   }, true); // EN CAPTURE pour couper les autres scripts
-   
-   // Init badge
-   updateBadge();
-   
+   (() => {
+    'use strict';
+    console.log('[CART HOTFIX] chargé');
+  
+    // 1) CONFIG — adapte juste l'URL Apps Script /exec
+    const WEBAPP_URL = 'https://script.google.com/macros/s/XXX/exec'; // ← remplace XXX
+  
+    // Sélecteurs selon ton HTML d’offcanvas
+    const S = {
+      addBtns : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
+      buyNow  : '#confirmBuyBtn',
+      confirm : '#btnConfirmerPanier',
+      clear   : '#cartClearBtn',
+      items   : '#cartItems',
+      subtotal: '#cartSubtotal',
+      delivery: '#cartDeliverySelect',
+      payName : 'cartPay',
+      accountModal: '#account-modal' // si tu l’as
+    };
+  
+    // 2) STORE PANIER (robuste aux doublons externes)
+    const KEY = 'cart';
+    const cart = {
+      load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } },
+      save(list){ localStorage.setItem(KEY, JSON.stringify(list||[])); render(); },
+      _key(it){ return String(it.sku || it.id || (it.name||'')+'|'+String(it.price||0)); },
+      add(it){
+        const list = this.load();
+        const k = this._key(it);
+        const i = list.findIndex(x => this._key(x) === k);
+        if (i >= 0) list[i].qty += Number(it.qty||1);
+        else list.push({...it, qty:Number(it.qty||1)});
+        this.save(list);
+      },
+      clear(){ this.save([]); }
+    };
+  
+    const fmtDA = n => `${Number(n||0).toFixed(2)} DA`;
+    const total = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
+  
+    // 3) RENDU OFFCANVAS (aucune dépendance Bootstrap)
+    function render(){
+      const box = document.querySelector(S.items);
+      const sub = document.querySelector(S.subtotal);
+      if (!box) return;
+      const list = cart.load();
+      if (!list.length) {
+        box.innerHTML = `<div class="text-muted">Panier vide</div>`;
+      } else {
+        box.innerHTML = list.map(it => `
+          <div class="d-flex justify-content-between align-items-center" data-k="${cart._key(it)}">
+            <div class="me-2">
+              <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
+              <div class="small text-muted">× ${it.qty}</div>
+            </div>
+            <div class="ms-2 fw-semibold">${fmtDA(Number(it.price||0)*Number(it.qty||0))}</div>
+          </div>
+        `).join('');
+      }
+      if (sub) sub.textContent = fmtDA(total(list));
+    }
+    render();
+  
+    // 4) GARDE anti double-clic & anti double ajout “fantôme”
+    let lastAdd = { key:'', t:0 };
+    function safeAdd(item){
+      const key = cart._key(item);
+      const now = Date.now();
+      // ignore un deuxième ajout du même produit dans les 300 ms (second listener parasite)
+      if (key === lastAdd.key && (now - lastAdd.t) < 300) {
+        console.warn('[CART HOTFIX] double add ignoré');
+        return;
+      }
+      lastAdd = { key, t: now };
+      cart.add(item);
+    }
+  
+    // 5) ENVOI COMMANDE (une seule fois)
+    let sending = false;
+    async function sendOrder(payload){
+      if (sending) throw new Error('Envoi déjà en cours');
+      sending = true;
+      try {
+        const res = await fetch(WEBAPP_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        let data; try { data = JSON.parse(text); } catch { data = { ok:false, error:'Réponse non-JSON', raw:text }; }
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
+        if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+        return data;
+      } finally { sending = false; }
+    }
+    const uuid = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now());
+  
+    // 6) PROFIL (facultatif : on n’ouvre aucun modal pour ne pas casser la page)
+    function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
+    function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); }
+  
+    // 7) LISTENERS SIMPLES (aucun stopPropagation, aucun capture)
+    // Ajouter au panier
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest(S.addBtns);
+      if (!btn) return;
+      // lock court contre doubles clics utilisateur
+      if (btn.dataset.lock) return;
+      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 200);
+  
+      // lecture sûre des data-*
+      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
+      if (!sku) { sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9)); }
+      const name  = btn.dataset.name  || btn.getAttribute('data-title') || sku;
+      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
+  
+      safeAdd({ sku, name, price, qty: 1 });
+    });
+  
+    // Vider
+    document.getElementById(S.clear.replace('#',''))?.addEventListener('click', () => {
+      cart.clear(); render();
+    });
+  
+    // Acheter (direct)
+    document.getElementById(S.buyNow.replace('#',''))?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      const profile = getProfile();
+      if (!isProfileComplete(profile)) {
+        alert('Complète nom + téléphone + adresse avant achat direct.');
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
+        const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
+        const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+        if (!sku) throw new Error('Produit introuvable (data-* ou window.__currentBuy)');
+  
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const payload = { __kind:'order', orderId, client: profile, payment:'to-choose', delivery:'to-choose',
+                          items:[{ sku, name, price, qty:1 }], total: price, source:'buy_button' };
+        console.log('[HOTFIX][buy] payload', payload);
+        const out = await sendOrder(payload);
+        alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
+      } catch(err){
+        console.error('[HOTFIX][buy] error', err);
+        alert('Échec achat direct ❌ ' + err.message);
+      } finally { btn.disabled = false; }
+    });
+  
+    // Confirmer panier
+    document.getElementById(S.confirm.replace('#',''))?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+  
+      const items = cart.load();
+      if (!items.length) { alert('Panier vide'); return; }
+  
+      // Profil souple : on envoie quand même, mais on place des vides si manquants
+      const profile = getProfile();
+  
+      const delivery = document.querySelector(S.delivery)?.value || 'standard';
+      const payEl = document.querySelector(`input[name="${S.payName}"]:checked`);
+      const payment = (payEl?.value || 'cod').toLowerCase() === 'cod' ? 'COD' : 'CARD';
+  
+      btn.disabled = true;
+      try {
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: total(items), source:'cart' };
+        console.log('[HOTFIX][cart-confirm] payload', payload);
+        const out = await sendOrder(payload);
+        console.log('[HOTFIX][cart-confirm] resp', out);
+        alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
+        cart.clear(); render();
+      } catch(err){
+        console.error('[HOTFIX][cart-confirm] error', err);
+        alert('Échec commande panier ❌ ' + err.message);
+      } finally { btn.disabled = false; }
+    });
+  
+  })();
+  
