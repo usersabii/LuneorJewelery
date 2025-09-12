@@ -1237,189 +1237,113 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 /* =========================
-   CART HOTFIX (safe & minimal)
+   CART/BUY FINAL OVERRIDE (ciblé)
+   - Confirme panier + Achetez (modal) fiables
+   - Bloque les autres scripts qui affichent "non reçu"
    ========================= */
    (() => {
     'use strict';
-    console.log('[CART HOTFIX] chargé');
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec'; // ← ton /exec
   
-    // 1) CONFIG — adapte juste l'URL Apps Script /exec
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec'; // ← remplace XXX
+    // --- utilitaires
+    const CART_KEY = 'cart';
+    const getCart  = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } };
+    const setCart  = (list) => localStorage.setItem(CART_KEY, JSON.stringify(list||[]));
+    const total    = (list) => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
+    const uuid     = () => (crypto?.randomUUID?.() || String(Date.now()));
+    const getProfile = () => { try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } };
   
-    // Sélecteurs selon ton HTML d’offcanvas
-    const S = {
-      addBtns : '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]',
-      buyNow  : '#confirmBuyBtn',
-      confirm : '#btnConfirmerPanier',
-      clear   : '#cartClearBtn',
-      items   : '#cartItems',
-      subtotal: '#cartSubtotal',
-      delivery: '#cartDeliverySelect',
-      payName : 'cartPay',
-      accountModal: '#account-modal' // si tu l’as
-    };
-  
-    // 2) STORE PANIER (robuste aux doublons externes)
-    const KEY = 'cart';
-    const cart = {
-      load(){ try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } },
-      save(list){ localStorage.setItem(KEY, JSON.stringify(list||[])); render(); },
-      _key(it){ return String(it.sku || it.id || (it.name||'')+'|'+String(it.price||0)); },
-      add(it){
-        const list = this.load();
-        const k = this._key(it);
-        const i = list.findIndex(x => this._key(x) === k);
-        if (i >= 0) list[i].qty += Number(it.qty||1);
-        else list.push({...it, qty:Number(it.qty||1)});
-        this.save(list);
-      },
-      clear(){ this.save([]); }
-    };
-  
-    const fmtDA = n => `${Number(n||0).toFixed(2)} DA`;
-    const total = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-  
-    // 3) RENDU OFFCANVAS (aucune dépendance Bootstrap)
-    function render(){
-      const box = document.querySelector(S.items);
-      const sub = document.querySelector(S.subtotal);
-      if (!box) return;
-      const list = cart.load();
-      if (!list.length) {
-        box.innerHTML = `<div class="text-muted">Panier vide</div>`;
-      } else {
-        box.innerHTML = list.map(it => `
-          <div class="d-flex justify-content-between align-items-center" data-k="${cart._key(it)}">
-            <div class="me-2">
-              <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
-              <div class="small text-muted">× ${it.qty}</div>
-            </div>
-            <div class="ms-2 fw-semibold">${fmtDA(Number(it.price||0)*Number(it.qty||0))}</div>
-          </div>
-        `).join('');
-      }
-      if (sub) sub.textContent = fmtDA(total(list));
-    }
-    render();
-  
-    // 4) GARDE anti double-clic & anti double ajout “fantôme”
-    let lastAdd = { key:'', t:0 };
-    function safeAdd(item){
-      const key = cart._key(item);
-      const now = Date.now();
-      // ignore un deuxième ajout du même produit dans les 300 ms (second listener parasite)
-      if (key === lastAdd.key && (now - lastAdd.t) < 300) {
-        console.warn('[CART HOTFIX] double add ignoré');
-        return;
-      }
-      lastAdd = { key, t: now };
-      cart.add(item);
+    async function post(payload){
+      const res = await fetch(WEBAPP_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: '+text); }
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
+      if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+      return data;
     }
   
-    // 5) ENVOI COMMANDE (une seule fois)
-    let sending = false;
-    async function sendOrder(payload){
-      if (sending) throw new Error('Envoi déjà en cours');
-      sending = true;
+    // --- Confirmer la commande (PANIER)
+    window.__confirmCartOnce = async function(ev){
+      const btn = document.getElementById('btnConfirmerPanier');
+      if (!btn) return false;
+      if (btn.dataset.lock) return false;
+      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
+  
+      const items = getCart();
+      if (!items.length){ alert('Panier vide'); return false; }
+  
+      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+      const payVal   = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
+      const payment  = (payVal === 'cod') ? 'COD' : 'CARD';
+      const profile  = getProfile(); // OK même s’il manque des champs
+  
+      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+      const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: total(items), source:'cart' };
+  
       try {
-        const res = await fetch(WEBAPP_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
-        const text = await res.text();
-        let data; try { data = JSON.parse(text); } catch { data = { ok:false, error:'Réponse non-JSON', raw:text }; }
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
-        if (!data.ok) throw new Error(data.error || 'Erreur serveur');
-        return data;
-      } finally { sending = false; }
-    }
-    const uuid = () => (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now());
-  
-    // 6) PROFIL (facultatif : on n’ouvre aucun modal pour ne pas casser la page)
-    function getProfile(){ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } }
-    function isProfileComplete(p){ return !!(p && p.nom && p.telephone && p.adresse); }
-  
-    // 7) LISTENERS SIMPLES (aucun stopPropagation, aucun capture)
-    // Ajouter au panier
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest(S.addBtns);
-      if (!btn) return;
-      // lock court contre doubles clics utilisateur
-      if (btn.dataset.lock) return;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 200);
-  
-      // lecture sûre des data-*
-      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
-      if (!sku) { sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9)); }
-      const name  = btn.dataset.name  || btn.getAttribute('data-title') || sku;
-      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
-  
-      safeAdd({ sku, name, price, qty: 1 });
-    });
-  
-    // Vider
-    document.getElementById(S.clear.replace('#',''))?.addEventListener('click', () => {
-      cart.clear(); render();
-    });
-  
-    // Acheter (direct)
-    document.getElementById(S.buyNow.replace('#',''))?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      if (btn.disabled) return;
-      const profile = getProfile();
-      if (!isProfileComplete(profile)) {
-        alert('Complète nom + téléphone + adresse avant achat direct.');
-        return;
-      }
-      btn.disabled = true;
-      try {
-        const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-        const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-        const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-        if (!sku) throw new Error('Produit introuvable (data-* ou window.__currentBuy)');
-  
-        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-        const payload = { __kind:'order', orderId, client: profile, payment:'to-choose', delivery:'to-choose',
-                          items:[{ sku, name, price, qty:1 }], total: price, source:'buy_button' };
-        console.log('[HOTFIX][buy] payload', payload);
-        const out = await sendOrder(payload);
-        alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-      } catch(err){
-        console.error('[HOTFIX][buy] error', err);
-        alert('Échec achat direct ❌ ' + err.message);
-      } finally { btn.disabled = false; }
-    });
-  
-    // Confirmer panier
-    document.getElementById(S.confirm.replace('#',''))?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      if (btn.disabled) return;
-  
-      const items = cart.load();
-      if (!items.length) { alert('Panier vide'); return; }
-  
-      // Profil souple : on envoie quand même, mais on place des vides si manquants
-      const profile = getProfile();
-  
-      const delivery = document.querySelector(S.delivery)?.value || 'standard';
-      const payEl = document.querySelector(`input[name="${S.payName}"]:checked`);
-      const payment = (payEl?.value || 'cod').toLowerCase() === 'cod' ? 'COD' : 'CARD';
-  
-      btn.disabled = true;
-      try {
-        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-        const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: total(items), source:'cart' };
-        console.log('[HOTFIX][cart-confirm] payload', payload);
-        const out = await sendOrder(payload);
-        console.log('[HOTFIX][cart-confirm] resp', out);
+        console.log('[cart-confirm] payload', payload);
+        const out = await post(payload);
+        console.log('[cart-confirm] OK', out);
         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-        cart.clear(); render();
-      } catch(err){
-        console.error('[HOTFIX][cart-confirm] error', err);
+        setCart([]); // vider le panier uniquement après succès
+        // rafraîchit visuel si tu as #cartItems / #cartSubtotal :
+        const box = document.querySelector('#cartItems'); if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
+        const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = '0.00 DA';
+      } catch (err) {
+        console.error('[cart-confirm] FAIL', err);
         alert('Échec commande panier ❌ ' + err.message);
-      } finally { btn.disabled = false; }
-    });
+      }
+      // très important: false = empêche autres handlers (ceux qui buggent)
+      return false;
+    };
+  
+    // --- Acheter (MODAL)
+    window.__buyOnce = async function(ev){
+      const btn = document.getElementById('confirmBuyBtn');
+      if (!btn) return false;
+      if (btn.dataset.lock) return false;
+      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
+  
+      const profile = getProfile();
+      if (!(profile.nom && profile.telephone && profile.adresse)) {
+        alert('Complétez nom + téléphone + adresse avant achat direct.');
+        return false;
+      }
+  
+      // Produit via data-* ou window.__currentBuy
+      const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
+      const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
+      const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+      if (!sku) { alert('Produit introuvable'); return false; }
+  
+      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+      const payload = { __kind:'order', orderId, client: profile, payment:'to-choose', delivery:'to-choose',
+                        items:[{ sku, name, price, qty:1 }], total: price, source:'buy_button' };
+  
+      try {
+        console.log('[buy] payload', payload);
+        const out = await post(payload);
+        console.log('[buy] OK', out);
+        alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
+        // Astuce: on marque réussite pour empêcher ton autre script d’afficher "non reçu"
+        btn.dataset.ok = '1';
+      } catch (err) {
+        console.error('[buy] FAIL', err);
+        alert('Échec achat direct ❌ ' + err.message);
+      }
+      // bloque les autres scripts (ceux qui affichent "non reçu")
+      return false;
+    };
+  
+    // --- On connecte nos handlers en "inline" pour qu’ils passent en priorité
+    const cartBtn = document.getElementById('btnConfirmerPanier');
+    if (cartBtn) cartBtn.setAttribute('onclick', 'return window.__confirmCartOnce(event);');
+    const buyBtn  = document.getElementById('confirmBuyBtn');
+    if (buyBtn)  buyBtn.setAttribute('onclick', 'return window.__buyOnce(event);');
   
   })();
   
