@@ -236,7 +236,7 @@ accountForm.addEventListener('submit', e => {
   // transforme le form en query string
   const params = new URLSearchParams(new FormData(e.target)).toString();
   // en GET & no-cors pour ne pas déclencher de preflight
-  fetch('https://script.google.com/macros/s/AKfycbwTlL13Lr13Pjz2TaeR5mCvu3v9dkt5qgpm-r_6ZKVIqOLuIIonU_ydd4TZ52I0rS9a1A/exec' + params, {
+  fetch('https://script.google.com/macros/s/AKfycbxpuyEB2REqABPXQKFc4_hHsf98k1U7N-fB8p9W6VGg5Z3lbPzOUVGOAWwAfIIf2Zg/exec' + params, {
     method: 'GET',
     mode: 'no-cors'
   })
@@ -1236,232 +1236,215 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
-/* =========================
-   CART/BUY FINAL OVERRIDE (ciblé)
-   - Confirme panier + Achetez (modal) fiables
-   - Bloque les autres scripts qui affichent "non reçu"
-   ========================= */
+/* ===============================
+   Cart/Order — CLEAN BUILD (ton setup)
+   =============================== */
    (() => {
     'use strict';
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec'; // ← ton /exec
+    console.log('[CartClean] chargé');
   
-    // --- utilitaires
-    const CART_KEY = 'cart';
-    const getCart  = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } };
-    const setCart  = (list) => localStorage.setItem(CART_KEY, JSON.stringify(list||[]));
-    const total    = (list) => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-    const uuid     = () => (crypto?.randomUUID?.() || String(Date.now()));
-    const getProfile = () => { try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } };
+    // 1) CONFIG — mets l’URL /exec de ton Web App Apps Script
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpuyEB2REqABPXQKFc4_hHsf98k1U7N-fB8p9W6VGg5Z3lbPzOUVGOAWwAfIIf2Zg/exec'; // ← remplace XXX par ton /exec
   
-    async function post(payload){
-      const res = await fetch(WEBAPP_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const text = await res.text();
-      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: '+text); }
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
-      if (!data.ok) throw new Error(data.error || 'Erreur serveur');
-      return data;
-    }
-  
-    // --- Confirmer la commande (PANIER)
-    window.__confirmCartOnce = async function(ev){
-      const btn = document.getElementById('btnConfirmerPanier');
-      if (!btn) return false;
-      if (btn.dataset.lock) return false;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
-  
-      const items = getCart();
-      if (!items.length){ alert('Panier vide'); return false; }
-  
-      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
-      const payVal   = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
-      const payment  = (payVal === 'cod') ? 'COD' : 'CARD';
-      const profile  = getProfile(); // OK même s’il manque des champs
-  
-      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-      const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: total(items), source:'cart' };
-  
-      try {
-        console.log('[cart-confirm] payload', payload);
-        const out = await post(payload);
-        console.log('[cart-confirm] OK', out);
-        alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-        setCart([]); // vider le panier uniquement après succès
-        // rafraîchit visuel si tu as #cartItems / #cartSubtotal :
-        const box = document.querySelector('#cartItems'); if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
-        const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = '0.00 DA';
-      } catch (err) {
-        console.error('[cart-confirm] FAIL', err);
-        alert('Échec commande panier ❌ ' + err.message);
-      }
-      // très important: false = empêche autres handlers (ceux qui buggent)
-      return false;
+    // 2) Sélecteurs d’après TON HTML
+    const S = {
+      addBtns   : '.btn-add',         // <button class="btn-add" data-id data-name data-price>
+      buyBtns   : '.btn-buy',         // <button class="btn-buy" data-id data-name data-price>
+      confirm   : '#btnConfirmerPanier',
+      clear     : '#cartClearBtn',
+      itemsBox  : '#cartItems',
+      subtotal  : '#cartSubtotal',
+      delivery  : '#cartDeliverySelect',
+      payName   : 'cartPay'
     };
   
-    // --- Acheter (MODAL)
+    // 3) Panier (localStorage)
+    const KEY = 'cart';
+    const read  = () => { try { return JSON.parse(localStorage.getItem(KEY)||'[]'); } catch { return []; } };
+    const write = (arr) => localStorage.setItem(KEY, JSON.stringify(arr||[]));
+    const fmtDA = n => `${Number(n||0).toFixed(2)} DA`;
+    const sum   = list => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
+    const makeKey = (it) => String(it.sku || it.id || (it.name||'') + '|' + String(it.price||0));
+  
+    function render(){
+      const box = document.querySelector(S.itemsBox);
+      const sub = document.querySelector(S.subtotal);
+      if (!box) return;
+      const list = read();
+      if (!list.length){
+        box.innerHTML = `<div class="text-muted">Panier vide</div>`;
+      } else {
+        box.innerHTML = list.map(it => `
+          <div class="d-flex justify-content-between align-items-center" data-k="${makeKey(it)}">
+            <div class="me-2">
+              <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
+              <div class="small text-muted">× ${it.qty}</div>
+            </div>
+            <div class="ms-2 fw-semibold">${fmtDA(Number(it.price||0)*Number(it.qty||0))}</div>
+          </div>
+        `).join('');
+      }
+      if (sub) sub.textContent = fmtDA(sum(list));
+    }
+    function addToCart(item){
+      const list = read();
+      const k = makeKey(item);
+      const i = list.findIndex(x => makeKey(x) === k);
+      if (i >= 0) list[i].qty += Number(item.qty||1);
+      else list.push({...item, qty:Number(item.qty||1)});
+      write(list);
+      render();
+    }
+    function clearCart(){ write([]); render(); }
+  
+    // 4) Anti-double clic & anti double-event
+    const lastByKey = new Map();
+    function safeAdd(item){
+      const k = makeKey(item), now = Date.now();
+      const last = lastByKey.get(k) || 0;
+      if (now - last < 500) { console.warn('[CartClean] double add ignoré'); return; }
+      lastByKey.set(k, now);
+      addToCart(item);
+    }
+  
+    // 5) Envoi vers Apps Script
+    let sending = false;
+    async function postOrder(payload){
+      if (!GAS_URL || !GAS_URL.includes('/exec')) throw new Error('GAS_URL invalide (/exec manquant)');
+      if (sending) throw new Error('Envoi déjà en cours');
+      sending = true;
+      try {
+        const res = await fetch(GAS_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: '+text); }
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
+        if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+        return data;
+      } finally { sending = false; }
+    }
+    const uuid = () => (crypto?.randomUUID?.() || String(Date.now()));
+  
+    // 6) Normalisation depuis un bouton (tes data-*)
+    function normalizeFromBtn(btn){
+      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
+      if (!sku) { // secours : identifiant par bouton pour éviter fusion
+        btn.dataset.uid = btn.dataset.uid || ('sku-' + Math.random().toString(36).slice(2,9));
+        sku = btn.dataset.uid;
+      }
+      const name  = btn.dataset.name  || btn.getAttribute('data-name')  || btn.getAttribute('data-title') || sku;
+      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
+      return { sku, name, price, qty: 1 };
+    }
+  
+    // 7) Handlers inline PRIORITAIRES (coupent les autres scripts)
+    window.__addOnce = function(ev){
+      try{
+        const btn = ev.currentTarget || ev.target.closest(S.addBtns);
+        if (!btn) return false;
+        if (btn.dataset.lock) return false;
+        btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 400);
+  
+        ev.preventDefault?.(); ev.stopImmediatePropagation?.(); ev.stopPropagation?.();
+        safeAdd(normalizeFromBtn(btn));
+      } catch(err){ console.error('[CartClean add] ', err); }
+      return false; // bloque les autres handlers
+    };
+  
     window.__buyOnce = async function(ev){
-      const btn = document.getElementById('confirmBuyBtn');
+      const btn = ev.currentTarget || ev.target.closest(S.buyBtns);
       if (!btn) return false;
       if (btn.dataset.lock) return false;
       btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
   
-      const profile = getProfile();
-      if (!(profile.nom && profile.telephone && profile.adresse)) {
-        alert('Complétez nom + téléphone + adresse avant achat direct.');
-        return false;
-      }
+      ev.preventDefault?.(); ev.stopImmediatePropagation?.(); ev.stopPropagation?.();
   
-      // Produit via data-* ou window.__currentBuy
-      const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-      const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-      const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-      if (!sku) { alert('Produit introuvable'); return false; }
+      try{
+        const p = normalizeFromBtn(btn);
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const profile = ( ()=>{ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } })();
   
-      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-      const payload = { __kind:'order', orderId, client: profile, payment:'to-choose', delivery:'to-choose',
-                        items:[{ sku, name, price, qty:1 }], total: price, source:'buy_button' };
-  
-      try {
-        console.log('[buy] payload', payload);
-        const out = await post(payload);
-        console.log('[buy] OK', out);
+        const payload = {
+          __kind  : 'order',
+          orderId,
+          client  : profile,                // accepte vide; complète côté fiche
+          payment : 'to-choose',
+          delivery: 'to-choose',
+          items   : [{ sku: p.sku, name: p.name, price: p.price, qty: 1 }],
+          total   : p.price,
+          source  : 'buy_button'
+        };
+        const out = await postOrder(payload);
         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-        // Astuce: on marque réussite pour empêcher ton autre script d’afficher "non reçu"
-        btn.dataset.ok = '1';
-      } catch (err) {
-        console.error('[buy] FAIL', err);
+      } catch(err){
+        console.error('[CartClean buy] ', err);
         alert('Échec achat direct ❌ ' + err.message);
       }
-      // bloque les autres scripts (ceux qui affichent "non reçu")
       return false;
     };
   
-    // --- On connecte nos handlers en "inline" pour qu’ils passent en priorité
-    const cartBtn = document.getElementById('btnConfirmerPanier');
-    if (cartBtn) cartBtn.setAttribute('onclick', 'return window.__confirmCartOnce(event);');
-    const buyBtn  = document.getElementById('confirmBuyBtn');
-    if (buyBtn)  buyBtn.setAttribute('onclick', 'return window.__buyOnce(event);');
+    window.__confirmCartOnce = async function(ev){
+      const btn = ev.currentTarget || ev.target.closest(S.confirm);
+      if (!btn) return false;
+      if (btn.dataset.lock) return false;
+      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 800);
   
+      ev.preventDefault?.(); ev.stopImmediatePropagation?.(); ev.stopPropagation?.();
+  
+      try{
+        const items = read();
+        if (!items.length) { alert('Panier vide'); return false; }
+  
+        const delivery = document.querySelector(S.delivery)?.value || 'standard';
+        const payEl = document.querySelector(`input[name="${S.payName}"]:checked`);
+        const payment = (payEl?.value || 'cod').toLowerCase()==='cod' ? 'COD' : 'CARD';
+        const profile = ( ()=>{ try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } })();
+  
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: sum(items), source:'cart' };
+  
+        const out = await postOrder(payload);
+        alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
+        clearCart();
+      } catch(err){
+        console.error('[CartClean confirm] ', err);
+        alert('Échec commande panier ❌ ' + err.message);
+      }
+      return false;
+    };
+  
+    // 8) Binding inline (prioritaire) + rebinding si DOM bouge
+    function bindAll(){
+      document.querySelectorAll(S.addBtns).forEach(btn => {
+        if (btn.tagName === 'BUTTON' && btn.type !== 'button') btn.type = 'button';
+        btn.setAttribute('onclick', 'return window.__addOnce(event);');
+      });
+      document.querySelectorAll(S.buyBtns).forEach(btn => {
+        if (btn.tagName === 'BUTTON' && btn.type !== 'button') btn.type = 'button';
+        btn.setAttribute('onclick', 'return window.__buyOnce(event);');
+      });
+      const c = document.querySelector(S.confirm);
+      if (c) { if (c.tagName === 'BUTTON' && c.type !== 'button') c.type = 'button';
+        c.setAttribute('onclick', 'return window.__confirmCartOnce(event);'); }
+      const clr = document.querySelector(S.clear);
+      if (clr) { if (clr.tagName === 'BUTTON' && clr.type !== 'button') clr.type = 'button';
+        clr.onclick = (e)=>{ e?.preventDefault?.(); clearCart(); return false; }; }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindAll, {once:true});
+    else bindAll();
+    new MutationObserver(bindAll).observe(document.documentElement, {childList:true, subtree:true});
+  
+    // 9) Premier rendu
+    render();
+  
+    // 10) Petit diag
+    console.log('[CartClean diag]', {
+      add: document.querySelectorAll(S.addBtns).length,
+      buy: document.querySelectorAll(S.buyBtns).length,
+      confirm: !!document.querySelector(S.confirm)
+    });
   })();
   
-
-
-
-
-
-
-  /* =========================
-   ADD-TO-CART INLINE HOTFIX
-   - empêche le double ajout
-   - s'impose sur tous les autres scripts
-   ========================= */
-(() => {
-  'use strict';
-  const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
-  const CART_KEY = 'cart';
-
-  // 1) Fonction unique d'ajout (retourne false => stoppe tous les autres handlers)
-  window.__addOnce = function(ev){
-    try {
-      const btn = ev.currentTarget || ev.target.closest(ADD_SEL);
-      if (!btn) return false;
-
-      // verrou anti double-clic
-      if (btn.dataset.lock) return false;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
-
-      // SKU/Name/Price robustes (SKU secours si absent)
-      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
-      if (!sku) sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9));
-      const name  = btn.dataset.name  || btn.getAttribute('data-title') || sku;
-      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
-
-      // anti “double event” (touch+click, etc.) : ignore si même produit < 1000 ms
-      const now = Date.now();
-      const key = sku + '|' + price;
-      const lastKey = window.__lastAddKey || '';
-      const lastTs  = window.__lastAddTs  || 0;
-      if (lastKey === key && (now - lastTs) < 1000) {
-        // doublon probable d’un autre listener -> on stoppe
-        return false;
-      }
-      window.__lastAddKey = key;
-      window.__lastAddTs  = now;
-
-      // Écrit dans localStorage (fusion par clé stable)
-      const list = (() => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; }})();
-      const makeKey = (it) => String(it.sku || it.id || (it.name||'')+'|'+String(it.price||0));
-      const idx = list.findIndex(x => makeKey(x) === key);
-      if (idx >= 0) list[idx].qty = Number(list[idx].qty||0) + 1;
-      else list.push({ sku, name, price, qty: 1 });
-      localStorage.setItem(CART_KEY, JSON.stringify(list));
-
-      // MAJ badge (si présent)
-      const badge = document.querySelector('#js-cart-badge, .cart-badge, [data-cart-badge]');
-      if (badge) {
-        const totalQty = list.reduce((s,i)=> s + Number(i.qty||0), 0);
-        badge.textContent = String(totalQty);
-      }
-
-      // Rendu offcanvas si fonction dispo
-      if (typeof renderCart === 'function') {
-        try { renderCart(); } catch {}
-      } else {
-        // rendu minimum si conteneurs présents
-        const box = document.querySelector('#cartItems');
-        const sub = document.querySelector('#cartSubtotal');
-        const fmt = (n)=> `${Number(n||0).toFixed(2)} DA`;
-        if (box) {
-          box.innerHTML = list.length
-            ? list.map(it => `
-                <div class="d-flex justify-content-between align-items-center" data-k="${makeKey(it)}">
-                  <div class="me-2">
-                    <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
-                    <div class="small text-muted">× ${it.qty}</div>
-                  </div>
-                  <div class="ms-2 fw-semibold">${fmt(Number(it.price||0)*Number(it.qty||0))}</div>
-                </div>
-              `).join('')
-            : `<div class="text-muted">Panier vide</div>`;
-        }
-        if (sub) {
-          const tot = list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-          sub.textContent = fmt(tot);
-        }
-      }
-
-    } catch (err) {
-      console.error('[ADD-ONCE HOTFIX] error', err);
-    }
-    // *** très important ***
-    // return false = empêche la propagation ET le comportement par défaut,
-    // ce qui coupe les autres scripts qui ajoutaient une 2e fois.
-    return false;
-  };
-
-  // 2) Lie *inline* tous les boutons existants (prend la main sur tout)
-  function bindInline(){
-    document.querySelectorAll(ADD_SEL).forEach(btn => {
-      // force type="button" pour éviter submit implicite
-      if (btn.tagName === 'BUTTON') btn.type = 'button';
-      // remplace tout onclick existant par le nôtre
-      btn.setAttribute('onclick', 'return window.__addOnce(event);');
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindInline, { once: true });
-  } else {
-    bindInline();
-  }
-
-  // 3) Si des produits sont injectés dynamiquement, on rebinde automatiquement
-  new MutationObserver((muts) => {
-    for (const m of muts) {
-      if (m.addedNodes && m.addedNodes.length) bindInline();
-    }
-  }).observe(document.documentElement, { childList: true, subtree: true });
-
-})();
