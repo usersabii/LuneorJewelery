@@ -1423,3 +1423,121 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   
   })();
   
+
+
+
+
+
+
+  /* =========================
+   ADD-TO-CART INLINE HOTFIX
+   - empêche le double ajout
+   - s'impose sur tous les autres scripts
+   ========================= */
+(() => {
+  'use strict';
+  const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
+  const CART_KEY = 'cart';
+
+  // 1) Fonction unique d'ajout (retourne false => stoppe tous les autres handlers)
+  window.__addOnce = function(ev){
+    try {
+      const btn = ev.currentTarget || ev.target.closest(ADD_SEL);
+      if (!btn) return false;
+
+      // verrou anti double-clic
+      if (btn.dataset.lock) return false;
+      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
+
+      // SKU/Name/Price robustes (SKU secours si absent)
+      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
+      if (!sku) sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9));
+      const name  = btn.dataset.name  || btn.getAttribute('data-title') || sku;
+      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
+
+      // anti “double event” (touch+click, etc.) : ignore si même produit < 1000 ms
+      const now = Date.now();
+      const key = sku + '|' + price;
+      const lastKey = window.__lastAddKey || '';
+      const lastTs  = window.__lastAddTs  || 0;
+      if (lastKey === key && (now - lastTs) < 1000) {
+        // doublon probable d’un autre listener -> on stoppe
+        return false;
+      }
+      window.__lastAddKey = key;
+      window.__lastAddTs  = now;
+
+      // Écrit dans localStorage (fusion par clé stable)
+      const list = (() => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; }})();
+      const makeKey = (it) => String(it.sku || it.id || (it.name||'')+'|'+String(it.price||0));
+      const idx = list.findIndex(x => makeKey(x) === key);
+      if (idx >= 0) list[idx].qty = Number(list[idx].qty||0) + 1;
+      else list.push({ sku, name, price, qty: 1 });
+      localStorage.setItem(CART_KEY, JSON.stringify(list));
+
+      // MAJ badge (si présent)
+      const badge = document.querySelector('#js-cart-badge, .cart-badge, [data-cart-badge]');
+      if (badge) {
+        const totalQty = list.reduce((s,i)=> s + Number(i.qty||0), 0);
+        badge.textContent = String(totalQty);
+      }
+
+      // Rendu offcanvas si fonction dispo
+      if (typeof renderCart === 'function') {
+        try { renderCart(); } catch {}
+      } else {
+        // rendu minimum si conteneurs présents
+        const box = document.querySelector('#cartItems');
+        const sub = document.querySelector('#cartSubtotal');
+        const fmt = (n)=> `${Number(n||0).toFixed(2)} DA`;
+        if (box) {
+          box.innerHTML = list.length
+            ? list.map(it => `
+                <div class="d-flex justify-content-between align-items-center" data-k="${makeKey(it)}">
+                  <div class="me-2">
+                    <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
+                    <div class="small text-muted">× ${it.qty}</div>
+                  </div>
+                  <div class="ms-2 fw-semibold">${fmt(Number(it.price||0)*Number(it.qty||0))}</div>
+                </div>
+              `).join('')
+            : `<div class="text-muted">Panier vide</div>`;
+        }
+        if (sub) {
+          const tot = list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
+          sub.textContent = fmt(tot);
+        }
+      }
+
+    } catch (err) {
+      console.error('[ADD-ONCE HOTFIX] error', err);
+    }
+    // *** très important ***
+    // return false = empêche la propagation ET le comportement par défaut,
+    // ce qui coupe les autres scripts qui ajoutaient une 2e fois.
+    return false;
+  };
+
+  // 2) Lie *inline* tous les boutons existants (prend la main sur tout)
+  function bindInline(){
+    document.querySelectorAll(ADD_SEL).forEach(btn => {
+      // force type="button" pour éviter submit implicite
+      if (btn.tagName === 'BUTTON') btn.type = 'button';
+      // remplace tout onclick existant par le nôtre
+      btn.setAttribute('onclick', 'return window.__addOnce(event);');
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindInline, { once: true });
+  } else {
+    bindInline();
+  }
+
+  // 3) Si des produits sont injectés dynamiquement, on rebinde automatiquement
+  new MutationObserver((muts) => {
+    for (const m of muts) {
+      if (m.addedNodes && m.addedNodes.length) bindInline();
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+})();
