@@ -1236,293 +1236,592 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
+
+
+
+
+/* =========================================================
+   shop.js — Luneor
+   - Commande Panier & Achat Direct (envoi WebApp + journal local)
+   - Add-to-Cart unifié (clé stable, anti-doublon, rendu)
+   - Hover Swap image (utilise la 2ᵉ image de data-gallery)
+   ========================================================= */
+
 /* =========================
-   CART/BUY FINAL OVERRIDE (ciblé)
-   - Confirme panier + Achetez (modal) fiables
-   - Bloque les autres scripts qui affichent "non reçu"
+   [A] UTILITAIRES COMMUNS
    ========================= */
    (() => {
     'use strict';
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec'; // ← ton /exec
   
-    // --- utilitaires
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
+  
+    // Storage panier
     const CART_KEY = 'cart';
-    const getCart  = () => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; } };
-    const setCart  = (list) => localStorage.setItem(CART_KEY, JSON.stringify(list||[]));
-    const total    = (list) => list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-    const uuid     = () => (crypto?.randomUUID?.() || String(Date.now()));
-    const getProfile = () => { try { return JSON.parse(localStorage.getItem('signupProfile')||'{}'); } catch { return {}; } };
+    const getCart = () => { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; } };
+    const setCart = (list) => localStorage.setItem(CART_KEY, JSON.stringify(list || []));
+    const sumCart = (list) => list.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 0), 0);
   
-    async function post(payload){
+    // Profil client
+    const getProfile = () => { try { return JSON.parse(localStorage.getItem('signupProfile') || '{}'); } catch { return {}; } };
+  
+    // Divers
+    const uuid = () => (crypto?.randomUUID?.() || String(Date.now()));
+    const fmtDA = (n) => `${Number(n || 0).toFixed(2)} DA`;
+  
+    // POST WebApp
+    async function post(payload) {
       const res = await fetch(WEBAPP_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const text = await res.text();
-      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: '+text); }
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error||''}`);
+      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: ' + text); }
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error || ''}`);
       if (!data.ok) throw new Error(data.error || 'Erreur serveur');
       return data;
     }
   
-    // --- Confirmer la commande (PANIER)
-    window.__confirmCartOnce = async function(ev){
-      const btn = document.getElementById('btnConfirmerPanier');
-      if (!btn) return false;
-      if (btn.dataset.lock) return false;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
+    // Expose utilitaires nécessaires aux autres modules via window (minime)
+    window.__SHOP = { getCart, setCart, sumCart, getProfile, uuid, post, fmtDA };
+  })();
   
-      const items = getCart();
-      if (!items.length){ alert('Panier vide'); return false; }
+  /* ===========================================
+     [B] COMMANDES — Panier & Achat (fonctions)
+     =========================================== */
+  (() => {
+    'use strict';
+    const { getCart, setCart, sumCart, getProfile, uuid, post, fmtDA } = window.__SHOP;
   
-      const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
-      const payVal   = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
-      const payment  = (payVal === 'cod') ? 'COD' : 'CARD';
-      const profile  = getProfile(); // OK même s’il manque des champs
-  
-      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-      const payload = { __kind:'order', orderId, client: profile, payment, delivery, items, total: total(items), source:'cart' };
-  
+    // Confirmer commande depuis le panier
+    window.__confirmCartOnce = async function (ev) {
       try {
-        console.log('[cart-confirm] payload', payload);
+        const btn = document.getElementById('btnConfirmerPanier'); if (!btn) return false;
+        if (btn.dataset.lock) return false;
+        btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
+  
+        const items = getCart();
+        if (!items.length) { alert('Panier vide'); return false; }
+  
+        const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+        const payVal = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
+        const payment = (payVal === 'cod') ? 'COD' : 'CARD';
+        const profile = getProfile();
+  
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const payload = {
+          __kind: 'order',
+          orderId,
+          client: profile,
+          payment,
+          delivery,
+          items,
+          total: sumCart(items),
+          source: 'cart'
+        };
+  
         const out = await post(payload);
-        console.log('[cart-confirm] OK', out);
         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-        setCart([]); // vider le panier uniquement après succès
-        // rafraîchit visuel si tu as #cartItems / #cartSubtotal :
+  
+        // Journal local
+        try {
+          const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
+          log.unshift({ orderId: out.orderId || orderId, source: 'cart', ts: Date.now(), total: sumCart(items), items });
+          localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
+        } catch {}
+  
+        // Reset visuel
+        setCart([]);
         const box = document.querySelector('#cartItems'); if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
-        const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = '0.00 DA';
+        const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = fmtDA(0);
+        // Badge (tous)
+        document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge]').forEach(b => b.textContent = '0');
       } catch (err) {
         console.error('[cart-confirm] FAIL', err);
         alert('Échec commande panier ❌ ' + err.message);
       }
-      // très important: false = empêche autres handlers (ceux qui buggent)
       return false;
     };
   
-    // --- Acheter (MODAL)
-    window.__buyOnce = async function(ev){
-      const btn = document.getElementById('confirmBuyBtn');
-      if (!btn) return false;
-      if (btn.dataset.lock) return false;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
-  
-      const profile = getProfile();
-      if (!(profile.nom && profile.telephone && profile.adresse)) {
-        alert('Complétez nom + téléphone + adresse avant achat direct.');
-        return false;
-      }
-  
-      // Produit via data-* ou window.__currentBuy
-      const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-      const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-      const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-      if (!sku) { alert('Produit introuvable'); return false; }
-  
-      const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-      const payload = { __kind:'order', orderId, client: profile, payment:'to-choose', delivery:'to-choose',
-                        items:[{ sku, name, price, qty:1 }], total: price, source:'buy_button' };
-  
+    // Achat direct (modal)
+    window.__buyOnce = async function (ev) {
       try {
-        console.log('[buy] payload', payload);
+        const btn = document.getElementById('confirmBuyBtn'); if (!btn) return false;
+        if (btn.dataset.lock) return false;
+        btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
+  
+        const profile = getProfile();
+        if (!(profile.nom && profile.telephone && profile.adresse)) {
+          alert('Complétez nom + téléphone + adresse avant achat direct.');
+          return false;
+        }
+  
+        const sku = btn.dataset.sku || (window.__currentBuy && window.__currentBuy.id);
+        const name = btn.dataset.name || (window.__currentBuy && window.__currentBuy.name) || sku;
+        const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+        if (!sku) { alert('Produit introuvable'); return false; }
+  
+        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
+        const payload = {
+          __kind: 'order',
+          orderId,
+          client: profile,
+          payment: 'to-choose',
+          delivery: 'to-choose',
+          items: [{ sku, name, price, qty: 1 }],
+          total: price,
+          source: 'buy_button'
+        };
+  
         const out = await post(payload);
-        console.log('[buy] OK', out);
         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-        // Astuce: on marque réussite pour empêcher ton autre script d’afficher "non reçu"
         btn.dataset.ok = '1';
+  
+        // Journal local
+        try {
+          const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
+          log.unshift({ orderId: out.orderId || orderId, source: 'buy', ts: Date.now(), total: price, items: [{ sku, name, price, qty: 1 }] });
+          localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
+        } catch {}
       } catch (err) {
         console.error('[buy] FAIL', err);
         alert('Échec achat direct ❌ ' + err.message);
       }
-      // bloque les autres scripts (ceux qui affichent "non reçu")
       return false;
     };
   
-    // --- On connecte nos handlers en "inline" pour qu’ils passent en priorité
-    const cartBtn = document.getElementById('btnConfirmerPanier');
-    if (cartBtn) cartBtn.setAttribute('onclick', 'return window.__confirmCartOnce(event);');
-    const buyBtn  = document.getElementById('confirmBuyBtn');
-    if (buyBtn)  buyBtn.setAttribute('onclick', 'return window.__buyOnce(event);');
+    // Binding propre (sans capture globale)
+    function bindBuyConfirm() {
+      const buyBtn = document.getElementById('confirmBuyBtn');
+      if (buyBtn) {
+        if (buyBtn.tagName === 'BUTTON') buyBtn.type = 'button';
+        buyBtn.onclick = (e) => (window.__buyOnce ? window.__buyOnce(e) : false);
+        if (!buyBtn.dataset.captureBound) {
+          buyBtn.addEventListener('click', (ev) => { if (window.__buyOnce) window.__buyOnce(ev); }, true);
+          buyBtn.dataset.captureBound = '1';
+        }
+      }
+      const cartBtn = document.getElementById('btnConfirmerPanier');
+      if (cartBtn) {
+        if (cartBtn.tagName === 'BUTTON') cartBtn.type = 'button';
+        cartBtn.onclick = (e) => (window.__confirmCartOnce ? window.__confirmCartOnce(e) : false);
+        if (!cartBtn.dataset.captureBound) {
+          cartBtn.addEventListener('click', (ev) => { if (window.__confirmCartOnce) window.__confirmCartOnce(ev); }, true);
+          cartBtn.dataset.captureBound = '1';
+        }
+      }
+    }
   
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindBuyConfirm, { once: true });
+    } else { bindBuyConfirm(); }
+    new MutationObserver(bindBuyConfirm).observe(document.documentElement, { childList: true, subtree: true });
   })();
   
-
-
-
-
-
-
-  /* =========================
-   ADD-TO-CART INLINE HOTFIX
-   - empêche le double ajout
-   - s'impose sur tous les autres scripts
-   ========================= */
-(() => {
-  'use strict';
-  const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
-  const CART_KEY = 'cart';
-
-  // 1) Fonction unique d'ajout (retourne false => stoppe tous les autres handlers)
-  window.__addOnce = function(ev){
-    try {
-      const btn = ev.currentTarget || ev.target.closest(ADD_SEL);
-      if (!btn) return false;
-
-      // verrou anti double-clic
-      if (btn.dataset.lock) return false;
-      btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
-
-      // SKU/Name/Price robustes (SKU secours si absent)
-      let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
-      if (!sku) sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2,9));
-      const name  = btn.dataset.name  || btn.getAttribute('data-title') || sku;
-      const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
-
-      // anti “double event” (touch+click, etc.) : ignore si même produit < 1000 ms
-      const now = Date.now();
-      const key = sku + '|' + price;
-      const lastKey = window.__lastAddKey || '';
-      const lastTs  = window.__lastAddTs  || 0;
-      if (lastKey === key && (now - lastTs) < 1000) {
-        // doublon probable d’un autre listener -> on stoppe
-        return false;
+  /* ======================================
+     [C] ADD-TO-CART — Unifié & Idempotent
+     ====================================== */
+  (() => {
+    'use strict';
+    const { fmtDA } = window.__SHOP;
+    const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
+    const CART_KEY = 'cart';
+  
+    function readCart() { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; } }
+    function writeCart(list) { localStorage.setItem(CART_KEY, JSON.stringify(list || [])); }
+  
+    function attachAdd(btn) {
+      if (btn.tagName === 'BUTTON') btn.type = 'button';
+      btn.onclick = (e) => (window.__addOnce ? window.__addOnce(e) : false);
+      if (!btn.dataset.captureBound) {
+        btn.addEventListener('click', function (ev) {
+          if (ev.__addOnceRan) return;
+          ev.__addOnceRan = true;
+          if (window.__addOnce) window.__addOnce(ev);
+        }, true); // capture sur ce bouton uniquement
+        btn.dataset.captureBound = '1';
       }
-      window.__lastAddKey = key;
-      window.__lastAddTs  = now;
-
-      // Écrit dans localStorage (fusion par clé stable)
-      const list = (() => { try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; }})();
-      const makeKey = (it) => String(it.sku || it.id || (it.name||'')+'|'+String(it.price||0));
-      const idx = list.findIndex(x => makeKey(x) === key);
-      if (idx >= 0) list[idx].qty = Number(list[idx].qty||0) + 1;
-      else list.push({ sku, name, price, qty: 1 });
-      localStorage.setItem(CART_KEY, JSON.stringify(list));
-
-      // MAJ badge (si présent)
-      const badge = document.querySelector('#js-cart-badge, .cart-badge, [data-cart-badge]');
-      if (badge) {
-        const totalQty = list.reduce((s,i)=> s + Number(i.qty||0), 0);
-        badge.textContent = String(totalQty);
+    }
+     // Animation aspiration vers le badge (si dispo)
+      if (window.__flyToCart && ev && (ev.currentTarget || ev.target)) {
+       const btn = ev.currentTarget || ev.target;
+        window.__flyToCart(btn);
       }
 
-      // Rendu offcanvas si fonction dispo
-      if (typeof renderCart === 'function') {
-        try { renderCart(); } catch {}
-      } else {
-        // rendu minimum si conteneurs présents
-        const box = document.querySelector('#cartItems');
-        const sub = document.querySelector('#cartSubtotal');
-        const fmt = (n)=> `${Number(n||0).toFixed(2)} DA`;
-        if (box) {
-          box.innerHTML = list.length
-            ? list.map(it => `
+    function bindAllAdd() {
+      document.querySelectorAll(ADD_SEL).forEach(attachAdd);
+    }
+  
+    window.__addOnce = function (ev) {
+      try {
+        const btn = ev?.currentTarget || (ev?.target?.closest && ev.target.closest(ADD_SEL));
+        if (!btn) return false;
+  
+        // Empêche autres handlers pour CE clic
+        if (ev) {
+          ev.preventDefault && ev.preventDefault();
+          ev.stopImmediatePropagation && ev.stopImmediatePropagation();
+          ev.stopPropagation && ev.stopPropagation();
+        }
+  
+        // Anti double-clic
+        if (btn.dataset.lock) return false;
+        btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
+  
+        // Données produit robustes
+        let sku = btn.dataset.sku || btn.getAttribute('data-id') || btn.id || '';
+        if (!sku) sku = btn.dataset.idx || (btn.dataset.idx = 'sku-' + Math.random().toString(36).slice(2, 9));
+        const name = btn.dataset.name || btn.getAttribute('data-title') || sku;
+        const price = Number(btn.dataset.price || btn.getAttribute('data-price') || 0);
+  
+        // Anti double-événement (touch + click)
+        const now = Date.now();
+        const debKey = sku + '|' + price;
+        if (window.__lastAddKey === debKey && (now - (window.__lastAddTs || 0)) < 1000) return false;
+        window.__lastAddKey = debKey; window.__lastAddTs = now;
+  
+        // Fusion par clé stable sku|price
+        const compositeKey = `${sku}|${Number(price || 0)}`;
+        const list = readCart();
+        const idx = list.findIndex(x => (x.k || `${x.sku}|${Number(x.price || 0)}`) === compositeKey);
+        if (idx >= 0) list[idx].qty = Number(list[idx].qty || 0) + 1;
+        else list.push({ k: compositeKey, sku, name, price, qty: 1 });
+        writeCart(list);
+  
+        // Badge (tous)
+        document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge]').forEach(b => {
+          const totalQty = list.reduce((s, i) => s + Number(i.qty || 0), 0);
+          b.textContent = String(totalQty);
+        });
+  
+        // Rendu minimal si pas de renderCart()
+        if (typeof window.renderCart === 'function') {
+          try { window.renderCart(); } catch {}
+        } else {
+          const box = document.querySelector('#cartItems');
+          const sub = document.querySelector('#cartSubtotal');
+          const makeKey = (it) => it.k || `${it.sku}|${Number(it.price || 0)}`;
+          if (box) {
+            box.innerHTML = list.length
+              ? list.map(it => `
                 <div class="d-flex justify-content-between align-items-center" data-k="${makeKey(it)}">
                   <div class="me-2">
                     <div class="fw-semibold">${it.name || it.sku || 'Produit'}</div>
                     <div class="small text-muted">× ${it.qty}</div>
                   </div>
-                  <div class="ms-2 fw-semibold">${fmt(Number(it.price||0)*Number(it.qty||0))}</div>
+                  <div class="ms-2 fw-semibold">${fmtDA(Number(it.price || 0) * Number(it.qty || 0))}</div>
                 </div>
               `).join('')
-            : `<div class="text-muted">Panier vide</div>`;
+              : `<div class="text-muted">Panier vide</div>`;
+          }
+          if (sub) {
+            const tot = list.reduce((s, i) => s + Number(i.price || 0) * Number(i.qty || 0), 0);
+            sub.textContent = fmtDA(tot);
+          }
         }
-        if (sub) {
-          const tot = list.reduce((s,i)=> s + Number(i.price||0)*Number(i.qty||0), 0);
-          sub.textContent = fmt(tot);
-        }
+      } catch (err) {
+        console.error('[ADD-ONCE] error', err);
       }
-
-    } catch (err) {
-      console.error('[ADD-ONCE HOTFIX] error', err);
+      return false;
+    };
+  
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindAllAdd, { once: true });
+    } else { bindAllAdd(); }
+    new MutationObserver(bindAllAdd).observe(document.documentElement, { childList: true, subtree: true });
+  })();
+  
+  /* ==================================
+     [D] HOVER SWAP — Image secondaire
+     ================================== */
+  (() => {
+    'use strict';
+  
+    function enhanceCard(card) {
+      const media = card.querySelector('.product-media');
+      const primary = media?.querySelector('.product-img');
+      if (!media || !primary) return;
+  
+      // data-gallery: on utilise la 2e image si dispo, sinon la 1re
+      const gallery = (card.getAttribute('data-gallery') || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+      const altSrc = gallery[1] || gallery[0];
+      if (!altSrc) return;
+      if (media.querySelector('.product-img-alt')) return;
+  
+      const alt = document.createElement('img');
+      alt.className = 'product-img-alt';
+      alt.src = altSrc;
+      const t = card.querySelector('.product-title')?.textContent?.trim();
+      alt.alt = t ? `${t} – vue alternative` : 'Vue alternative du produit';
+  
+      const fav = media.querySelector('.btn-fav');
+      if (fav) media.insertBefore(alt, fav); else media.appendChild(alt);
+  
+      // Précharge
+      (new Image()).src = altSrc;
+  
+      // Mobile: toggle au tap dans la zone image (hors bouton fav)
+      media.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-fav')) return;
+        const hasHover = (window.matchMedia && window.matchMedia('(hover: hover)').matches);
+        if (hasHover) return; // desktop: CSS :hover fait le job
+        media.classList.toggle('show-alt');
+      });
     }
-    // *** très important ***
-    // return false = empêche la propagation ET le comportement par défaut,
-    // ce qui coupe les autres scripts qui ajoutaient une 2e fois.
+  
+    function initSwap() {
+      document.querySelectorAll('.product-card').forEach(enhanceCard);
+    }
+  
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSwap, { once: true });
+    } else { initSwap(); }
+  
+    // Si des cartes arrivent dynamiquement
+    new MutationObserver((muts) => {
+      muts.forEach(m => {
+        m.addedNodes && m.addedNodes.forEach(node => {
+          if (!(node instanceof Element)) return;
+          if (node.matches && node.matches('.product-card')) enhanceCard(node);
+          node.querySelectorAll && node.querySelectorAll('.product-card').forEach(enhanceCard);
+        });
+      });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  })();
+
+  /* =========================================
+   [E] CLEAR CART + CLOSE CART PANEL (UI)
+   ========================================= */
+(() => {
+  'use strict';
+  const { setCart, fmtDA } = window.__SHOP;
+  const CLEAR_SEL = '#btnViderPanier, .btn-clear-cart, [data-action="clear-cart"]';
+
+  function updateCartViewsEmpty() {
+    // Rendu minimal
+    const box = document.querySelector('#cartItems');
+    const sub = document.querySelector('#cartSubtotal');
+    if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
+    if (sub) sub.textContent = fmtDA(0);
+
+    // Badge(s)
+    document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge]').forEach(b => b.textContent = '0');
+
+    // Si un renderCart() existe, on le laisse rafraîchir aussi
+    if (typeof window.renderCart === 'function') {
+      try { window.renderCart(); } catch {}
+    }
+  }
+
+  function closeCartUI() {
+    // 1) Bouton de fermeture Bootstrap (offcanvas/modal)
+    const closer = document.querySelector(
+      '.offcanvas.show [data-bs-dismiss="offcanvas"], .modal.show [data-bs-dismiss="modal"], [data-action="close-cart"]'
+    );
+    if (closer) { closer.click(); return; }
+
+    // 2) Si pas de bouton, on tente de masquer les conteneurs visibles
+    const off = document.querySelector('.offcanvas.show'); if (off) off.classList.remove('show');
+    const modal = document.querySelector('.modal.show');   if (modal) modal.classList.remove('show');
+
+    // 3) Event custom pour ton code (si tu l’écoutes)
+    document.dispatchEvent(new CustomEvent('cart:close'));
+  }
+
+  window.__clearCart = function(ev) {
+    if (ev) { ev.preventDefault?.(); ev.stopImmediatePropagation?.(); ev.stopPropagation?.(); }
+    setCart([]);            // vide le storage
+    updateCartViewsEmpty(); // remet l’UI à zéro
+    closeCartUI();          // ferme le tiroir/modal
     return false;
   };
 
-  // 2) Lie *inline* tous les boutons existants (prend la main sur tout)
-  function bindInline(){
-    document.querySelectorAll(ADD_SEL).forEach(btn => {
-      // force type="button" pour éviter submit implicite
+  function bindClearCart() {
+    document.querySelectorAll(CLEAR_SEL).forEach(btn => {
       if (btn.tagName === 'BUTTON') btn.type = 'button';
-      // remplace tout onclick existant par le nôtre
-      btn.setAttribute('onclick', 'return window.__addOnce(event);');
+      btn.onclick = (e) => window.__clearCart(e);
+      if (!btn.dataset.captureBound) {
+        btn.addEventListener('click', (e) => window.__clearCart(e), true);
+        btn.dataset.captureBound = '1';
+      }
     });
   }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindInline, { once: true });
-  } else {
-    bindInline();
-  }
-
-  // 3) Si des produits sont injectés dynamiquement, on rebinde automatiquement
-  new MutationObserver((muts) => {
-    for (const m of muts) {
-      if (m.addedNodes && m.addedNodes.length) bindInline();
-    }
-  }).observe(document.documentElement, { childList: true, subtree: true });
-
+    document.addEventListener('DOMContentLoaded', bindClearCart, { once: true });
+  } else { bindClearCart(); }
+  new MutationObserver(bindClearCart).observe(document.documentElement, { childList: true, subtree: true });
 })();
 
-
-
-
-/* PATCH 1: swallow capture on add/buy/confirm */
-(function(){
-  const TARGETS = '.btn-add, .btn-buy, #btnConfirmerPanier';
-  document.addEventListener('click', function(e){
-    if (!e.target.closest(TARGETS)) return;
-    // On laisse le comportement par défaut possible, mais on coupe
-    // tous les autres écouteurs (en capture et en bubble après nous).
-    e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-  }, true); // <= CAPTURE
-})();
-
-
-
-
-/* PATCH 2: bind (et re-bind) buy/confirm quand le DOM change */
-(function(){
-  function bind(){
-    const buyBtn  = document.querySelector('#confirmBuyBtn');
-    if (buyBtn && buyBtn.getAttribute('onclick') !== 'return window.__buyOnce(event);'){
-      if (buyBtn.tagName === 'BUTTON' && buyBtn.type !== 'button') buyBtn.type = 'button';
-      buyBtn.setAttribute('onclick', 'return window.__buyOnce(event);');
+/* =======================================
+   FLY-TO-CART v2 (autonome + debug)
+   ======================================= */
+   (() => {
+    'use strict';
+    // Active les logs pour debug
+    window.DEBUG_FLY = true;
+    const ADD_SEL   = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
+    const BADGE_SEL = '#js-cart-badge, .cart-badge, [data-cart-badge], #cartBadge, .nav-cart-badge';
+    const log = (...a) => { if (window.DEBUG_FLY) console.log('[FLY]', ...a); };
+  
+    function findBadge() {
+      const b = document.querySelector(BADGE_SEL);
+      if (!b) log('⚠️ Badge introuvable (fallback coin haut droit)'); else log('✅ Badge trouvé', b);
+      return b;
     }
-    const cartBtn = document.querySelector('#btnConfirmerPanier');
-    if (cartBtn && cartBtn.getAttribute('onclick') !== 'return window.__confirmCartOnce(event);'){
-      if (cartBtn.tagName === 'BUTTON' && cartBtn.type !== 'button') cartBtn.type = 'button';
-      cartBtn.setAttribute('onclick', 'return window.__confirmCartOnce(event);');
+    function startFrom(target) {
+      const card = target.closest('.product-card');
+      const img  = card?.querySelector('.product-media .product-img, .product-media img') || null;
+      const el   = img || target;
+      const rect = el.getBoundingClientRect();
+      log('startFrom =>', img ? 'image' : 'bouton', rect);
+      return { el, rect, isImg: !!img };
     }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind, {once:true});
-  } else {
-    bind();
-  }
-  // Si des éléments sont injectés après, on rebinde
-  new MutationObserver(bind).observe(document.documentElement, {childList:true, subtree:true});
-})();
-
-
-
-
-
-
-/* PATCH 3: renforce __addOnce (stop immédiat + preventDefault) */
-(function(){
-  const prev = window.__addOnce;
-  window.__addOnce = function(ev){
-    // coupe tout le reste pour ce clic
-    if (ev) {
-      ev.preventDefault && ev.preventDefault();
-      ev.stopImmediatePropagation && ev.stopImmediatePropagation();
-      ev.stopPropagation && ev.stopPropagation();
+    function getFallbackDestRect() {
+      const m = 16; return { left: innerWidth - m, top: m, width: 0, height: 0 };
     }
-    // appelle ta version actuelle (qui gère le lock + stockage)
-    return prev ? prev(ev) : false;
-  };
-})();
+    function flyFrom(target) {
+      const badge = findBadge();
+      const { el, rect, isImg } = startFrom(target);
+      const dest = badge ? badge.getBoundingClientRect() : getFallbackDestRect();
+  
+      const ghost = isImg ? el.cloneNode(true) : document.createElement('div');
+      if (!isImg) {
+        ghost.className = 'cart-fly-dot';
+        ghost.style.background = 'currentColor';
+        ghost.style.borderRadius = '999px';
+        ghost.style.width = '16px';
+        ghost.style.height = '16px';
+      } else {
+        ghost.className = 'cart-fly-ghost';
+        ghost.style.width = rect.width + 'px';
+        ghost.style.height = rect.height + 'px';
+        ghost.style.objectFit = 'cover';
+        ghost.style.borderRadius = '12px';
+        ghost.style.boxShadow = '0 6px 16px rgba(0,0,0,.2)';
+      }
+      Object.assign(ghost.style, {
+        position:'fixed', left: rect.left+'px', top: rect.top+'px', zIndex:9999,
+        margin:0, opacity:.95, pointerEvents:'none',
+        transition:'transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease',
+        transform:'translate(0,0) scale(1)', willChange:'transform'
+      });
+      document.body.appendChild(ghost);
+  
+      const dx = (dest.left + dest.width/2) - (rect.left + rect.width/2);
+      const dy = (dest.top  + dest.height/2) - (rect.top  + rect.height/2);
+  
+      requestAnimationFrame(() => {
+        ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${isImg ? 0.15 : 0.6})`;
+        ghost.style.opacity   = '0.2';
+      });
+  
+      setTimeout(() => {
+        try { ghost.remove(); } catch {}
+        if (badge) {
+          badge.classList.add('cart-badge-pulse');
+          setTimeout(() => badge.classList.remove('cart-badge-pulse'), 500);
+        }
+      }, 650);
+    }
+  
+    // Écoute globale (capture) pour tous les boutons "Ajouter"
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest(ADD_SEL);
+      if (!btn) return;
+      try { flyFrom(btn); } catch (err) { log('error', err); }
+    }, true);
+  
+    log('Fly-to-cart initialisé (script.js).');
+  })();
+/* =======================================
+   FLY-TO-CART v2 (autonome + debug)
+   ======================================= */
+   (() => {
+    'use strict';
+    // Active les logs pour debug
+    window.DEBUG_FLY = true;
+    const ADD_SEL   = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
+    const BADGE_SEL = '#js-cart-badge, .cart-badge, [data-cart-badge], #cartBadge, .nav-cart-badge';
+    const log = (...a) => { if (window.DEBUG_FLY) console.log('[FLY]', ...a); };
+  
+    function findBadge() {
+      const b = document.querySelector(BADGE_SEL);
+      if (!b) log('⚠️ Badge introuvable (fallback coin haut droit)'); else log('✅ Badge trouvé', b);
+      return b;
+    }
+    function startFrom(target) {
+      const card = target.closest('.product-card');
+      const img  = card?.querySelector('.product-media .product-img, .product-media img') || null;
+      const el   = img || target;
+      const rect = el.getBoundingClientRect();
+      log('startFrom =>', img ? 'image' : 'bouton', rect);
+      return { el, rect, isImg: !!img };
+    }
+    function getFallbackDestRect() {
+      const m = 16; return { left: innerWidth - m, top: m, width: 0, height: 0 };
+    }
+    function flyFrom(target) {
+      const badge = findBadge();
+      const { el, rect, isImg } = startFrom(target);
+      const dest = badge ? badge.getBoundingClientRect() : getFallbackDestRect();
+  
+      const ghost = isImg ? el.cloneNode(true) : document.createElement('div');
+      if (!isImg) {
+        ghost.className = 'cart-fly-dot';
+        ghost.style.background = 'currentColor';
+        ghost.style.borderRadius = '999px';
+        ghost.style.width = '16px';
+        ghost.style.height = '16px';
+      } else {
+        ghost.className = 'cart-fly-ghost';
+        ghost.style.width = rect.width + 'px';
+        ghost.style.height = rect.height + 'px';
+        ghost.style.objectFit = 'cover';
+        ghost.style.borderRadius = '12px';
+        ghost.style.boxShadow = '0 6px 16px rgba(0,0,0,.2)';
+      }
+      Object.assign(ghost.style, {
+        position:'fixed', left: rect.left+'px', top: rect.top+'px', zIndex:9999,
+        margin:0, opacity:.95, pointerEvents:'none',
+        transition:'transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease',
+        transform:'translate(0,0) scale(1)', willChange:'transform'
+      });
+      document.body.appendChild(ghost);
+  
+      const dx = (dest.left + dest.width/2) - (rect.left + rect.width/2);
+      const dy = (dest.top  + dest.height/2) - (rect.top  + rect.height/2);
+  
+      requestAnimationFrame(() => {
+        ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${isImg ? 0.15 : 0.6})`;
+        ghost.style.opacity   = '0.2';
+      });
+  
+      setTimeout(() => {
+        try { ghost.remove(); } catch {}
+        if (badge) {
+          badge.classList.add('cart-badge-pulse');
+          setTimeout(() => badge.classList.remove('cart-badge-pulse'), 500);
+        }
+      }, 650);
+    }
+  
+    // Écoute globale (capture) pour tous les boutons "Ajouter"
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest(ADD_SEL);
+      if (!btn) return;
+      try { flyFrom(btn); } catch (err) { log('error', err); }
+    }, true);
+  
+    log('Fly-to-cart initialisé (script.js).');
+  })();
+
+  
+  // AVANT
+btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
+
+// APRÈS
+const LOCK_MS = 150; // laisse passer un vrai 2e clic rapide
+btn.dataset.lock = '1';
+setTimeout(() => delete btn.dataset.lock, LOCK_MS);
