@@ -236,7 +236,7 @@ accountForm.addEventListener('submit', e => {
   // transforme le form en query string
   const params = new URLSearchParams(new FormData(e.target)).toString();
   // en GET & no-cors pour ne pas déclencher de preflight
-  fetch('https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec' + params, {
+  fetch('https://script.google.com/macros/s/AKfycbx_Q9IX2fpBsOrzkARHI3odfMKGdCgY2FyRWoxVBdHArSrDWkSxC9sYXYbApRFr47Lr/exec' + params, {
     method: 'GET',
     mode: 'no-cors'
   })
@@ -1253,7 +1253,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
    (() => {
     'use strict';
   
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwy_uhKsUhHcv_E16CC2UOxWukx0azogCK4frSolA9IXqFHCXn3fh8m8aU-l829yYr1/exec';
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx_Q9IX2fpBsOrzkARHI3odfMKGdCgY2FyRWoxVBdHArSrDWkSxC9sYXYbApRFr47Lr/exec';
   
     // Storage panier
     const CART_KEY = 'cart';
@@ -1322,7 +1322,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   
         const out = await post(payload);
         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-  
+        window.__markOrderOk && window.__markOrderOk('cart', out.orderId || orderId);
+
         // Journal local
         try {
           const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
@@ -1376,7 +1377,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         const out = await post(payload);
         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
         btn.dataset.ok = '1';
-  
+        window.__markOrderOk && window.__markOrderOk('buy', out.orderId || orderId);
+
         // Journal local
         try {
           const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
@@ -1442,11 +1444,6 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         btn.dataset.captureBound = '1';
       }
     }
-     // Animation aspiration vers le badge (si dispo)
-      if (window.__flyToCart && ev && (ev.currentTarget || ev.target)) {
-       const btn = ev.currentTarget || ev.target;
-        window.__flyToCart(btn);
-      }
 
     function bindAllAdd() {
       document.querySelectorAll(ADD_SEL).forEach(attachAdd);
@@ -1654,87 +1651,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   new MutationObserver(bindClearCart).observe(document.documentElement, { childList: true, subtree: true });
 })();
 
-/* =======================================
-   FLY-TO-CART v2 (autonome + debug)
-   ======================================= */
-   (() => {
-    'use strict';
-    // Active les logs pour debug
-    window.DEBUG_FLY = true;
-    const ADD_SEL   = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
-    const BADGE_SEL = '#js-cart-badge, .cart-badge, [data-cart-badge], #cartBadge, .nav-cart-badge';
-    const log = (...a) => { if (window.DEBUG_FLY) console.log('[FLY]', ...a); };
-  
-    function findBadge() {
-      const b = document.querySelector(BADGE_SEL);
-      if (!b) log('⚠️ Badge introuvable (fallback coin haut droit)'); else log('✅ Badge trouvé', b);
-      return b;
-    }
-    function startFrom(target) {
-      const card = target.closest('.product-card');
-      const img  = card?.querySelector('.product-media .product-img, .product-media img') || null;
-      const el   = img || target;
-      const rect = el.getBoundingClientRect();
-      log('startFrom =>', img ? 'image' : 'bouton', rect);
-      return { el, rect, isImg: !!img };
-    }
-    function getFallbackDestRect() {
-      const m = 16; return { left: innerWidth - m, top: m, width: 0, height: 0 };
-    }
-    function flyFrom(target) {
-      const badge = findBadge();
-      const { el, rect, isImg } = startFrom(target);
-      const dest = badge ? badge.getBoundingClientRect() : getFallbackDestRect();
-  
-      const ghost = isImg ? el.cloneNode(true) : document.createElement('div');
-      if (!isImg) {
-        ghost.className = 'cart-fly-dot';
-        ghost.style.background = 'currentColor';
-        ghost.style.borderRadius = '999px';
-        ghost.style.width = '16px';
-        ghost.style.height = '16px';
-      } else {
-        ghost.className = 'cart-fly-ghost';
-        ghost.style.width = rect.width + 'px';
-        ghost.style.height = rect.height + 'px';
-        ghost.style.objectFit = 'cover';
-        ghost.style.borderRadius = '12px';
-        ghost.style.boxShadow = '0 6px 16px rgba(0,0,0,.2)';
-      }
-      Object.assign(ghost.style, {
-        position:'fixed', left: rect.left+'px', top: rect.top+'px', zIndex:9999,
-        margin:0, opacity:.95, pointerEvents:'none',
-        transition:'transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease',
-        transform:'translate(0,0) scale(1)', willChange:'transform'
-      });
-      document.body.appendChild(ghost);
-  
-      const dx = (dest.left + dest.width/2) - (rect.left + rect.width/2);
-      const dy = (dest.top  + dest.height/2) - (rect.top  + rect.height/2);
-  
-      requestAnimationFrame(() => {
-        ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${isImg ? 0.15 : 0.6})`;
-        ghost.style.opacity   = '0.2';
-      });
-  
-      setTimeout(() => {
-        try { ghost.remove(); } catch {}
-        if (badge) {
-          badge.classList.add('cart-badge-pulse');
-          setTimeout(() => badge.classList.remove('cart-badge-pulse'), 500);
-        }
-      }, 650);
-    }
-  
-    // Écoute globale (capture) pour tous les boutons "Ajouter"
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest(ADD_SEL);
-      if (!btn) return;
-      try { flyFrom(btn); } catch (err) { log('error', err); }
-    }, true);
-  
-    log('Fly-to-cart initialisé (script.js).');
-  })();
+
 /* =======================================
    FLY-TO-CART v2 (autonome + debug)
    ======================================= */
@@ -1825,3 +1742,54 @@ btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
 const LOCK_MS = 150; // laisse passer un vrai 2e clic rapide
 btn.dataset.lock = '1';
 setTimeout(() => delete btn.dataset.lock, LOCK_MS);
+
+
+
+
+/* =========================
+   UI SUCCESS PATCH (toasts + anti "non enregistré")
+   ========================= */
+   (() => {
+    'use strict';
+  
+    // Petit toast simple (centre-bas)
+    window.__showToast = function (msg='Commande reçue ✅') {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      Object.assign(t.style, {
+        position: 'fixed', left: '50%', bottom: '24px', transform: 'translateX(-50%)',
+        background: '#111', color: '#fff', padding: '10px 14px', borderRadius: '10px',
+        fontWeight: '600', zIndex: 99999, boxShadow: '0 6px 18px rgba(0,0,0,.25)',
+        opacity: '0', transition: 'opacity .18s ease'
+      });
+      document.body.appendChild(t);
+      requestAnimationFrame(()=> t.style.opacity='1');
+      setTimeout(()=> { t.style.opacity='0'; setTimeout(()=> t.remove(), 200); }, 2000);
+    };
+  
+    // Marqueur de succès récent (fenêtre 4s)
+    window.__markOrderOk = function (type, orderId) {
+      const ts = Date.now();
+      window.__lastOrderOkTs = ts;
+      try { localStorage.setItem('lastOrderOk', JSON.stringify({ type, orderId, ts })); } catch {}
+      window.__showToast('Commande reçue ✅');
+      document.dispatchEvent(new CustomEvent('order:ok', { detail: { type, orderId, ts }}));
+    };
+  
+    // Si un autre script affiche "non enregistré", on le remplace pendant 4s après succès
+    const BAD_STR = ['non enregistré', 'non enregistrée', 'non reçu', 'non reçue'];
+    const okObserver = new MutationObserver((muts) => {
+      if (!window.__lastOrderOkTs || Date.now() - window.__lastOrderOkTs > 4000) return;
+      for (const m of muts) {
+        for (const n of m.addedNodes || []) {
+          if (n.nodeType !== 1) continue;
+          const txt = (n.textContent || '').toLowerCase();
+          if (BAD_STR.some(s => txt.includes(s))) {
+            n.textContent = 'Commande reçue ✅';
+          }
+        }
+      }
+    });
+    okObserver.observe(document.body, { childList: true, subtree: true });
+  })();
+  
