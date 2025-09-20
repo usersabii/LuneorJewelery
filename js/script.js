@@ -176,7 +176,7 @@ document.getElementById('account-form')?.addEventListener('submit', async (e)=>{
   try{
     const r = await fetch('/.netlify/functions/signup', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify(payload)
     });
     const txt = await r.text();
@@ -707,7 +707,7 @@ document.getElementById('confirmBuyBtn')?.addEventListener('click', async () => 
     // 1) enregistre dans Sheets via Netlify Function
     const r = await fetch('/.netlify/functions/order', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify(order)
     });
     if (!r.ok) throw new Error(await r.text());
@@ -1324,6 +1324,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
         window.__markOrderOk && window.__markOrderOk('cart', out.orderId || orderId);
 
+
         // Journal local
         try {
           const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
@@ -1378,6 +1379,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
         alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
         btn.dataset.ok = '1';
         window.__markOrderOk && window.__markOrderOk('buy', out.orderId || orderId);
+
 
         // Journal local
         try {
@@ -1521,7 +1523,11 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       }
       return false;
     };
-  
+     // Compat HTML: si un bouton a onclick="addToCart(...)"
+     window.addToCart = function(ev){
+        return window.__addOnce ? window.__addOnce(ev || window.event) : false;
+      };
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', bindAllAdd, { once: true });
     } else { bindAllAdd(); }
@@ -1734,14 +1740,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     log('Fly-to-cart initialisé (script.js).');
   })();
 
-  
-  // AVANT
-btn.dataset.lock = '1'; setTimeout(()=> delete btn.dataset.lock, 600);
 
-// APRÈS
-const LOCK_MS = 150; // laisse passer un vrai 2e clic rapide
-btn.dataset.lock = '1';
-setTimeout(() => delete btn.dataset.lock, LOCK_MS);
 
 
 
