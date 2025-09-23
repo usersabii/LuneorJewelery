@@ -1794,3 +1794,20 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   })();
   
 
+  (() => {
+    const header = document.querySelector('.header.mobile') || document.querySelector('.header-mobile');
+    if (!header) return;
+  
+    const setOffset = () => {
+      document.documentElement.style.setProperty('--hdr-h', header.offsetHeight + 'px');
+    };
+    setOffset();
+    addEventListener('load', setOffset);
+    addEventListener('resize', setOffset);
+  
+    // (facultatif) ajoute l'ombre quand on a un peu scrollé
+    const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 8);
+    onScroll();
+    addEventListener('scroll', onScroll, { passive: true });
+  })();
+  
