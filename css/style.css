@@ -42,6 +42,15 @@ header {
   z-index: 10;
 }
 
+.site-header{
+  position: sticky;
+  top: 0;
+  z-index: 1000;             /* au-dessus du contenu */
+  background: #fff;          /* évite la transparence en scroll */
+  border-bottom: 1px solid #eee;
+}
+
+
 /* Cacher le header PC sur mobile (il a déjà sticky-top + shadow-sm) */
 @media (max-width: 991.98px){
   header.sticky-top.shadow-sm {        /* ton header PC actuel */
