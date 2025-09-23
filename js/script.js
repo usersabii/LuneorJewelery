@@ -1793,3 +1793,29 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     okObserver.observe(document.body, { childList: true, subtree: true });
   })();
   
+
+  (() => {
+    // Essaie .header.mobile puis .header-mobile au cas où
+    const header =
+      document.querySelector('.header.mobile') ||
+      document.querySelector('.header-mobile');
+  
+    if (!header) return;
+  
+    // Calcule la hauteur et la pousse dans --header-h
+    function setOffset(){
+      const h = header.offsetHeight;
+      document.documentElement.style.setProperty('--header-h', h + 'px');
+    }
+    setOffset();
+    addEventListener('load', setOffset);
+    addEventListener('resize', setOffset);
+  
+    // Ombre quand on a un peu scrollé (cosmétique)
+    function onScroll(){
+      header.classList.toggle('is-scrolled', window.scrollY > 8);
+    }
+    onScroll();
+    addEventListener('scroll', onScroll, { passive: true });
+  })();
+  

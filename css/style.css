@@ -41,13 +41,28 @@ header {
   top: 0;
   z-index: 10;
 }
+:root { --header-h: 64px; }                 /* valeur par défaut */
+body  { padding-top: var(--header-h); }     /* pousse le contenu sous le header */
 
-.site-header{
-  position: sticky;
-  top: 0;
-  z-index: 1000;             /* au-dessus du contenu */
-  background: #fff;          /* évite la transparence en scroll */
+/* ← ton header avec les DEUX classes "header" et "mobile" */
+.header-mobile{
+  position: fixed;          /* toujours visible */
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #fff;         /* éviter la transparence au scroll */
   border-bottom: 1px solid #eee;
+  transition: box-shadow .2s ease;
+}
+
+/* petite ombre quand on a scrollé (optionnel) */
+.header-mobile.is-scrolled{
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+/* bonus iPhone avec encoche (optionnel) */
+@supports(padding: max(0px)){
+  .header-mobile{ padding-top: max(0px, env(safe-area-inset-top)); }
 }
 
 
