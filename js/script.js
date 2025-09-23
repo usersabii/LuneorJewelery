@@ -1797,7 +1797,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   (() => {
     // Essaie .header.mobile puis .header-mobile au cas où
     const header =
-      document.querySelector('.header.mobile') ||
+      document.querySelector('.header-mobile') ||
       document.querySelector('.header-mobile');
   
     if (!header) return;
