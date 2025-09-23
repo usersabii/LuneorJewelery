@@ -1,4 +1,4 @@
-const GS_URL = process.env.GS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbx_Q9IX2fpBsOrzkARHI3odfMKGdCgY2FyRWoxVBdHArSrDWkSxC9sYXYbApRFr47Lr/exec";
+const GS_URL = process.env.GS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec";
 
 export async function handler(event){
   if (event.httpMethod !== 'POST') return { statusCode:405, body:'Method Not Allowed' };

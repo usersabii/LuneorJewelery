@@ -236,7 +236,7 @@ accountForm.addEventListener('submit', e => {
   // transforme le form en query string
   const params = new URLSearchParams(new FormData(e.target)).toString();
   // en GET & no-cors pour ne pas déclencher de preflight
-  fetch('https://script.google.com/macros/s/AKfycbx_Q9IX2fpBsOrzkARHI3odfMKGdCgY2FyRWoxVBdHArSrDWkSxC9sYXYbApRFr47Lr/exec' + params, {
+  fetch('https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec' + params, {
     method: 'GET',
     mode: 'no-cors'
   })
@@ -1253,7 +1253,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
    (() => {
     'use strict';
   
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx_Q9IX2fpBsOrzkARHI3odfMKGdCgY2FyRWoxVBdHArSrDWkSxC9sYXYbApRFr47Lr/exec';
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec';
   
     // Storage panier
     const CART_KEY = 'cart';
@@ -1269,18 +1269,19 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     const fmtDA = (n) => `${Number(n || 0).toFixed(2)} DA`;
   
     // POST WebApp
-    async function post(payload) {
+    async function post(payload){
       const res = await fetch(WEBAPP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // <= SIMPLE
         body: JSON.stringify(payload)
       });
       const text = await res.text();
-      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: ' + text); }
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data.error || ''}`);
-      if (!data.ok) throw new Error(data.error || 'Erreur serveur');
+      let data; try { data = JSON.parse(text); } catch { throw new Error('Réponse non-JSON: '+text); }
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${data?.error||''}`);
+      if (!data.ok) throw new Error(data?.error || 'Erreur serveur');
       return data;
     }
+    
   
     // Expose utilitaires nécessaires aux autres modules via window (minime)
     window.__SHOP = { getCart, setCart, sumCart, getProfile, uuid, post, fmtDA };
