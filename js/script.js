@@ -76,7 +76,7 @@
     // Lance l’animation d’aspiration
     flyToCart(imgEl, bubbleEl);
   });
-})();
+  })();
 
 // === Panier : helpers uniques (source de vérité) ===
 (function () {
@@ -1291,116 +1291,128 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   /* ===========================================
      [B] COMMANDES — Panier & Achat (fonctions)
      =========================================== */
-  (() => {
-    'use strict';
-    const { getCart, setCart, sumCart, getProfile, uuid, post, fmtDA } = window.__SHOP;
-  
-    // Confirmer commande depuis le panier
-    window.__confirmCartOnce = async function (ev) {
-      try {
-        const btn = document.getElementById('btnConfirmerPanier'); if (!btn) return false;
-        if (btn.dataset.lock) return false;
-        btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
-  
-        const items = getCart();
-        if (!items.length) { alert('Panier vide'); return false; }
-  
-        const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
-        const payVal = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
-        const payment = (payVal === 'cod') ? 'COD' : 'CARD';
-        const profile = getProfile();
-  
-        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-        const payload = {
-          __kind: 'order',
-          orderId,
-          client: profile,
-          payment,
-          delivery,
-          items,
-          total: sumCart(items),
-          source: 'cart'
-        };
-  
-        const out = await post(payload);
-        alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
-        window.__markOrderOk && window.__markOrderOk('cart', out.orderId || orderId);
+ // Confirmer commande depuis le panier
+window.__confirmCartOnce = async function (ev) {
+  try {
+    const btn = document.getElementById('btnConfirmerPanier'); if (!btn) return false;
+    if (btn.dataset.lock) return false;
+    btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
 
+    const items = window.__SHOP.getCart();
+    if (!items.length) { alert('Panier vide'); return false; }
 
-        // Journal local
-        try {
-          window.__loading.show('Enregistrement de la commande…');
-          const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
-          log.unshift({ orderId: out.orderId || orderId, source: 'cart', ts: Date.now(), total: sumCart(items), items });
-          localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
-        } catch {}
-  
-        // Reset visuel
-        setCart([]);
-        const box = document.querySelector('#cartItems'); if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
-        const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = fmtDA(0);
-        // Badge (tous)
-        document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge]').forEach(b => b.textContent = '0');
-      } catch (err) {
-        console.error('[cart-confirm] FAIL', err);
-        alert('Échec commande panier ❌ ' + err.message);
-      } finally {
-        window.__loading.hide();                                // 👈 AJOUT
-      }
-      return false;
+    const delivery = document.getElementById('cartDeliverySelect')?.value || 'standard';
+    const payVal   = (document.querySelector('input[name="cartPay"]:checked')?.value || 'cod').toLowerCase();
+    const payment  = (payVal === 'cod') ? 'COD' : 'CARD';
+    const profile  = window.__SHOP.getProfile();
+
+    const orderId = btn.dataset.orderId || (btn.dataset.orderId = window.__SHOP.uuid());
+    const payload = {
+      __kind:'order',
+      orderId,
+      client: profile,
+      payment,
+      delivery,
+      items,
+      total: window.__SHOP.sumCart(items),
+      source:'cart'
     };
+
+    // === SPINNER on ===
+    window.__loading && window.__loading.show('Enregistrement de la commande…');
+    await new Promise(r => requestAnimationFrame(r));
+
+    const out = await window.__SHOP.post(payload);
+
+    // Cache le spinner avant l’alerte
+    window.__loading && window.__loading.hide();
+
+    alert('Commande (panier) ✅ ID: ' + (out.orderId || orderId));
+    window.__markOrderOk && window.__markOrderOk('cart', out.orderId || orderId);
+
+    // Journal local
+    try {
+      const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
+      log.unshift({ orderId: out.orderId || orderId, source: 'cart', ts: Date.now(), total: window.__SHOP.sumCart(items), items });
+      localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
+    } catch {}
+
+    // Reset visuel
+    window.__SHOP.setCart([]);
+    const box = document.querySelector('#cartItems'); if (box) box.innerHTML = '<div class="text-muted">Panier vide</div>';
+    const sub = document.querySelector('#cartSubtotal'); if (sub) sub.textContent = window.__SHOP.fmtDA(0);
+    document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge]').forEach(b => b.textContent = '0');
+
+  } catch (err) {
+    console.error('[cart-confirm] FAIL', err);
+    alert('Échec commande panier ❌ ' + err.message);
+  } finally {
+    window.__loading && window.__loading.hide();
+  }
+  return false;
+};
+
   
     // Achat direct (modal)
-    window.__buyOnce = async function (ev) {
-      try {
-        const btn = document.getElementById('confirmBuyBtn'); if (!btn) return false;
-        if (btn.dataset.lock) return false;
-        btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
-  
-        const profile = getProfile();
-        if (!(profile.nom && profile.telephone && profile.adresse)) {
-          alert('Complétez nom + téléphone + adresse avant achat direct.');
-          return false;
-        }
-  
-        const sku = btn.dataset.sku || (window.__currentBuy && window.__currentBuy.id);
-        const name = btn.dataset.name || (window.__currentBuy && window.__currentBuy.name) || sku;
-        const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-        if (!sku) { alert('Produit introuvable'); return false; }
-  
-        const orderId = btn.dataset.orderId || (btn.dataset.orderId = uuid());
-        const payload = {
-          __kind: 'order',
-          orderId,
-          client: profile,
-          payment: 'to-choose',
-          delivery: 'to-choose',
-          items: [{ sku, name, price, qty: 1 }],
-          total: price,
-          source: 'buy_button'
-        };
-  
-        const out = await post(payload);
-        alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-        btn.dataset.ok = '1';
-        window.__markOrderOk && window.__markOrderOk('buy', out.orderId || orderId);
+window.__buyOnce = async function (ev) {
+  try {
+    const btn = document.getElementById('confirmBuyBtn'); if (!btn) return false;
+    if (btn.dataset.lock) return false;
+    btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
 
-
-        // Journal local
-        try {
-          window.__loading.show('Validation de votre achat…');
-          const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
-          log.unshift({ orderId: out.orderId || orderId, source: 'buy', ts: Date.now(), total: price, items: [{ sku, name, price, qty: 1 }] });
-          localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
-        } catch {}
-      } catch (err) {
-        console.error('[buy] FAIL', err);
-        alert('Échec achat direct ❌ ' + err.message);
-      } finally {
-        window.__loading.hide();                                // 👈 AJOUT
-      }
+    const profile = window.__SHOP.getProfile();
+    if (!(profile.nom && profile.telephone && profile.adresse)) {
+      alert('Complétez nom + téléphone + adresse avant achat direct.');
       return false;
+    }
+
+    const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
+    const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
+    const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
+    if (!sku) { alert('Produit introuvable'); return false; }
+
+    const orderId = btn.dataset.orderId || (btn.dataset.orderId = window.__SHOP.uuid());
+    const payload = {
+      __kind:'order',
+      orderId,
+      client: profile,
+      payment:'to-choose',
+      delivery:'to-choose',
+      items:[{ sku, name, price, qty:1 }],
+      total: price,
+      source:'buy_button'
     };
+
+    // === SPINNER on ===
+    window.__loading && window.__loading.show('Validation de votre achat…');
+    // Laisse le temps à l'overlay de se peindre
+    await new Promise(r => requestAnimationFrame(r));
+
+    const out = await window.__SHOP.post(payload);
+
+    // Cache le spinner dès que le réseau a répondu
+    window.__loading && window.__loading.hide();
+
+    alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
+    window.__markOrderOk && window.__markOrderOk('buy', out.orderId || orderId);
+    btn.dataset.ok = '1';
+
+    // Journal local (inchangé)
+    try {
+      const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
+      log.unshift({ orderId: out.orderId || orderId, source: 'buy', ts: Date.now(), total: price, items: [{ sku, name, price, qty: 1 }] });
+      localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
+    } catch {}
+  } catch (err) {
+    console.error('[buy] FAIL', err);
+    alert('Échec achat direct ❌ ' + err.message);
+  } finally {
+    // Sécurité si on est passé par catch/alert avant hide()
+    window.__loading && window.__loading.hide();
+  }
+  return false;
+ };
+
     
     // Binding propre (sans capture globale)
     function bindBuyConfirm() {
@@ -1428,7 +1440,6 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       document.addEventListener('DOMContentLoaded', bindBuyConfirm, { once: true });
     } else { bindBuyConfirm(); }
     new MutationObserver(bindBuyConfirm).observe(document.documentElement, { childList: true, subtree: true });
-  })();
   
   /* ======================================
      [C] ADD-TO-CART — Unifié & Idempotent
