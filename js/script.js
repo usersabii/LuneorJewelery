@@ -1343,6 +1343,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       } catch (err) {
         console.error('[cart-confirm] FAIL', err);
         alert('Échec commande panier ❌ ' + err.message);
+      } finally {
+        window.__loading.hide();                                // 👈 AJOUT
       }
       return false;
     };
@@ -1392,10 +1394,12 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       } catch (err) {
         console.error('[buy] FAIL', err);
         alert('Échec achat direct ❌ ' + err.message);
+      } finally {
+        window.__loading.hide();                                // 👈 AJOUT
       }
       return false;
     };
-  
+    
     // Binding propre (sans capture globale)
     function bindBuyConfirm() {
       const buyBtn = document.getElementById('confirmBuyBtn');
@@ -1810,6 +1814,8 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       } catch (err) {
         console.error('[signup] FAIL', err);
         alert('Échec inscription ❌ ' + err.message);
+      } finally {
+        window.__loading.hide();                                // 👈 AJOUT
       }
     }, { capture: true });
 
@@ -1823,4 +1829,39 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   }
   // si le DOM change (SPA / injection), on rebinde
   new MutationObserver(bindSignup).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+
+
+
+
+
+
+
+/* ==== LOADING OVERLAY (global) ==== */
+(() => {
+  const HTML = `
+    <div class="loading-box">
+      <div class="loading-spinner"></div>
+      <div class="loading-msg">Traitement en cours…</div>
+    </div>`;
+  window.__loading = {
+    el: null,
+    show(msg){
+      if (this.el) return; // déjà affiché
+      const d = document.createElement('div');
+      d.className = 'loading-overlay';
+      d.innerHTML = HTML;
+      if (msg) d.querySelector('.loading-msg').textContent = msg;
+      document.body.appendChild(d);
+      this.el = d;
+      document.body.style.cursor = 'progress';
+    },
+    hide(){
+      if (!this.el) return;
+      try { this.el.remove(); } catch {}
+      this.el = null;
+      document.body.style.cursor = '';
+    }
+  };
 })();
