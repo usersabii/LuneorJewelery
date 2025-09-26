@@ -236,7 +236,7 @@ accountForm.addEventListener('submit', e => {
   // transforme le form en query string
   const params = new URLSearchParams(new FormData(e.target)).toString();
   // en GET & no-cors pour ne pas déclencher de preflight
-  fetch('https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec' + params, {
+  fetch('https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec' + params, {
     method: 'GET',
     mode: 'no-cors'
   })
@@ -1249,11 +1249,11 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 /* =========================
    [A] UTILITAIRES COMMUNS
-   ========================= */
+   ========================= */  
    (() => {
     'use strict';
   
-    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec';
+    const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec';
   
     // Storage panier
     const CART_KEY = 'cart';
