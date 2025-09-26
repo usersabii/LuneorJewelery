@@ -1333,13 +1333,6 @@ html {
   overflow: hidden;
 }
 
-/* Image principale déjà présente */
-.product-card .product-media .product-img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
 /* Image alternative (injectée par JS) */
 .product-card .product-media .product-img-alt {
   position: absolute;
@@ -1369,6 +1362,8 @@ html {
 .cart-fly-ghost { pointer-events:none; }
 /* Petit point si pas d'image */
 .cart-fly-dot { pointer-events:none; }
+
+
 
 /* Pulse du badge quand l'item arrive */
 @keyframes cart-badge-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }

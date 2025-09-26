@@ -2180,67 +2180,6 @@
               </div>
           </div>
        </div> 
-       <script>
-         ;(() => {
-          'use strict';
-          try {
-            var cards = document.querySelectorAll('.product-card');
-            if (!cards.length) return;
-        
-            cards.forEach(function(card){
-              var media = card.querySelector('.product-media');
-              var primary = media ? media.querySelector('.product-img') : null;
-              if (!media || !primary) return;
-        
-              // Récupère les URLs de data-gallery (on veut la 2e si dispo)
-              var galleryAttr = card.getAttribute('data-gallery') || '';
-              var parts = galleryAttr.split(',').map(function(s){ return s.trim(); }).filter(function(x){ return x; });
-              var altSrc = parts[1] || parts[0];
-              if (!altSrc) return;
-        
-              // Évite double injection
-              if (media.querySelector('.product-img-alt')) return;
-        
-              // Crée l'image alternative
-              var alt = new Image();
-              alt.className = 'product-img-alt';
-              var titleEl = card.querySelector('.product-title');
-              alt.alt = (titleEl ? titleEl.textContent.trim() + ' – vue alternative' : 'Vue alternative du produit');
-              alt.src = altSrc;
-        
-              // Place l'image (avant le bouton ♡ si présent)
-              var fav = media.querySelector('.btn-fav');
-              if (fav) media.insertBefore(alt, fav); else media.appendChild(alt);
-        
-              // Précharge
-              var pre = new Image(); pre.src = altSrc;
-        
-              // Mobile / appareils sans hover : toggle au tap sur la zone image
-              media.addEventListener('click', function(e){
-                // ne pas interférer avec le bouton favoris
-                if (e.target && e.target.closest && e.target.closest('.btn-fav')) return;
-        
-                var hasHover = false;
-                try { hasHover = window.matchMedia('(hover: hover)').matches; } catch(_) {}
-                if (hasHover) return; // desktop: :hover s'occupe du swap
-        
-                media.classList.toggle('show-alt');
-              });
-            });
-        
-            // Fermer l'état "alt" si on clique en dehors (mobile)
-            document.addEventListener('click', function(e){
-              var inside = e.target && e.target.closest ? e.target.closest('.product-media') : null;
-              if (!inside) {
-                var open = document.querySelectorAll('.product-media.show-alt');
-                for (var i = 0; i < open.length; i++) open[i].classList.remove('show-alt');
-              }
-            });
-          } catch (err) {
-            console.error('HoverSwap error:', err);
-          }
-         })();
-        </script>
         
        <!-- Footer -->
        <footer class="footer">

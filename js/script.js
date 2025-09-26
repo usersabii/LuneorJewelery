@@ -1536,65 +1536,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     new MutationObserver(bindAllAdd).observe(document.documentElement, { childList: true, subtree: true });
   })();
   
-  /* ==================================
-     [D] HOVER SWAP — Image secondaire
-     ================================== */
-  (() => {
-    'use strict';
   
-    function enhanceCard(card) {
-      const media = card.querySelector('.product-media');
-      const primary = media?.querySelector('.product-img');
-      if (!media || !primary) return;
-  
-      // data-gallery: on utilise la 2e image si dispo, sinon la 1re
-      const gallery = (card.getAttribute('data-gallery') || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
-      const altSrc = gallery[1] || gallery[0];
-      if (!altSrc) return;
-      if (media.querySelector('.product-img-alt')) return;
-  
-      const alt = document.createElement('img');
-      alt.className = 'product-img-alt';
-      alt.src = altSrc;
-      const t = card.querySelector('.product-title')?.textContent?.trim();
-      alt.alt = t ? `${t} – vue alternative` : 'Vue alternative du produit';
-  
-      const fav = media.querySelector('.btn-fav');
-      if (fav) media.insertBefore(alt, fav); else media.appendChild(alt);
-  
-      // Précharge
-      (new Image()).src = altSrc;
-  
-      // Mobile: toggle au tap dans la zone image (hors bouton fav)
-      media.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-fav')) return;
-        const hasHover = (window.matchMedia && window.matchMedia('(hover: hover)').matches);
-        if (hasHover) return; // desktop: CSS :hover fait le job
-        media.classList.toggle('show-alt');
-      });
-    }
-  
-    function initSwap() {
-      document.querySelectorAll('.product-card').forEach(enhanceCard);
-    }
-  
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initSwap, { once: true });
-    } else { initSwap(); }
-  
-    // Si des cartes arrivent dynamiquement
-    new MutationObserver((muts) => {
-      muts.forEach(m => {
-        m.addedNodes && m.addedNodes.forEach(node => {
-          if (!(node instanceof Element)) return;
-          if (node.matches && node.matches('.product-card')) enhanceCard(node);
-          node.querySelectorAll && node.querySelectorAll('.product-card').forEach(enhanceCard);
-        });
-      });
-    }).observe(document.documentElement, { childList: true, subtree: true });
-  })();
-
   /* =========================================
    [E] CLEAR CART + CLOSE CART PANEL (UI)
    ========================================= */
