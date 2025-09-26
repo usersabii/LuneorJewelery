@@ -1329,6 +1329,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
         // Journal local
         try {
+          window.__loading.show('Enregistrement de la commande…');
           const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
           log.unshift({ orderId: out.orderId || orderId, source: 'cart', ts: Date.now(), total: sumCart(items), items });
           localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
@@ -1387,6 +1388,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
         // Journal local
         try {
+          window.__loading.show('Validation de votre achat…');
           const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
           log.unshift({ orderId: out.orderId || orderId, source: 'buy', ts: Date.now(), total: price, items: [{ sku, name, price, qty: 1 }] });
           localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
@@ -1803,6 +1805,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       e.preventDefault();
       const profile = toProfile(form);
       try {
+        window.__loading.show('Inscription en cours…');
         const out = await postApi({ __kind: 'signup', profile });
         // mémorise le profil pour l’achat direct
         try { localStorage.setItem('signupProfile', JSON.stringify(profile)); } catch {}
@@ -1838,30 +1841,58 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
 
 
 
-/* ==== LOADING OVERLAY (global) ==== */
+/* ==== LOADING OVERLAY v2 (auto-CSS + debug) ==== */
 (() => {
-  const HTML = `
-    <div class="loading-box">
-      <div class="loading-spinner"></div>
-      <div class="loading-msg">Traitement en cours…</div>
-    </div>`;
+  const CSS = `
+    .loading-overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);z-index:99999;backdrop-filter:blur(2px)}
+    .loading-box{display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;font-weight:600}
+    .loading-spinner{width:48px;height:48px;border:4px solid #fff;border-top-color:transparent;border-radius:50%;animation:loading-spin .8s linear infinite}
+    .loading-msg{font-size:14px;opacity:.9}
+    @keyframes loading-spin{to{transform:rotate(360deg)}}
+  `;
+  function ensureStyle(){
+    if (!document.getElementById('loading-css')) {
+      const st = document.createElement('style');
+      st.id = 'loading-css';
+      st.textContent = CSS;
+      document.head.appendChild(st);
+    }
+  }
+  function makeOverlay(msg){
+    const wrap = document.createElement('div');
+    wrap.className = 'loading-overlay';
+    wrap.innerHTML = `
+      <div class="loading-box">
+        <div class="loading-spinner"></div>
+        <div class="loading-msg">${msg || 'Veuillez patienter…'}</div>
+      </div>`;
+    return wrap;
+  }
   window.__loading = {
     el: null,
     show(msg){
-      if (this.el) return; // déjà affiché
-      const d = document.createElement('div');
-      d.className = 'loading-overlay';
-      d.innerHTML = HTML;
-      if (msg) d.querySelector('.loading-msg').textContent = msg;
-      document.body.appendChild(d);
-      this.el = d;
-      document.body.style.cursor = 'progress';
+      try{
+        if (this.el) return;
+        ensureStyle();
+        this.el = makeOverlay(msg);
+        document.body.appendChild(this.el);
+        document.body.style.cursor = 'progress';
+        console.log('[loading] show:', msg || '');
+      }catch(e){ console.warn('[loading] show error', e); }
     },
     hide(){
-      if (!this.el) return;
-      try { this.el.remove(); } catch {}
-      this.el = null;
-      document.body.style.cursor = '';
+      try{
+        if (!this.el) return;
+        this.el.remove();
+        this.el = null;
+        document.body.style.cursor = '';
+        console.log('[loading] hide');
+      }catch(e){ console.warn('[loading] hide error', e); }
     }
+  };
+  // Test manuel dans la console: window._testLoading()
+  window._testLoading = function(){
+    window.__loading.show('Test…');
+    setTimeout(()=> window.__loading.hide(), 2000);
   };
 })();
