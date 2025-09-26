@@ -1844,12 +1844,4 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
   })();
 
 
-  fetch('https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec', {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      __kind:'signup',
-      profile:{ nom:'Test', prenom:'Demo', email:'t@ex.co', telephone:'0666', adresse:'Rue X', ville:'Alger', wilaya:'Alger', notes:'test' }
-    })
-  }).then(r=>r.text()).then(console.log).catch(console.error);
   
