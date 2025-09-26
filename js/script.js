@@ -1794,54 +1794,91 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     okObserver.observe(document.body, { childList: true, subtree: true });
   })();
 
-  /* ====== BIND INSCRIPTION (form -> Apps Script) ====== */
+ /* ====== INSCRIPTION — Binder universel (drop-in) ====== */
 (() => {
   'use strict';
-  const { post } = window.__SHOP || {};
 
-  // Adapte ici si ton formulaire a un sélecteur différent
-  const FORM_SEL = '#signupForm, form[data-role="signup"], form.signup-form';
+  // 1) on utilise le post() que tu as déjà
+  const postApi = window.__SHOP && window.__SHOP.post;
+  if (!postApi) {
+    console.error('[signup] __SHOP.post introuvable. Vérifie que la section [A] UTILITAIRES COMMUNS est chargée.');
+    return;
+  }
 
-  function bindSignup(){
-    const form = document.querySelector(FORM_SEL);
-    if (!form) return;
+  // 2) on cherche un form "inscription" par sélecteurs probables
+  const CANDIDATES = [
+    '#signupForm',
+    'form[data-role="signup"]',
+    '.signup-form',
+    'form#register',
+    'form[id*="signup"]',
+    'form[name*="signup"]',
+    'form[id*="inscription"]',
+    'form[class*="inscription"]'
+  ];
 
+  function pickForm() {
+    for (const sel of CANDIDATES) {
+      const f = document.querySelector(sel);
+      if (f) return f;
+    }
+    // fallback: premier form qui a email/tel
+    return Array.from(document.querySelectorAll('form')).find(f =>
+      f.querySelector('[name="email"],[name*="mail"],[name="telephone"],[name="phone"],[name="tel"]')
+    ) || null;
+  }
+
+  function toProfile(form) {
+    const fd = new FormData(form);
+    return {
+      nom:       fd.get('nom')       || fd.get('name')      || '',
+      prenom:    fd.get('prenom')    || fd.get('firstname') || '',
+      email:     fd.get('email')     || fd.get('mail')      || '',
+      telephone: fd.get('telephone') || fd.get('phone')     || fd.get('tel') || '',
+      adresse:   fd.get('adresse')   || fd.get('address')   || '',
+      ville:     fd.get('ville')     || fd.get('city')      || '',
+      wilaya:    fd.get('wilaya')    || fd.get('region')    || '',
+      notes:     fd.get('notes')     || fd.get('message')   || ''
+    };
+  }
+
+  function bindSignup() {
+    const form = pickForm();
+    if (!form) { console.warn('[signup] aucun formulaire trouvé'); return; }
+    if (form.dataset.signupBound) return;
+    form.dataset.signupBound = '1';
+
+    // S’assure que le bouton soumet bien
+    const btn = form.querySelector('button[type="submit"], input[type="submit"], #btnSignup, .btn-signup');
+    if (btn && btn.tagName === 'BUTTON' && btn.type !== 'submit') btn.type = 'submit';
+
+    // écouteur submit (capture pour passer avant d’autres scripts)
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const fd = new FormData(form);
-      // On accepte plusieurs noms possibles pour chaque champ
-      const profile = {
-        nom:       fd.get('nom')       || fd.get('name')    || '',
-        prenom:    fd.get('prenom')    || fd.get('firstname')|| '',
-        email:     fd.get('email')     || fd.get('mail')    || '',
-        telephone: fd.get('telephone') || fd.get('phone')   || fd.get('tel') || '',
-        adresse:   fd.get('adresse')   || fd.get('address') || '',
-        ville:     fd.get('ville')     || fd.get('city')    || '',
-        wilaya:    fd.get('wilaya')    || fd.get('region')  || '',
-        notes:     fd.get('notes')     || fd.get('message') || ''
-      };
-
+      const profile = toProfile(form);
       try {
-        const out = await post({ __kind:'signup', profile });
-        // Toast/feedback
+        const out = await postApi({ __kind: 'signup', profile });
+        // mémorise le profil pour l’achat direct
+        try { localStorage.setItem('signupProfile', JSON.stringify(profile)); } catch {}
+        // feedback utilisateur
         if (window.__showToast) window.__showToast('Inscription enregistrée ✅');
+        else alert('Inscription enregistrée ✅');
         form.reset();
         console.log('[signup] OK', out);
       } catch (err) {
         console.error('[signup] FAIL', err);
         alert('Échec inscription ❌ ' + err.message);
       }
-    }, { passive:false });
+    }, { capture: true });
+
+    console.log('[signup] bound to form:', form);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindSignup, { once:true });
-  } else { bindSignup(); }
-
-  // Si le DOM change et que le formulaire est injecté plus tard
-  new MutationObserver(bindSignup).observe(document.documentElement, { childList:true, subtree:true });
-  })();
-
-
-  
+    document.addEventListener('DOMContentLoaded', bindSignup, { once: true });
+  } else {
+    bindSignup();
+  }
+  // si le DOM change (SPA / injection), on rebinde
+  new MutationObserver(bindSignup).observe(document.documentElement, { childList: true, subtree: true });
+})();
