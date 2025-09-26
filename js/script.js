@@ -1282,6 +1282,7 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
       return data;
     }
     
+    
   
     // Expose utilitaires nécessaires aux autres modules via window (minime)
     window.__SHOP = { getCart, setCart, sumCart, getProfile, uuid, post, fmtDA };
@@ -1793,6 +1794,54 @@ function money(n){ return Math.round(Number(n||0)) + ' DA'; }
     okObserver.observe(document.body, { childList: true, subtree: true });
   })();
 
+  /* ====== BIND INSCRIPTION (form -> Apps Script) ====== */
+(() => {
+  'use strict';
+  const { post } = window.__SHOP || {};
+
+  // Adapte ici si ton formulaire a un sélecteur différent
+  const FORM_SEL = '#signupForm, form[data-role="signup"], form.signup-form';
+
+  function bindSignup(){
+    const form = document.querySelector(FORM_SEL);
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fd = new FormData(form);
+      // On accepte plusieurs noms possibles pour chaque champ
+      const profile = {
+        nom:       fd.get('nom')       || fd.get('name')    || '',
+        prenom:    fd.get('prenom')    || fd.get('firstname')|| '',
+        email:     fd.get('email')     || fd.get('mail')    || '',
+        telephone: fd.get('telephone') || fd.get('phone')   || fd.get('tel') || '',
+        adresse:   fd.get('adresse')   || fd.get('address') || '',
+        ville:     fd.get('ville')     || fd.get('city')    || '',
+        wilaya:    fd.get('wilaya')    || fd.get('region')  || '',
+        notes:     fd.get('notes')     || fd.get('message') || ''
+      };
+
+      try {
+        const out = await post({ __kind:'signup', profile });
+        // Toast/feedback
+        if (window.__showToast) window.__showToast('Inscription enregistrée ✅');
+        form.reset();
+        console.log('[signup] OK', out);
+      } catch (err) {
+        console.error('[signup] FAIL', err);
+        alert('Échec inscription ❌ ' + err.message);
+      }
+    }, { passive:false });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindSignup, { once:true });
+  } else { bindSignup(); }
+
+  // Si le DOM change et que le formulaire est injecté plus tard
+  new MutationObserver(bindSignup).observe(document.documentElement, { childList:true, subtree:true });
+  })();
 
 
   fetch('https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec', {
