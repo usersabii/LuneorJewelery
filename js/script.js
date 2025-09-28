@@ -1907,3 +1907,38 @@ window.__buyOnce = async function (ev) {
     setTimeout(()=> window.__loading.hide(), 2000);
   };
 })();
+
+/* Stopper l'ouverture auto du modal d'inscription, sans toucher au HTML */
+(() => {
+  const m = document.getElementById('account-modal');
+  if (!m) return;
+
+  function forceClose() {
+    // retire les classes d'affichage éventuelles
+    m.classList.remove('show', 'd-block');
+    m.style.display = 'none';
+    m.setAttribute('aria-hidden', 'true');
+    // nettoie le body et le backdrop si ajoutés
+    document.body.classList.remove('modal-open');
+    document.querySelector('.modal-backdrop')?.remove();
+  }
+
+  // 1) à la fin du chargement
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', forceClose, { once: true });
+  } else {
+    forceClose();
+  }
+
+  // 2) si un autre script tente de l'ouvrir juste après (filet de sécu)
+  setTimeout(forceClose, 0);
+})();
+
+document.getElementById('modal-close')?.addEventListener('click', closeModal);
+// ou
+const el = document.getElementById('modal-close');
+if (el) el.addEventListener('click', closeModal);
+
+
+
+
