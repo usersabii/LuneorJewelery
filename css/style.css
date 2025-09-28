@@ -1666,14 +1666,14 @@ html {
 .wa-fab{
   position: fixed;
   left: 14px;
-  bottom: calc(14px + env(safe-area-inset-bottom));
+  bottom: calc(19px + env(safe-area-inset-bottom));
   width: 56px; height: 56px;
   border-radius: 999px;
   background: var(--wa-bg);
   color: var(--wa-fg);              /* => colore l’icône */
-  border: 1.5px solid currentColor; /* liseré fin */
+  border: 1px solid currentColor; /* liseré fin */
   display: grid; place-items: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
   z-index: 1000;
   transition: transform .15s ease, background .2s ease, color .2s ease, border-color .2s ease;
 }
