@@ -1549,9 +1549,11 @@ html {
   }
 }
 
-/* Offcanvas au-dessus de tout */
-.offcanvas,
-.offcanvas-backdrop{ z-index:2000 !important; }
+/* Backdrop sous le menu */
+.offcanvas-backdrop{ z-index: 2000 !important; }
+/* Offcanvas au-dessus du backdrop */
+.offcanvas{ z-index: 2001 !important; }
+
 
 /* Ruban sous le menu */
 #ribbon-shop-hint{
@@ -1647,13 +1649,50 @@ html {
 }
 
 
-.wa-fab{
-  position:fixed; left:14px; bottom:19px;
-  width:56px; height:56px; border-radius:50%;
-  background:#25d365d8; color:#fff;
-  display:grid; place-items:center;
-  box-shadow:0 8px 24px rgba(0,0,0,.2);
-  z-index:1000; transition:transform .15s;
+/* Couleurs: blanc + marron foncé (modifiable) */
+:root{
+  --wa-bg: #ffffff;        /* fond */
+  --wa-fg: #5b3a29;        /* icône (marron foncé) */
+  --wa-fg-hover: #5b3a29;  /* fond au hover (on inverse) */
 }
-.wa-fab:hover{ transform:translateY(-1px); }
 
+/* couleurs personnalisables */
+:root{
+  --wa-bg: #ffffff;   /* fond du bouton */
+  --wa-fg: #5b3a29;   /* logo (marron foncé) */
+}
+
+/* bouton flottant */
+.wa-fab{
+  position: fixed;
+  left: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  width: 56px; height: 56px;
+  border-radius: 999px;
+  background: var(--wa-bg);
+  color: var(--wa-fg);              /* => colore l’icône */
+  border: 1.5px solid currentColor; /* liseré fin */
+  display: grid; place-items: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  z-index: 1000;
+  transition: transform .15s ease, background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.wa-fab .bi-whatsapp{
+  font-size: 26px; /* taille du logo */
+  line-height: 1;
+  display: block;
+}
+
+/* hover : fond marron, logo blanc */
+.wa-fab:hover{
+  transform: translateY(-1px);
+  background: var(--wa-fg);
+  color: #fff;
+  border-color: var(--wa-fg);
+}
+
+@media (max-width: 768px){
+  .wa-fab{ width: 52px; height: 52px; right: 12px; }
+  .wa-fab .bi-whatsapp{ font-size: 24px; }
+}
