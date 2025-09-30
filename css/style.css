@@ -1696,3 +1696,49 @@ html {
   .wa-fab{ width: 52px; height: 52px; right: 12px; }
   .wa-fab .bi-whatsapp{ font-size: 24px; }
 }
+
+/* Forcer l'affichage pendant le debug */
+#shop-section{
+  display:block !important; 
+  opacity:1 !important; 
+}
+
+/* Vignettes */
+.product-variants{ 
+  display:flex !important; 
+  flex-wrap:wrap; 
+  gap:10px; 
+  margin-top:10px; 
+}
+.swatch{
+  width:50px;
+  display:inline-flex; 
+  align-items:center; 
+  gap:8px;
+  padding:6px 10px; 
+  border:2px solid rgba(0,0,0,.15);
+  border-radius:10px; 
+  background:#fff; 
+  cursor:pointer;
+  transition:transform .12s, border-color .12s, box-shadow .12s;
+}
+.swatch:hover{ 
+  transform:translateY(-1px); 
+  border-color:rgba(0,0,0,.25); 
+  box-shadow:0 4px 14px rgba(0,0,0,.06); 
+}
+.swatch.is-active{ 
+  border-color:#111; 
+  box-shadow:0 0 0 2px rgba(0,0,0,.05) inset; 
+}
+.swatch img{ 
+  width:42px; 
+  height:42px; 
+  object-fit:cover; 
+  border-radius:8px; 
+  display:block; 
+}
+.swatch .lab{ 
+  font-weight:600; 
+  font-size:14px; 
+}

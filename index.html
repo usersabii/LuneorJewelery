@@ -684,55 +684,86 @@
                              </div>
                           </article>
                      </div>
-                     <div class="col-6 col-md-4 col-lg-3">
-                         <article class="product-card" data-type="necklace" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
-                              <div class="product-media">
-                                 <img src="img/collierferyel.png" alt="Bague Prénom" class="product-img">
-                                 <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
-                              </div>
-                              <div class="pc-panel" aria-hidden="true">
-                                 <div class="pc-panel__title">Sélectionne un prénom</div>
-                              
-                                 <div class="pc-swatches"
-                                     data-target=".product-img"
-                                     data-variants='[
-                                       {"label":"Feryel","img":"img/variants/collierferyel.jpg","thumb":"img/thumbs/collierferyel_120.jpg"},
-                                       {"label":"Rania","img":"img/variants/collierrania.jpg","thumb":"img/thumbs/collierrania_120.jpg"},
-                                       {"label":"Nada","img":"img/variants/colliernada.jpg","thumb":"img/thumbs/colliernada_120.jpg"},
-                                       {"label":"Hayet","img":"img/variants/collierhayet.jpg","thumb":"img/thumbs/collierhayet_120.jpg"}
-                                     ]'>
-                                     <!-- vignettes générées en JS -->
-                                 </div>
-                              </div>                              
-                             <div class="product-info">
-                                 <h5 class="product-title">Bague Prénom</h5>
-                      
-                                 <!-- Variantes de prénoms : clique pour changer l'image -->
-                                 <div class="product-variants nv" data-target=".product-img" data-variants='[{"label":"Feryel","img":"img/variants/collierferyel.jpg"},{"label":"Rania","img":"img/variants/collierrania.jpg"},{"label":"Nada","img":"img/variants/colliernada.jpg"},{"label":"Hayet","img":"img/variants/collierhayet.jpg"}]'></div>
-                      
-                                 <div class="product-meta">
-                                     <span class="price">1200DA</span>
-                                     <button class="btn-add" data-id="SKU022" data-name="Collier Prénom" data-price="120" data-img="img/collierferyel.png">Ajouter</button>
-                                     <button class="btn-buy" data-id="SKU022" data-name="collier Prénom" data-price="120" data-img="img/collierferyel.png">Acheter</button>
-                                 </div>
+                     <div class="col-12 col-md-6 col-lg-4" id="debug-name-card">
+                          <article class="product-card" style="outline: 0px;  border-radius:20px; padding-bottom:8px">
+                             <div class="product-media">
+                                 <img class="product-img" src="img/jewelry-placeholder.png" alt="Collier Prénom">
                              </div>
-                             <!-- Variantes (vignettes) -->
-                             <div class="hover-panel" aria-hidden="true">
-                                 <div class="hover-panel__title">Sélectionne un prénom</div>
-                              
-                                 <div class="hover-panel__swatches"
-                                     data-target=".product-img"
-                                     data-variants='[
-                                       {"label":"Feryel","img":"img/variants/collierferyel.jpg","thumb":"img/thumbs/collierferyel_120.jpg"},
-                                       {"label":"Rania","img":"img/variants/collierrania.jpg","thumb":"img/thumbs/collierrania_120.jpg"},
-                                       {"label":"Nada","img":"img/variants/colliernada.jpg","thumb":"img/thumbs/colliernada_120.jpg"},
-                                       {"label":"Hayet","img":"img/variants/collierhayet.jpg","thumb":"img/thumbs/collierhayet_120.jpg"}
-                                     ]'>
-                                     <!-- vignettes générées en JS -->
+  
+                             <div class="product-info">
+                                  <h5 class="product-title">Collier Prénom</h5>
+  
+                                  <!-- VIGNETTES (le JS va générer ici) -->
+                                  <div class="product-variants"></div>
+  
+                                  <div class="product-meta">
+                                      <span class="price">1200DA</span>
+                                      <button class="btn-add" data-id="SKU_NAME" data-name="Collier Prénom" data-price="1200">Ajouter</button>
+                                      <button class="btn-buy" data-id="SKU_NAME" data-name="Collier Prénom" data-price="1200">Acheter</button>
                                  </div>
-                              </div>                                           
+                              </div>
+  
+                              <!-- Données variantes SANS galère de guillemets -->
+                              <script type="application/json" class="variants-data">
+                                    [
+                                  {"img":"img/collierferyel.png","thumb":"img/collierferyel.png"},
+                                  {"img":"img/collierrania.png","thumb":"img/collierrania.png"},
+                                  {"img":"img/colliernada.png","thumb":"img/colliernada.png"},
+                                  {"img":"img/variants/collierhayet.jpg","thumb":"img/thumbs/collierhayet_120.jpg"}
+                                   ]
+                              </script>
                           </article>
-                      </div>                     
+                      </div>
+                      <script>
+                         (() => {
+                          const $ = (s,r=document)=>r.querySelector(s);
+                          const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+                          const log = (...a)=>console.log('[SWATCH]', ...a);
+                        
+                          function build(card){
+                            const container = $('.product-variants', card);
+                            const dataTag   = $('script.variants-data', card);
+                            if (!container || !dataTag) return;
+                        
+                            let variants = [];
+                            try { variants = JSON.parse(dataTag.textContent.trim() || '[]'); }
+                            catch(e){ console.error('JSON variants invalide', e); return; }
+                            if (!variants.length) return;
+                        
+                            container.innerHTML = '';
+                            variants.forEach((v,i)=>{
+                              const btn = document.createElement('button');
+                              btn.type='button';
+                              btn.className='swatch'+(i===0?' is-active':'');
+                              btn.innerHTML = `<img src="${v.thumb||v.img}" alt="${v.label||''}"><span class="lab">${v.label||''}</span>`;
+                              btn.addEventListener('click', ()=>{
+                                container.querySelectorAll('.swatch').forEach(s=>s.classList.remove('is-active'));
+                                btn.classList.add('is-active');
+                                const imgEl = card.querySelector('.product-img');
+                                if (imgEl){ imgEl.src = v.img; imgEl.alt = (v.label? v.label+' – ' : '') + (card.querySelector('.product-title')?.textContent || ''); }
+                                const add = card.querySelector('.btn-add'); const buy = card.querySelector('.btn-buy');
+                                const base = (add?.dataset.name || buy?.dataset.name || card.querySelector('.product-title')?.textContent || 'Collier Prénom').split(' – ')[0];
+                                const full = `${base} – ${v.label||''}`.trim();
+                                [add,buy].forEach(b=>{ if(b){ b.dataset.name = full; b.dataset.img = v.img; } });
+                                log('selected', full);
+                              });
+                              container.appendChild(btn);
+                            });
+                            // synchro initiale
+                            container.querySelector('.swatch')?.click();
+                          }
+                        
+                          function init(){
+                            const card = document.getElementById('debug-name-card');
+                            if (card){ build(card); log('card ok'); }
+                          }
+                        
+                          if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', init, {once:true});
+                          } else { init(); }
+                         })();
+                        </script>
+                               
                       <div class="col-6 col-md-4 col-lg-3">
                          <article class="product-card" data-type="bracelet" data-metal="gold" data-desc="Collier délicat en argent, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collier2.png, img/collier3.png, img/collier4.png">
                              <div class="product-media">
@@ -2202,6 +2233,31 @@
               </div>
           </div>
        </div> 
+       <!-- QUICK VIEW (unique) -->
+       <div class="modal fade" id="qvModal" tabindex="-1" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered modal-lg">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="qvTitle">Produit</h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                 </div>
+  
+                 <div class="modal-body">
+                     <div class="qv-main mb-3">
+                         <img id="qvMainImg" src="" alt="" class="img-fluid rounded shadow-sm" style="max-height:420px; object-fit:contain; width:100%;">
+                     </div>
+                     <div id="qvSwatches" class="qv-swatches"></div>
+                 </div>
+  
+                 <div class="modal-footer">
+                     <span class="me-auto fw-semibold" id="qvPrice"></span>
+                     <button type="button" class="btn btn-secondary" id="qvAdd">Ajouter au panier</button>
+                     <button type="button" class="btn btn-dark" id="qvBuy">Acheter maintenant</button>
+                 </div>
+             </div>
+         </div>
+       </div>
+  
        <!-- mets ton numéro -->
        <a class="wa-fab" href="https://wa.me/213612345678" target="_blank" rel="noopener" aria-label="WhatsApp">
          <i class="bi bi-whatsapp" aria-hidden="true"></i>

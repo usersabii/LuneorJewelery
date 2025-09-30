@@ -1942,3 +1942,223 @@ if (el) el.addEventListener('click', closeModal);
 
 
 
+
+/* ===== Variantes “Collier prénom” (vignettes + swap) ===== */
+(() => {
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+  const parse = (x)=>{ try{return JSON.parse(x||'[]')}catch(_){ return [] } };
+
+  function build(container){
+    const card = container.closest('.product-card'); if(!card) return;
+    const target = container.dataset.target || '.product-img';
+    const imgEl  = $(target, card) || $('.product-img', card);
+    const vars   = parse(container.getAttribute('data-variants'));
+    if(!vars.length) return;
+
+    container.innerHTML = '';
+    vars.forEach((v,i)=>{
+      const b = document.createElement('button');
+      b.type='button';
+      b.className='swatch'+(i===0?' is-active':'');
+      b.innerHTML = `
+        <img src="${v.thumb || v.img}" alt="${v.label||''}">
+        <span class="lab">${v.label||''}</span>`;
+      b.addEventListener('click', ()=>{
+        container.querySelectorAll('.swatch').forEach(s=>s.classList.remove('is-active'));
+        b.classList.add('is-active');
+
+        if(imgEl){ imgEl.src = v.img; imgEl.alt = (v.label? v.label+' – ' : '') + ($('.product-title',card)?.textContent||''); }
+
+        // MAJ boutons Add/Buy (nom + image)
+        const add=$('.btn-add',card), buy=$('.btn-buy',card);
+        const base = (add?.dataset.name || buy?.dataset.name || $('.product-title',card)?.textContent || 'Collier Prénom').split(' – ')[0];
+        const full = `${base} – ${v.label||''}`.trim();
+        [add,buy].forEach(btn=>{
+          if(!btn) return;
+          btn.dataset.name = full;
+          if(v.img) btn.dataset.img = v.img;
+        });
+      });
+      container.appendChild(b);
+    });
+  }
+
+  function init(){
+    $$('.product-variants').forEach(build);
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',init,{once:true}); }
+  else init();
+
+  new MutationObserver(()=>init()).observe(document.documentElement,{childList:true,subtree:true});
+})();
+
+/* ===== Variantes & Quick View (colliers prénom) ===== */
+(() => {
+  const $ = (s, root=document) => root.querySelector(s);
+  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+
+  /** Parse un JSON d’attribut data-variants en tolérant espaces */
+  function parseVariants(str){
+    try { return JSON.parse(str || '[]'); } catch(e){ console.warn('JSON variants invalide', e); return []; }
+  }
+
+  /** Crée les vignettes dans un conteneur .pc-swatches / .hover-panel__swatches / .product-variants */
+  function buildSwatches(container){
+    const card = container.closest('.product-card'); if (!card) return;
+    const targetSel = container.dataset.target || '.product-img';
+    const targetImg = $(targetSel, card) || $('.product-img', card);
+    const variants = parseVariants(container.getAttribute('data-variants'));
+    if (!variants.length) return;
+
+    // Vide puis crée
+    container.innerHTML = '';
+    variants.forEach((v, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'swatch';
+      btn.innerHTML = `
+        <img src="${v.thumb || v.img}" alt="${v.label||''}">
+        <span class="lab">${v.label || 'Variante'}</span>
+      `;
+      btn.addEventListener('click', () => {
+        // 1) change l'image principale de la carte
+        if (targetImg) { targetImg.src = v.img; targetImg.alt = (v.label ? (v.label + ' – ') : '') + (card.querySelector('.product-title')?.textContent || ''); }
+        // 2) état actif
+        container.querySelectorAll('.swatch').forEach(s=>s.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        // 3) synchronise les boutons Ajouter/Acheter (nom + image)
+        const add = $('.btn-add', card); const buy = $('.btn-buy', card);
+        const base = (add?.dataset.name || buy?.dataset.name || card.querySelector('.product-title')?.textContent || 'Collier Prénom').split(' – ')[0];
+        const full = `${base} – ${v.label || ''}`.trim();
+        [add, buy].forEach(b=>{
+          if (!b) return;
+          b.dataset.name = full;
+          if (v.img) b.dataset.img = v.img;
+        });
+      });
+      container.appendChild(btn);
+      // Active par défaut si l’image principale correspond
+      const current = targetImg?.getAttribute('src') || '';
+      if (current && (current.endsWith(v.img) || current === v.img)) btn.classList.add('is-active');
+      // Sinon active la 1ère
+      if (idx === 0 && !container.querySelector('.swatch.is-active')) btn.classList.add('is-active');
+    });
+  }
+
+  /** Hydrate toutes les zones variantes présentes dans la page */
+  function initInlineSwatches(){
+    ['.pc-swatches', '.hover-panel__swatches', '.product-variants'].forEach(sel=>{
+      $$(sel).forEach(buildSwatches);
+    });
+  }
+
+  /** QUICK VIEW — ouvre le modal pour la carte donnée */
+  function openQuickView(card){
+    const title   = card.querySelector('.product-title')?.textContent?.trim() || 'Produit';
+    const priceTx = card.querySelector('.price')?.textContent?.trim() || '';
+    const addBtn  = card.querySelector('.btn-add');
+    const buyBtn  = card.querySelector('.btn-buy');
+    const baseName= addBtn?.dataset.name || buyBtn?.dataset.name || title;
+    const mainImg = card.querySelector('.product-img')?.getAttribute('src') || '';
+
+    // Récupère variants en priorité depuis .pc-swatches / .hover-panel__swatches / .product-variants
+    let variants = [];
+    const variantContainer = card.querySelector('.pc-swatches, .hover-panel__swatches, .product-variants');
+    if (variantContainer) variants = parseVariants(variantContainer.getAttribute('data-variants'));
+    // fallback: depuis data-gallery
+    if (!variants.length){
+      const gal = (card.getAttribute('data-gallery')||'').split(',').map(s=>s.trim()).filter(Boolean);
+      variants = gal.map((img,i)=> ({ label: `Variante ${i+1}`, img, thumb: img }));
+      if (!variants.length && mainImg) variants = [{label: title, img: mainImg, thumb: mainImg}];
+    }
+    if (!variants.length) return;
+
+    // Remplit le modal
+    $('#qvTitle').textContent = title;
+    $('#qvPrice').textContent = priceTx;
+    const qvImg = $('#qvMainImg'); qvImg.src = mainImg || variants[0].img; qvImg.alt = title;
+
+    const sw = $('#qvSwatches'); sw.innerHTML = '';
+    let activeIndex = Math.max(0, variants.findIndex(v => v.img === mainImg));
+    variants.forEach((v, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch' + (i===activeIndex ? ' is-active' : '');
+      b.innerHTML = `<img src="${v.thumb || v.img}" alt="${v.label||''}"><span class="lab">${v.label||''}</span>`;
+      b.addEventListener('click', () => {
+        sw.querySelectorAll('.swatch').forEach(s=>s.classList.remove('is-active'));
+        b.classList.add('is-active');
+        qvImg.src = v.img;
+        // mets à jour les datasets pour add/buy dans le modal
+        $('#qvAdd').dataset.name = `${baseName.split(' – ')[0]} – ${v.label||''}`.trim();
+        $('#qvAdd').dataset.img  = v.img;
+        $('#qvBuy').dataset.name = $('#qvAdd').dataset.name;
+        $('#qvBuy').dataset.img  = v.img;
+      });
+      sw.appendChild(b);
+    });
+
+    // datasets des boutons du modal (SKU/NAME/PRICE)
+    const sku   = addBtn?.dataset.id || buyBtn?.dataset.id || 'SKU-NAME';
+    const price = addBtn?.dataset.price || buyBtn?.dataset.price || '0';
+    $('#qvAdd').dataset.id = sku;
+    $('#qvAdd').dataset.price = price;
+    $('#qvAdd').dataset.name = baseName;
+    $('#qvAdd').dataset.img  = qvImg.src;
+
+    $('#qvBuy').dataset.id = sku;
+    $('#qvBuy').dataset.price = price;
+    $('#qvBuy').dataset.name = baseName;
+    $('#qvBuy').dataset.img  = qvImg.src;
+
+    // Ouvre le modal
+    const modal = bootstrap.Modal.getOrCreateInstance($('#qvModal'));
+    modal.show();
+
+    // Sélectionne la bonne vignette au chargement
+    sw.querySelectorAll('.swatch')[activeIndex]?.click();
+  }
+
+  /** Clic sur l'image de la carte => QuickView (mais pas sur “Ajouter/Acheter/Fav”) */
+  document.addEventListener('click', (e) => {
+    const media = e.target.closest('.product-media');
+    if (!media) return;
+    const card = media.closest('.product-card'); if (!card) return;
+    if (e.target.closest('.btn-add, .btn-buy, .btn-fav')) return; // ne pas intercepter ces boutons
+    openQuickView(card);
+  }, true);
+
+  /** Boutons du modal => branchés sur ton panier / achat existants */
+  $('#qvAdd')?.addEventListener('click', (e) => {
+    const d = e.currentTarget.dataset;
+    // Simule un vrai bouton .btn-add pour réutiliser __addOnce si présent
+    const fake = document.createElement('button');
+    fake.className = 'btn-add'; fake.dataset.id = d.id; fake.dataset.name = d.name; fake.dataset.price = d.price; fake.dataset.img = d.img;
+    if (typeof window.__addOnce === 'function') window.__addOnce({ currentTarget: fake, target: fake, preventDefault(){}, stopPropagation(){}, stopImmediatePropagation(){} });
+    bootstrap.Modal.getInstance($('#qvModal'))?.hide();
+    window.__showToast && window.__showToast('Ajouté au panier ✅');
+  });
+
+  $('#qvBuy')?.addEventListener('click', (e) => {
+    const d = e.currentTarget.dataset;
+    // Prépare les datasets pour ton flux achat direct
+    const buyBtn = document.getElementById('confirmBuyBtn');
+    if (buyBtn){
+      buyBtn.dataset.sku = d.id; buyBtn.dataset.name = d.name; buyBtn.dataset.price = d.price;
+      window.__currentBuy = { id:d.id, name:d.name, price:Number(d.price||0) };
+      bootstrap.Modal.getInstance($('#qvModal'))?.hide();
+      setTimeout(()=> typeof window.__buyOnce === 'function' && window.__buyOnce(new Event('click')), 200);
+    } else {
+      // fallback : ajoute au panier
+      $('#qvAdd').click();
+    }
+  });
+
+  // Hydrate les swatches inline à l’arrivée du DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInlineSwatches, { once:true });
+  } else { initInlineSwatches(); }
+  // Si des cartes sont injectées dynamiquement
+  new MutationObserver(() => initInlineSwatches()).observe(document.documentElement, { childList:true, subtree:true });
+})();
