@@ -1706,12 +1706,14 @@ html {
 /* Vignettes */
 .product-variants{ 
   display:flex !important; 
-  flex-wrap:wrap; 
+  flex-wrap:nowrap; 
   gap:10px; 
   margin-top:10px; 
 }
 .swatch{
-  width:50px;
+  width:40px;
+  height:40px;
+  margin:0px;
   display:inline-flex; 
   align-items:center; 
   gap:8px;
@@ -1732,8 +1734,8 @@ html {
   box-shadow:0 0 0 2px rgba(0,0,0,.05) inset; 
 }
 .swatch img{ 
-  width:42px; 
-  height:42px; 
+  width:32px; 
+  height:32px; 
   object-fit:cover; 
   border-radius:8px; 
   display:block; 
