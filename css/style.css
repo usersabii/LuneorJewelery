@@ -1697,12 +1697,6 @@ html {
   .wa-fab .bi-whatsapp{ font-size: 24px; }
 }
 
-/* Forcer l'affichage pendant le debug */
-#shop-section{
-  display:block !important; 
-  opacity:1 !important; 
-}
-
 /* Vignettes */
 .product-variants{ 
   display:flex !important; 
@@ -1734,7 +1728,7 @@ html {
   box-shadow:0 0 0 2px rgba(0,0,0,.05) inset; 
 }
 .swatch img{ 
-  width:32px; 
+  width:42px;
   height:32px; 
   object-fit:cover; 
   border-radius:8px; 
@@ -1744,3 +1738,6 @@ html {
   font-weight:600; 
   font-size:14px; 
 }
+
+
+

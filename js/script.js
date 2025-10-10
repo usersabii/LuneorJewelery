@@ -2162,3 +2162,5 @@ if (el) el.addEventListener('click', closeModal);
   // Si des cartes sont injectées dynamiquement
   new MutationObserver(() => initInlineSwatches()).observe(document.documentElement, { childList:true, subtree:true });
 })();
+
+
