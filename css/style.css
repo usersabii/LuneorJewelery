@@ -1739,5 +1739,37 @@ html {
   font-size:14px; 
 }
 
+/* iPad: donne de la place à la nav, permet le retour à la ligne */
+@media (min-width:768px) and (max-width:991.98px){
+  header.d-flex.align-items-center{
+    padding-inline: 12px;
+    gap: 12px;
+  }
+  /* que le bloc <nav> puisse s'étirer */
+  header.d-flex.align-items-center > nav{
+    flex: 1 1 auto;
+    min-width: 0;         /* essentiel pour éviter l'écrasement */
+  }
+  /* nav plus flexible, peut aller sur 2 lignes */
+  header.d-flex.align-items-center .nav{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;      /* autorise 2 lignes */
+    margin: 0;
+  }
+  /* liens un peu plus compacts */
+  header.d-flex.align-items-center .nav .nav-link{
+    margin-right: 0 !important;
+    padding: .25rem .5rem;
+  }
+  /* logo un peu réduit pour gagner de la place */
+  header.d-flex.align-items-center img{
+    max-width: 120px;
+    height: auto;
+  }
+  /* réduit le gros décalage .ms-5 sur iPad */
+  header.d-flex.align-items-center .ms-5{ margin-left: .75rem !important; }
+}
 
 
