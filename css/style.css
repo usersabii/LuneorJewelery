@@ -1805,20 +1805,11 @@ html {
 }
 
 
-/* Bloc des deux cartes */
-.card-options{
-  display:flex; gap:14px; margin-top:10px; flex-wrap:wrap;
-}
-.card-options.d-none{ display:none !important; }
 
-/* Tuile cliquable */
-.card-tile{
-  display:inline-flex; align-items:center; gap:10px;
-  padding:8px 12px; border:1px solid rgba(0,0,0,.15);
-  border-radius:12px; cursor:pointer; user-select:none;
-  transition:box-shadow .15s ease, border-color .15s ease, transform .08s ease;
-}
-.card-tile:hover{ transform:translateY(-1px); border-color:rgba(0,0,0,.25); }
-.card-tile input{ accent-color:#111; }
-.card-tile img{ width:44px; height:28px; object-fit:contain; display:block; }
-.card-tile span{ font-weight:600; font-size:.95rem; }
+.card-options{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.card-options.d-none{display:none!important}
+.card-tile{display:inline-flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid rgba(0,0,0,.15);border-radius:12px;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s}
+.card-tile:hover{transform:translateY(-1px);border-color:rgba(0,0,0,.25)}
+.card-tile input{accent-color:#111}
+.card-tile img{width:44px;height:28px;object-fit:contain;display:block}
+.card-tile span{font-weight:600;font-size:.95rem}
