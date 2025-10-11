@@ -2307,6 +2307,151 @@
              <p>&copy; 2025 Luneor Jewellery. Tous droits réservés.</p>
          </div>
      </footer>
+     <script>
+         /* ===== Paiement Carte (CIB / Edahabia) — Patch ciblé ===== */
+         (() => {
+          const log = (...a)=>console.log('[PAY-FIX]', ...a);
+        
+          // --- CSS minimal auto ---
+          if (!document.getElementById('payCardCSS2')) {
+            const s = document.createElement('style');
+            s.id = 'payCardCSS2';
+            s.textContent = `
+              .card-options{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+              .card-options.d-none{display:none!important}
+              .card-tile{display:inline-flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid rgba(0,0,0,.15);border-radius:12px;cursor:pointer;user-select:none;transition:box-shadow .15s ease,border-color .15s ease,transform .08s ease}
+              .card-tile:hover{transform:translateY(-1px);border-color:rgba(0,0,0,.25)}
+              .card-tile input{accent-color:#111}
+              .card-tile img{width:44px;height:28px;object-fit:contain;display:block}
+              .card-tile span{font-weight:600;font-size:.95rem}
+            `;
+            document.head.appendChild(s);
+          }
+        
+          // --- Trouver le BON groupe "paiement" (par nom) ---
+          function detectPaymentGroup(){
+            // Regroupe les radios par "name"
+            const map = new Map();
+            document.querySelectorAll('input[type="radio"]').forEach(r => {
+              const name = (r.name||'').trim();
+              if (!name) return;
+              if (!map.has(name)) map.set(name, []);
+              map.get(name).push(r);
+            });
+        
+            const payKeywords = /(card|carte|cod|livraison)/i;
+        
+            // Choisit le groupe dont au moins UNE valeur correspond aux mots-clés paiement
+            for (const [name, radios] of map){
+              const values = radios.map(r => (r.value||'').toLowerCase());
+              if (values.some(v => payKeywords.test(v))) {
+                return { name, radios };
+              }
+            }
+        
+            // fallback: groupe explicite s'il existe déjà
+            const explicit = document.querySelectorAll('input[name="cartPay"]');
+            if (explicit.length) return { name:'cartPay', radios:[...explicit] };
+        
+            return null;
+          }
+        
+          // --- Insère le bloc CIB/Edahabia après le conteneur du groupe paiement ---
+          function ensureCardBlock(anchorAfter){
+            if (!anchorAfter) return null;
+            // retire un ancien bloc pour éviter les doublons
+            document.getElementById('cardOptions')?.remove();
+        
+            const block = document.createElement('div');
+            block.id = 'cardOptions';
+            block.className = 'card-options d-none';
+            block.setAttribute('aria-hidden','true');
+            block.innerHTML = `
+              <label class="card-tile">
+                <input type="radio" name="cardBrand" value="CIB" checked>
+                <img src="img/pay/cib.png" alt="Carte CIB" onerror="this.style.display='none'">
+                <span>CIB</span>
+              </label>
+              <label class="card-tile">
+                <input type="radio" name="cardBrand" value="EDAHABIA">
+                <img src="img/pay/edahabia.png" alt="Carte Edahabia" onerror="this.style.display='none'">
+                <span>Edahabia</span>
+              </label>
+            `;
+            anchorAfter.insertAdjacentElement('afterend', block);
+            log('Bloc CIB/Edahabia injecté juste après', anchorAfter);
+            return block;
+          }
+        
+          // --- Trouve le conteneur visuel du groupe (pour positionner le bloc) ---
+          function groupAnchor(radios){
+            // d’abord un parent commun "propre"
+            const first = radios[0];
+            return first.closest('.pay-methods')
+                || first.closest('fieldset, .row, .col, form, .card, .section')
+                || first.parentElement;
+          }
+        
+          // --- Valeur normalisée du paiement (card/cod/other) ---
+          function readPayValue(radios){
+            const checked = radios.find(r => r.checked) || radios[0];
+            const v = (checked?.value || '').toLowerCase();
+            if (v.includes('card') || v.includes('carte')) return 'card';
+            if (v.includes('cod')  || v.includes('livraison')) return 'cod';
+            return v; // autre
+          }
+        
+          // --- Toggle affichage ---
+          function toggle(radios){
+            const val = readPayValue(radios);
+            const block = document.getElementById('cardOptions');
+            if (!block) return;
+            const show = (val === 'card');
+            block.classList.toggle('d-none', !show);
+            block.setAttribute('aria-hidden', show?'false':'true');
+            log('Paiement =', val, '→ cartes', show?'VISIBLE':'CACHÉ');
+          }
+        
+          // --- Patcher l’envoi : ajoute payment_brand si "card" ---
+          function patchSender(radios){
+            if (!window.__SHOP || !window.__SHOP.post || window.__SHOP.__postPatched2) return;
+            const original = window.__SHOP.post;
+            window.__SHOP.post = async (payload) => {
+              try{
+                const val = readPayValue(radios);
+                if (val === 'card'){
+                  payload.payment = 'CARD';
+                  payload.payment_brand = document.querySelector('input[name="cardBrand"]:checked')?.value || 'CIB';
+                }
+              }catch(_){}
+              return original(payload);
+            };
+            window.__SHOP.__postPatched2 = true;
+            log('Injection payment_brand OK.');
+          }
+        
+          // --- Initialisation ---
+          function init(){
+            const grp = detectPaymentGroup();
+            if (!grp){ log('⚠️ Aucun groupe paiement trouvé (valeurs card/carte/cod/livraison).'); return; }
+        
+            const anchor = groupAnchor(grp.radios);
+            ensureCardBlock(anchor);
+            toggle(grp.radios);
+            patchSender(grp.radios);
+        
+            // écoute uniquement les radios de CE groupe
+            grp.radios.forEach(r => r.addEventListener('change', () => toggle(grp.radios)));
+          }
+        
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init, { once:true });
+          } else { init(); }
+        
+          // si ton DOM est ré-injecté, on retente
+          new MutationObserver((_m)=>init()).observe(document.documentElement, { childList:true, subtree:true });
+         })();
+     </script>          
      <div class="modal fade" id="buyNowModal" tabindex="-1" aria-hidden="true">
          <div class="modal-dialog modal-dialog-centered modal-lg">
              <div class="modal-content buy-modal">

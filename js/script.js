@@ -2164,3 +2164,32 @@ if (el) el.addEventListener('click', closeModal);
 })();
 
 
+// iPad/iOS : tap sur l'image => révèle les CTA quelques secondes
+(() => {
+  const isNoHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+  if (!isNoHover) return;
+
+  document.addEventListener('click', (e) => {
+    const media = e.target.closest('.product-card .product-media');
+    if (!media) return;
+    const cta = media.parentElement.querySelector('.product-cta');
+    if (!cta) return;
+
+    cta.style.transition = 'opacity .2s ease, transform .2s ease';
+    cta.style.opacity = '1';
+    cta.style.visibility = 'visible';
+    cta.style.transform = 'none';
+    cta.style.pointerEvents = 'auto';
+
+    clearTimeout(cta.__hideTimer);
+    cta.__hideTimer = setTimeout(()=>{
+      // ne pas recacher si on est en train d’appuyer un bouton
+      if (document.activeElement && cta.contains(document.activeElement)) return;
+      cta.style.removeProperty('opacity');
+      cta.style.removeProperty('visibility');
+      cta.style.removeProperty('transform');
+      cta.style.removeProperty('pointer-events');
+    }, 4000);
+  }, true);
+})();
+
