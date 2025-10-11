@@ -2216,3 +2216,36 @@ if (el) el.addEventListener('click', closeModal);
     document.addEventListener('DOMContentLoaded', toggleCardBlock, { once:true });
   } else { toggleCardBlock(); }
 })();
+
+// Patch simple pour éviter l'erreur et fermer le modal d'inscription
+function closeModal() {
+  const m = document.getElementById('account-modal');
+  if (!m) return;
+  m.classList.remove('show', 'd-block');
+  m.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  // supprime backdrop éventuel
+  document.querySelectorAll('.modal-backdrop').forEach(b=>b.remove());
+}
+
+
+/* Affiche les cartes Edahabia/CIB quand "card" est sélectionné */
+(() => {
+  const PAY_NAME = 'cartPay'; // radios: value="cod" | "card"
+  function currentPay(){
+    return (document.querySelector(`input[name="${PAY_NAME}"]:checked`)?.value || '').toLowerCase();
+  }
+  function toggleCardBlock(){
+    const box = document.getElementById('cardOptions');
+    if (!box) return;
+    const show = ['card','carte'].includes(currentPay());
+    box.classList.toggle('d-none', !show);
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.name === PAY_NAME) toggleCardBlock();
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', toggleCardBlock, { once:true });
+  } else { toggleCardBlock(); }
+})();
