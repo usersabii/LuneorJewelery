@@ -2194,73 +2194,25 @@ if (el) el.addEventListener('click', closeModal);
 })();
 
 
-/* ===== Paiement carte: affiche CIB/Edahabia quand "card" est choisi ===== */
+/* Affiche les cartes Edahabia/CIB quand "carte" est sélectionné */
 (() => {
-  const PAY_NAME = 'cartPay'; // radios existantes: value="cod" | "card"
+  const PAY_NAME = 'cartPay'; // ← si ton name est différent, remplace ici
 
-  function getPayVal(){
+  function currentPay(){
     return (document.querySelector(`input[name="${PAY_NAME}"]:checked`)?.value || '').toLowerCase();
   }
-
-  function createCardBlock(afterEl){
-    let block = document.getElementById('cardOptions');
-    if (block) return block;
-    block = document.createElement('div');
-    block.id = 'cardOptions';
-    block.className = 'card-options d-none';
-    block.setAttribute('aria-hidden', 'true');
-    block.innerHTML = `
-      <label class="card-tile">
-        <input type="radio" name="cardBrand" value="CIB" checked>
-        <img src="img/pay/cib.png" alt="Carte CIB" onerror="this.style.display='none'">
-        <span>CIB</span>
-      </label>
-      <label class="card-tile">
-        <input type="radio" name="cardBrand" value="EDAHABIA">
-        <img src="img/pay/edahabia.png" alt="Carte Edahabia" onerror="this.style.display='none'">
-        <span>Edahabia</span>
-      </label>
-    `;
-    (afterEl || document.body).insertAdjacentElement('afterend', block);
-    return block;
-  }
-
   function toggleCardBlock(){
-    const radios = document.querySelectorAll(`input[name="${PAY_NAME}"]`);
-    if (!radios.length) { console.warn('[PAY] radios cartPay introuvables'); return; }
-
-    // ancre = conteneur du groupe (si .pay-methods existe) sinon parent du 1er radio
-    const anchor = radios[0].closest('.pay-methods') || radios[0].parentElement;
-    const block = createCardBlock(anchor);
-
-    const show = (getPayVal() === 'card');
-    block.classList.toggle('d-none', !show);
-    block.setAttribute('aria-hidden', show ? 'false' : 'true');
+    const box = document.getElementById('cardOptions');
+    if (!box) return;
+    const show = ['card','carte'].includes(currentPay());
+    box.classList.toggle('d-none', !show);
+    box.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
 
-  // écoute changements
-  document.addEventListener('change', (e)=>{
+  document.addEventListener('change', (e) => {
     if (e.target && e.target.name === PAY_NAME) toggleCardBlock();
   });
-
-  // patch l’envoi: ajoute payment_brand si "card"
-  function patchPost(){
-    if (!window.__SHOP || !window.__SHOP.post || window.__SHOP.__postPatchedSimple) return;
-    const original = window.__SHOP.post;
-    window.__SHOP.post = async (payload) => {
-      try{
-        if (getPayVal() === 'card') {
-          payload.payment = 'CARD';
-          payload.payment_brand = document.querySelector('input[name="cardBrand"]:checked')?.value || 'CIB';
-        }
-      }catch(_){}
-      return original(payload);
-    };
-    window.__SHOP.__postPatchedSimple = true;
-  }
-
-  // init
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { toggleCardBlock(); patchPost(); }, { once:true });
-  } else { toggleCardBlock(); patchPost(); }
+    document.addEventListener('DOMContentLoaded', toggleCardBlock, { once:true });
+  } else { toggleCardBlock(); }
 })();
