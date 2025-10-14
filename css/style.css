@@ -1818,3 +1818,31 @@ html {
 .card-tile input{accent-color:#111}
 .card-tile img{width:44px;height:28px;object-fit:contain;display:block}
 .card-tile span{font-weight:600;font-size:.95rem}
+
+
+#buyNowModal .card-options { 
+  display: flex; 
+  gap: 12px; 
+  align-items: center; 
+  flex-wrap: wrap;
+}
+#buyNowModal .card-options.d-none { 
+  display: none !important; 
+}
+#buyNowModal .card-tile {
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 8px 10px; 
+  border: 1px solid #e5e5e5; 
+  border-radius: 10px; 
+  cursor: pointer;
+}
+#buyNowModal .card-tile img { 
+  width: 36px; 
+  height: 24px; 
+  object-fit: contain; 
+}
+#buyNowModal .card-tile input { 
+  accent-color: #6b4f2f; /* brun */
+}

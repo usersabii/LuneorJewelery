@@ -231,6 +231,102 @@ function doGet(e) {
     .createTextOutput('OK');
 }
 
+function doGet(e){
+  const r = e.parameter?.r || '';
+  if (r === 'return') {
+    // Page de remerciement simple (le front pourra rediriger ici)
+    const orderId = e.parameter?.orderId || '';
+    const html = HtmlService.createHtmlOutput(
+      `<meta charset="utf-8">
+       <style>body{font-family:sans-serif;padding:24px}</style>
+       <h2>Merci !</h2>
+       <p>Numéro de commande: <b>${orderId}</b></p>
+       <p>Nous vérifions votre paiement…</p>
+       <script>
+         // Ping le backend pour l'état
+         fetch('${webAppBase()}',{method:'POST',headers:{'Content-Type':'application/json'},
+           body: JSON.stringify({__kind:'pay_status', orderId:'${orderId}'})
+         }).then(r=>r.json()).then(d=>{
+           document.body.insertAdjacentHTML('beforeend',
+             '<p>Statut: <b>'+ (d.status||'inconnu') +'</b></p>');
+         }).catch(()=>{});
+       </script>`
+    );
+    return html;
+  }
+  if (r === 'notify') {
+    // Dans la vraie intégration, le PSP enverra un POST signé.
+    // Ici on accepte aussi GET pour la démonstration.
+    return payNotify_(e);
+  }
+  return ContentService.createTextOutput(JSON.stringify({ok:true,note:'POST uniquement'}))
+        .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e){
+  try{
+    const data  = parseBody(e);
+    const book  = SpreadsheetApp.openById(SHEET_ID);
+    const agent = e?.headers?.['user-agent'] || '';
+
+    // 1) Création / MAJ commande (ton code)
+    if (data.__kind === 'order'){
+      const sh = book.getSheetByName(SHEET_ORDERS);
+      if (!sh) throw new Error('Onglet introuvable: ' + SHEET_ORDERS);
+      const orderId = data.orderId || Utilities.getUuid();
+
+      // anti-doublon runtime (60s)
+      const cache = CacheService.getScriptCache();
+      const ckey = 'order:' + orderId;
+      if (cache.get(ckey)) {
+        return ContentService.createTextOutput(JSON.stringify({ ok:true, kind:'order', orderId }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      cache.put(ckey, '1', 60);
+
+      const rowVals = [
+        new Date(), orderId,
+        data.client?.nom || '', data.client?.prenom || '', data.client?.email || '',
+        data.client?.telephone || '', data.client?.adresse || '',
+        data.payment || '', data.delivery || '',
+        JSON.stringify(data.items || []), Number(data.total || 0),
+        'Nouveau', agent
+      ];
+      // upsert par orderId (col B)
+      const last = sh.getLastRow();
+      if (last >= 2) {
+        const ids = sh.getRange(2, 2, last - 1, 1).getValues().map(r => r[0]);
+        const idx = ids.indexOf(orderId);
+        if (idx !== -1) {
+          sh.getRange(idx + 2, 1, 1, rowVals.length).setValues([rowVals]);
+          return ContentService.createTextOutput(JSON.stringify({ ok:true, kind:'order', orderId, updated:true }))
+                               .setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+      sh.appendRow(rowVals);
+      return ContentService.createTextOutput(JSON.stringify({ ok:true, kind:'order', orderId, inserted:true }))
+                           .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2) Démarrer un paiement (front → backend)
+    if (data.__kind === 'pay_start') {
+      return payStart_(data);
+    }
+
+    // 3) Statut de paiement (front “Merci”)
+    if (data.__kind === 'pay_status') {
+      return payStatus_(data);
+    }
+
+    // 4) fallback
+    return ContentService.createTextOutput(JSON.stringify({ok:false, error:'__kind inconnu'}))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }catch(err){
+    return ContentService.createTextOutput(JSON.stringify({ok:false, error:String(err)}))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 accountForm.addEventListener('submit', e => {
   e.preventDefault();
   // transforme le form en query string
@@ -2194,58 +2290,244 @@ if (el) el.addEventListener('click', closeModal);
 })();
 
 
-/* Affiche les cartes Edahabia/CIB quand "carte" est sélectionné */
+// Affiche/masque le bloc .card-options[data-for="cartPay"] quand on choisit "carte"
 (() => {
-  const PAY_NAME = 'cartPay'; // ← si ton name est différent, remplace ici
-
-  function currentPay(){
-    return (document.querySelector(`input[name="${PAY_NAME}"]:checked`)?.value || '').toLowerCase();
+  const GROUP = 'cartPay'; // <- remplace si ton name est différent
+  function val() {
+    return (document.querySelector(`input[name="${GROUP}"]:checked`)?.value || '').toLowerCase();
   }
-  function toggleCardBlock(){
-    const box = document.getElementById('cardOptions');
+  function toggle() {
+    const box = document.querySelector(`.card-options[data-for="${GROUP}"]`);
     if (!box) return;
-    const show = ['card','carte'].includes(currentPay());
+    const show = ['card','carte'].includes(val());
     box.classList.toggle('d-none', !show);
     box.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
-
-  document.addEventListener('change', (e) => {
-    if (e.target && e.target.name === PAY_NAME) toggleCardBlock();
+  document.addEventListener('change', (e)=>{
+    if (e.target?.name === GROUP) toggle();
   });
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', toggleCardBlock, { once:true });
-  } else { toggleCardBlock(); }
+    document.addEventListener('DOMContentLoaded', toggle, { once:true });
+  } else {
+    toggle();
+  }
 })();
 
-// Patch simple pour éviter l'erreur et fermer le modal d'inscription
+
+// Patch simple si ton HTML appelle closeModal()
 function closeModal() {
   const m = document.getElementById('account-modal');
   if (!m) return;
   m.classList.remove('show', 'd-block');
   m.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
-  // supprime backdrop éventuel
-  document.querySelectorAll('.modal-backdrop').forEach(b=>b.remove());
+  document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
 }
 
 
-/* Affiche les cartes Edahabia/CIB quand "card" est sélectionné */
+ /* Cartes Edahabia/CIB dans le MODAL d'achat */
 (() => {
-  const PAY_NAME = 'cartPay'; // radios: value="cod" | "card"
-  function currentPay(){
-    return (document.querySelector(`input[name="${PAY_NAME}"]:checked`)?.value || '').toLowerCase();
+  const MODAL = '#buyNowModal';
+  const GROUP = 'buyPay';
+
+  function getVal(scope){
+    const r = (scope||document).querySelector(`input[name="${GROUP}"]:checked`);
+    return (r?.value || '').toLowerCase();
   }
-  function toggleCardBlock(){
-    const box = document.getElementById('cardOptions');
+  function toggle(scope){
+    scope = scope || document.querySelector(MODAL) || document;
+    const box = scope.querySelector(`.card-options[data-for="${GROUP}"]`);
     if (!box) return;
-    const show = ['card','carte'].includes(currentPay());
+    const show = /^(card|carte)$/.test(getVal(scope));
     box.classList.toggle('d-none', !show);
     box.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
+
+  // Init si le modal est déjà là
+  if (document.querySelector(MODAL)) toggle();
+
+  // À l’ouverture (clic sur bouton qui cible le modal)
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest(`[data-bs-target="${MODAL}"], a[href="${MODAL}"]`);
+    if (!t) return;
+    setTimeout(() => { toggle(); setTimeout(toggle, 100); }, 30);
+  }, true);
+
+  // Changement de méthode dans le modal
   document.addEventListener('change', (e) => {
-    if (e.target && e.target.name === PAY_NAME) toggleCardBlock();
+    if (!(e.target instanceof HTMLInputElement)) return;
+    if (e.target.type !== 'radio' || e.target.name !== GROUP) return;
+    const scope = e.target.closest(MODAL);
+    toggle(scope);
   });
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', toggleCardBlock, { once:true });
-  } else { toggleCardBlock(); }
 })();
+
+
+
+(() => {
+  const MODAL = '#buyNowModal';
+  const GROUP = 'buyPay';
+
+  const payBtn = document.querySelector(`${MODAL} #payNowBtn`);
+  const brandInputSel = `${MODAL} input[name="cardBrand"]`;
+
+  function isCardSelected(){
+    const v = (document.querySelector(`${MODAL} input[name="${GROUP}"]:checked`)?.value||'').toLowerCase();
+    return v === 'card' || v === 'carte';
+  }
+  function togglePayBtn(){
+    if (!payBtn) return;
+    payBtn.classList.toggle('d-none', !isCardSelected());
+  }
+  document.addEventListener('change', (e)=>{
+    if (e.target?.name === GROUP) togglePayBtn();
+  });
+  // init
+  if (document.readyState==='loading') {
+    document.addEventListener('DOMContentLoaded', togglePayBtn, {once:true});
+  } else { togglePayBtn(); }
+
+  // clic payer
+  if (payBtn) {
+    payBtn.addEventListener('click', async () => {
+      try {
+        // récupère infos du modal
+        const brand = document.querySelector(brandInputSel)?.value || 'EDAHABIA';
+        const qty   = Number(document.querySelector(`${MODAL} #qtyInput`)?.value||1);
+        const unit  = Number((document.getElementById('buyModalPrice')?.textContent||'0').replace(/\D/g,''))||0;
+        const total = unit * qty;
+
+        // orderId: utilise celui déjà généré pour l’achat direct, sinon crée un UUID
+        const orderId = (window.__currentBuy && window.__currentBuy.orderId) || (crypto?.randomUUID?.() || String(Date.now()));
+
+        // appelle ton backend pour obtenir l’URL PSP
+        const resp = await fetch('/pay/start', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ orderId, total, brand }) // DZD
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data?.redirectUrl) throw new Error(data?.error || 'Paiement indisponible');
+
+        // redirection vers la page de paiement sécurisée
+        window.location.href = data.redirectUrl;
+      } catch (err) {
+        alert('Désolé, paiement indisponible pour le moment.\n'+ err.message);
+        console.error('[payNow]', err);
+      }
+    });
+  }
+})();
+
+
+function payStart_(data){
+  const orderId = data.orderId || Utilities.getUuid();
+  const amount  = Number(data.total || 0);
+  const brand   = String(data.brand || 'EDAHABIA').toUpperCase(); // EDAHABIA|CIB
+
+  if (!amount || amount <= 0) {
+    return json_({ ok:false, error:'Montant invalide' });
+  }
+
+  const book = SpreadsheetApp.openById(SHEET_ID);
+  const sh   = book.getSheetByName(SHEET_PAYS) || book.insertSheet(SHEET_PAYS);
+
+  // log paiement INIT
+  sh.appendRow([new Date(), orderId, amount, brand, 'INIT', '', '']);
+
+  // 👉 En prod, construire l’URL du PSP (signée) ici.
+  const redirectUrl = buildSimulatedRedirect_(orderId, amount, brand);
+
+  return json_({ ok:true, redirectUrl, orderId });
+}
+
+function buildSimulatedRedirect_(orderId, amount, brand){
+  // Petite page HTML hébergée par Apps Script pour simuler le PSP
+  const html = HtmlService.createHtmlOutput(
+    `<meta charset="utf-8">
+     <style>
+       body{font-family:sans-serif;padding:24px}
+       .b{display:inline-block;padding:10px 14px;border-radius:8px;margin-right:8px;text-decoration:none}
+       .ok{background:#0a0;color:#fff}
+       .ko{background:#900;color:#fff}
+     </style>
+     <h3>Paiement ${brand} (simulation)</h3>
+     <p>Commande: <b>${orderId}</b> — Montant: <b>${amount} DA</b></p>
+     <a class="b ok" href="${notifyUrl()}?orderId=${encodeURIComponent(orderId)}&status=PAID&pspRef=SIM123">Simuler succès</a>
+     <a class="b ko" href="${notifyUrl()}?orderId=${encodeURIComponent(orderId)}&status=FAILED&pspRef=SIM123">Simuler échec</a>
+     <p style="margin-top:16px;"><a href="${returnUrl(orderId)}">Retour boutique</a></p>`
+  ).setTitle('Simulation Paiement');
+  // Crée une URL d’aperçu pour ce HTML (technique temporaire) :
+  const blob = Utilities.newBlob(html.getContent(), 'text/html', 'pay.html');
+  return 'data:text/html;base64,' + Utilities.base64Encode(blob.getBytes());
+}
+
+
+function payNotify_(e){
+  const params = e?.parameter || {};
+  const orderId = params.orderId || '';
+  const status  = (params.status || '').toUpperCase(); // PAID / FAILED
+  const pspRef  = params.pspRef || '';
+
+  if (!orderId) return json_({ok:false, error:'orderId manquant'});
+
+  const book = SpreadsheetApp.openById(SHEET_ID);
+  const shP  = book.getSheetByName(SHEET_PAYS);
+  if (!shP) return json_({ok:false, error:'onglet Paiements manquant'});
+
+  // MAJ Paiements
+  const last = shP.getLastRow();
+  if (last >= 2) {
+    const ids = shP.getRange(2, 2, last-1, 1).getValues().map(r=>r[0]);
+    const idx = ids.indexOf(orderId);
+    const row = (idx === -1) ? shP.appendRow([new Date(), orderId, '', '', status, pspRef, 'notify']) 
+                             : shP.getRange(idx+2, 1, 1, 7).setValues([[new Date(), orderId, shP.getRange(idx+2,3).getValue(), shP.getRange(idx+2,4).getValue(), status, pspRef, 'notify']]);
+  }
+
+  // MAJ Commandes.Statut
+  const shO = book.getSheetByName(SHEET_ORDERS);
+  if (shO) {
+    const lastO = shO.getLastRow();
+    if (lastO >= 2) {
+      const idsO = shO.getRange(2, 2, lastO-1, 1).getValues().map(r=>r[0]);
+      const iO = idsO.indexOf(orderId);
+      if (iO !== -1) {
+        const rowVals = shO.getRange(iO+2, 1, 1, shO.getLastColumn()).getValues()[0];
+        rowVals[11] = (status === 'PAID') ? 'Payée' : (status === 'FAILED' ? 'Échec paiement' : rowVals[11]); // col 12 = Statut
+        shO.getRange(iO+2, 1, 1, rowVals.length).setValues([rowVals]);
+      }
+    }
+  }
+
+  // Réponse au PSP
+  return json_({ok:true});
+}
+
+function payStatus_(data){
+  const orderId = data.orderId || '';
+  if (!orderId) return json_({ok:false, error:'orderId manquant'});
+
+  const book = SpreadsheetApp.openById(SHEET_ID);
+  const shP  = book.getSheetByName(SHEET_PAYS);
+  if (!shP)  return json_({ok:false, error:'onglet Paiements manquant'});
+
+  const last = shP.getLastRow();
+  let status = 'UNKNOWN';
+  if (last >= 2) {
+    const ids = shP.getRange(2, 2, last-1, 1).getValues().map(r=>r[0]);
+    const idx = ids.indexOf(orderId);
+    if (idx !== -1) {
+      status = String(shP.getRange(idx+2, 5).getValue() || 'UNKNOWN'); // col E
+    }
+  }
+  return json_({ok:true, status});
+}
+
+// /exec POST {__kind:'pay_start', orderId, total, brand}
+const resp = await fetch(WEBAPP_URL, {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({ __kind:'pay_start', orderId, total, brand })
+});
+const data = await resp.json();
+window.location.href = data.redirectUrl;
