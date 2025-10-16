@@ -2290,6 +2290,7 @@ if (el) el.addEventListener('click', closeModal);
 })();
 
 
+
 // Affiche/masque le bloc .card-options[data-for="cartPay"] quand on choisit "carte"
 (() => {
   const GROUP = 'cartPay'; // <- remplace si ton name est différent
@@ -2362,5 +2363,120 @@ function closeModal() {
   });
 })();
 
+
+
+
+/* === PATCH: Sync des badges de panier (header + bulle) === */
+(function () {
+  'use strict';
+
+  // Expose une fonction globale pour MAJ tous les badges
+  window.updateCartBadges = function (totalQty) {
+    // Tous les badges "génériques" que tu utilises déjà
+    document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge], #cartBadge, .nav-cart-badge')
+      .forEach(el => el.textContent = String(totalQty));
+
+    // Le compteur de la bulle mobile (ton span spécifique)
+    const bubbleCount = document.getElementById('cart-count');
+    if (bubbleCount) bubbleCount.textContent = String(totalQty);
+  };
+
+  // Si tu stockes le panier en localStorage, on peut re-peupler à chaud
+  try {
+    const list = JSON.parse(localStorage.getItem('cart') || '[]');
+    const qty = list.reduce((s, i) => s + Number(i.qty || 0), 0);
+    window.updateCartBadges(qty);
+  } catch {}
+})();
+
+
+
+// ... après writeCart(list)
+const totalQty = list.reduce((s, i) => s + Number(i.qty || 0), 0);
+window.updateCartBadges(totalQty);
+
+
+
+/* === PATCH: Fly-to-cart -> cible la bulle en priorité === */
+(function () {
+  'use strict';
+
+  // Helper: élément visible ?
+  function isVisible(el) {
+    if (!el) return false;
+    const r = el.getClientRects();
+    if (!r || !r.length) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none';
+  }
+
+  // Trouver la meilleure cible (bulle mobile > header > fallback coin)
+  function getDestEl() {
+    const CANDIDATES = [
+      '#cart-bubble .cart-count', // ton span dans la bulle
+      '#cart-bubble',             // la bulle elle-même
+      '.cart-bubble .cart-count',
+      '.cart-bubble',
+      '#cart-count',              // si tu changes d’HTML plus tard
+      '#cartBadge',
+      '#js-cart-badge',
+      '.cart-badge',
+      '[data-cart-badge]'
+    ];
+    for (const sel of CANDIDATES) {
+      const el = document.querySelector(sel);
+      if (isVisible(el)) return el;
+    }
+    return null;
+  }
+
+  // Re-écrit uniquement la partie "destination" de ton fly-to-cart
+  window.__flyToCart = function (startEl) {
+    const destEl = getDestEl();
+    const start = (startEl && startEl.getBoundingClientRect) ? startEl : document.body;
+    const srect = start.getBoundingClientRect();
+    let drect;
+    if (destEl) {
+      drect = destEl.getBoundingClientRect();
+    } else {
+      // fallback coin haut droit
+      drect = { left: innerWidth - 16, top: 16, width: 0, height: 0 };
+    }
+
+    // petit fantôme rond (ou clone image si tu préfères)
+    const ghost = document.createElement('div');
+    ghost.style.cssText = `
+      position:fixed; left:${srect.left + srect.width/2 - 8}px; top:${srect.top + srect.height/2 - 8}px;
+      width:16px; height:16px; border-radius:999px; background:currentColor; z-index:99999;
+      transform:translate(0,0) scale(1); opacity:.95; pointer-events:none;
+      transition:transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease;
+      will-change:transform, opacity;
+    `;
+    document.body.appendChild(ghost);
+
+    const dx = (drect.left + drect.width/2) - (srect.left + srect.width/2);
+    const dy = (drect.top  + drect.height/2) - (srect.top  + srect.height/2);
+    requestAnimationFrame(() => {
+      ghost.style.transform = `translate(${dx}px, ${dy}px) scale(.6)`;
+      ghost.style.opacity = '0.2';
+    });
+
+    setTimeout(() => {
+      try { ghost.remove(); } catch {}
+      if (destEl) {
+        destEl.classList.add('cart-badge-pulse');
+        setTimeout(() => destEl.classList.remove('cart-badge-pulse'), 500);
+      }
+    }, 650);
+  };
+
+  // Hook sur tous les boutons "Ajouter"
+  const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest(ADD_SEL);
+    if (!btn) return;
+    try { window.__flyToCart(btn); } catch {}
+  }, true);
+})();
 
 
