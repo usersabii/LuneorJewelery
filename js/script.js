@@ -2480,3 +2480,217 @@ window.updateCartBadges(totalQty);
 })();
 
 
+
+
+
+
+
+/* ============================================================
+   SEARCH SUGGEST — desktop sidebar + mobile overlay
+   - Suggestions populaires + catégories + produits
+   - Recherches récentes (localStorage)
+   - Filtrage de la grille + affichage du shop
+   ============================================================ */
+   (function(){
+    'use strict';
+  
+    const GRID_ID = 'products-grid';
+    const SHOP_ID = 'shop-section';
+    const REC_KEY = 'searchRecent';
+    const MAX_REC = 6;
+  
+    // 0) utilitaires
+    const $ = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+    const deb = (fn, ms=200) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; };
+  
+    // 1) sources (marketing)
+    const popular = [
+      {label:'Colliers minimalistes', q:'collier minimaliste', tag:'Tendance'},
+      {label:'Boucles d’oreilles perles', q:'perle', tag:'Classique'},
+      {label:'Parures soirée', q:'set soirée', tag:'Occasion'},
+      {label:'Bagues ajustables', q:'bague ajustable', tag:'Pratique'},
+    ];
+    const shortcuts = [
+      {label:'Colliers', type:'necklace'},
+      {label:'Boucles d’oreilles', type:'earring'},
+      {label:'Bracelets', type:'bracelet'},
+      {label:'Parures', type:'set'},
+      {label:'Chaîne de cheville', type:'anklet'},
+    ];
+  
+    function getRecent(){
+      try { return JSON.parse(localStorage.getItem(REC_KEY)||'[]'); } catch{ return []; }
+    }
+    function addRecent(q){
+      const list = getRecent().filter(x => x!==q);
+      list.unshift(q);
+      localStorage.setItem(REC_KEY, JSON.stringify(list.slice(0, MAX_REC)));
+    }
+  
+    // 2) show shop + filter
+    function showShop(){
+      $$('.page-section').forEach(s => s.classList.add('hidden'));
+      $('#'+SHOP_ID)?.classList.remove('hidden');
+      $('#'+SHOP_ID)?.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  
+    function filterGridByQuery(query){
+      const grid = $('#'+GRID_ID);
+      if (!grid) return;
+      const q = (query||'').trim().toLowerCase();
+  
+      let shown = 0;
+      $$('#'+GRID_ID+' .product-card').forEach(card => {
+        const col = card.closest('.col, .col-6, .col-md-4, .col-lg-3') || card;
+        const hay = [
+          card.querySelector('.product-title')?.textContent || '',
+          card.dataset.type || '',
+          card.dataset.metal || '',
+          card.dataset.desc || ''
+        ].join(' ').toLowerCase();
+  
+        const ok = q ? hay.includes(q) : true;
+        col.classList.toggle('d-none', !ok);
+        if (ok) shown++;
+      });
+      grid.classList.toggle('empty', shown===0);
+    }
+  
+    function filterGridByType(type){
+      const grid = $('#'+GRID_ID);
+      if (!grid) return;
+      let shown = 0;
+      $$('#'+GRID_ID+' .product-card').forEach(card => {
+        const col = card.closest('.col, .col-6, .col-md-4, .col-lg-3') || card;
+        const ok = card.dataset.type === type;
+        col.classList.toggle('d-none', !ok);
+        if (ok) shown++;
+      });
+      grid.classList.toggle('empty', shown===0);
+    }
+  
+    // 3) construire suggestions (data-driven sur titres des produits)
+    function productIndex(){
+      return $$('#'+GRID_ID+' .product-card').map(c => ({
+        title: (c.querySelector('.product-title')?.textContent || '').trim(),
+        type: c.dataset.type || '',
+        node: c
+      }));
+    }
+  
+    function buildSuggestBox(anchor){
+      let box = anchor.parentElement.querySelector('.search-suggest');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'search-suggest';
+        anchor.parentElement.appendChild(box);
+      }
+      return box;
+    }
+  
+    function renderSuggestions(anchor, query){
+      const box = buildSuggestBox(anchor);
+      const q = (query||'').trim().toLowerCase();
+      const idx = productIndex();
+  
+      // produits matchés
+      const prod = q
+        ? idx.filter(it => it.title.toLowerCase().includes(q)).slice(0,5)
+        : idx.slice(0,5);
+  
+      // HTML
+      let html = '';
+  
+      // Section chips (catégories rapides)
+      html += `<div class="search-suggest__section">
+        <div class="search-chip-row">
+          ${shortcuts.map(s=>`<button class="search-chip" data-type="${s.type}">${s.label}</button>`).join('')}
+        </div>
+      </div>`;
+  
+      // populaires
+      html += `<div class="search-suggest__title">Populaire</div>`;
+      html += popular.map(p => `
+        <div class="search-item" data-q="${p.q}">
+          <span class="tag">${p.tag}</span>
+          <div>
+            <div>${p.label}</div>
+            <div class="muted">${p.q}</div>
+          </div>
+        </div>`).join('');
+  
+      // récents
+      const rec = getRecent();
+      if (rec.length){
+        html += `<div class="search-suggest__title">Récemment recherché</div>`;
+        html += rec.map(r => `<div class="search-item" data-q="${r}"><i class="bi bi-clock-history"></i><div>${r}</div></div>`).join('');
+      }
+  
+      // produits
+      if (prod.length){
+        html += `<div class="search-suggest__title">Produits</div>`;
+        html += prod.map(p => `<div class="search-item" data-q="${p.title}"><i class="bi bi-search"></i><div>${p.title}</div></div>`).join('');
+      }
+  
+      box.innerHTML = html;
+  
+      // interactions
+      box.querySelectorAll('[data-q]').forEach(el=>{
+        el.onclick = () => {
+          const val = el.getAttribute('data-q');
+          anchor.value = val;
+          addRecent(val);
+          box.remove();
+          showShop();
+          filterGridByQuery(val);
+        };
+      });
+      box.querySelectorAll('[data-type]').forEach(el=>{
+        el.onclick = () => {
+          const type = el.getAttribute('data-type');
+          box.remove();
+          showShop();
+          filterGridByType(type);
+        };
+      });
+    }
+  
+    function bindSearch(input){
+      if (!input) return;
+      const update = deb(() => renderSuggestions(input, input.value), 120);
+  
+      input.addEventListener('input', update);
+  
+      // Enter => valider
+      input.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter'){
+          const val = input.value.trim();
+          if (!val) return;
+          addRecent(val);
+          input.blur();
+          const box = input.parentElement.querySelector('.search-suggest');
+          if (box) box.remove();
+          showShop();
+          filterGridByQuery(val);
+        }
+      });
+  
+      // focus => ouvrir
+      input.addEventListener('focus', () => renderSuggestions(input, input.value));
+  
+      // clic hors => fermer
+      document.addEventListener('click', (e)=>{
+        if (!e.target.closest('.search-suggest') && e.target !== input){
+          input.parentElement.querySelector('.search-suggest')?.remove();
+        }
+      });
+    }
+  
+    // 4) brancher desktop + mobile
+    bindSearch(document.querySelector('.shop-sidebar .filter-search input'));
+    bindSearch(document.getElementById('mobileSearchInput'));
+  
+  })();
+  
+

@@ -1865,3 +1865,38 @@ html {
   font-size:clamp(20px,2.6vw,28px);
 }
 .cat-tile:hover .cat-tile__bg{ transform:scale(1.06); }
+
+
+/* === Search suggestions === */
+.search-suggest {
+  position: absolute;
+  left: 0; right: 0; top: calc(100% + 6px);
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.14);
+  z-index: 1050;
+  overflow: hidden;
+}
+.search-suggest__section { padding: 10px 12px; }
+.search-suggest__title {
+  font-size: 12px; font-weight: 700; letter-spacing:.02em;
+  color: #8b8b8b; margin: 4px 12px 6px;
+  text-transform: uppercase;
+}
+.search-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer;
+}
+.search-item:hover { background: #f7f7f7; }
+.search-item .tag { 
+  font-size: 12px; padding: 2px 8px; border-radius: 999px;
+  background: #f1ede5; color:#5c4a3e; font-weight:600;
+}
+.search-item .muted { font-size: 12px; color:#777; }
+.search-chip-row { display:flex; gap:8px; padding: 8px 12px 12px; flex-wrap: wrap; }
+.search-chip { border:1px solid #e8e4da; background:#fbfaf7; border-radius:999px; padding:6px 10px; cursor:pointer; }
+.search-chip:hover { background:#f3efe7; }
+
+.search-wrapper { position: relative; }   /* ta wrapper existe déjà sur desktop */
+#searchOverlay .search-box { position: relative; } /* mobile overlay */
