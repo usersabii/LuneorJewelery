@@ -1900,3 +1900,53 @@ html {
 
 .search-wrapper { position: relative; }   /* ta wrapper existe déjà sur desktop */
 #searchOverlay .search-box { position: relative; } /* mobile overlay */
+
+
+/* Effet battement de cœur pour le CTA */
+.btn-pulse{
+  position: relative;
+  will-change: transform, box-shadow;
+  animation: heartBeat 1.4s ease-in-out infinite;
+}
+
+/* halo doux qui pulse autour */
+.btn-pulse::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(92, 74, 62, 0.25); /* marron doux, adapte si besoin */
+  animation: heartGlow 1.4s ease-in-out infinite;
+  pointer-events:none;
+}
+
+/* pause si survol (desktop) ou focus (accessibilité) */
+.btn-pulse:hover,
+.btn-pulse:focus{
+  animation-play-state: paused;
+}
+.btn-pulse:hover::after,
+.btn-pulse:focus::after{
+  animation-play-state: paused;
+}
+
+/* Keyframes */
+@keyframes heartBeat{
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.045); }
+  35%  { transform: scale(1); }
+  55%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes heartGlow{
+  0%   { box-shadow: 0 0 0 0 rgba(92, 74, 62, 0); }
+  20%  { box-shadow: 0 0 0 8px rgba(92, 74, 62, 0); }
+  35%  { box-shadow: 0 0 0 0 rgba(92, 74, 62, 0); }
+  55%  { box-shadow: 0 0 0 10px rgba(92, 74, 62, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(92, 74, 62, 0); }
+}
+
+/* Respecte “réduire les animations” */
+@media (prefers-reduced-motion: reduce){
+  .btn-pulse, .btn-pulse::after{ animation: none !important; }
+}
