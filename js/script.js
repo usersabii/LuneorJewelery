@@ -1,3 +1,36 @@
+// === LIVRAISON (mobile only) ===============================================
+document.addEventListener('DOMContentLoaded', () => {
+  const links = document.querySelectorAll('.link-livraison'); // menu mobile
+  const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches; // ~breakpoint Bootstrap lg
+
+  const closeOffcanvas = () => {
+    const oc = document.getElementById('mobileMenu');
+    if (!oc || !window.bootstrap) return;
+    const inst = bootstrap.Offcanvas.getInstance(oc) || new bootstrap.Offcanvas(oc);
+    inst.hide();
+  };
+
+  const showOnlyLivraisonMobile = (e) => {
+    if (!isMobile()) return;         // sur desktop : on laisse le lien #livraison normal
+    e.preventDefault();              // empêche le jump
+    // cache toutes les sections SPA
+    document.querySelectorAll('.page-section').forEach(sec => {
+      sec.classList.add('hidden');
+      sec.setAttribute('aria-hidden', 'true');
+    });
+    // affiche la section livraison
+    const liv = document.getElementById('livraison');
+    if (liv) {
+      liv.classList.remove('hidden');
+      liv.setAttribute('aria-hidden', 'false');
+    }
+    closeOffcanvas();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  links.forEach(a => a.addEventListener('click', showOnlyLivraisonMobile));
+});
+
 
 
 /* === Animation + compteur pour .btn-add (sans rien casser) === */
@@ -2326,45 +2359,6 @@ function closeModal() {
 }
 
 
- /* Cartes Edahabia/CIB dans le MODAL d'achat */
-(() => {
-  const MODAL = '#buyNowModal';
-  const GROUP = 'buyPay';
-
-  function getVal(scope){
-    const r = (scope||document).querySelector(`input[name="${GROUP}"]:checked`);
-    return (r?.value || '').toLowerCase();
-  }
-  function toggle(scope){
-    scope = scope || document.querySelector(MODAL) || document;
-    const box = scope.querySelector(`.card-options[data-for="${GROUP}"]`);
-    if (!box) return;
-    const show = /^(card|carte)$/.test(getVal(scope));
-    box.classList.toggle('d-none', !show);
-    box.setAttribute('aria-hidden', show ? 'false' : 'true');
-  }
-
-  // Init si le modal est déjà là
-  if (document.querySelector(MODAL)) toggle();
-
-  // À l’ouverture (clic sur bouton qui cible le modal)
-  document.addEventListener('click', (e) => {
-    const t = e.target.closest(`[data-bs-target="${MODAL}"], a[href="${MODAL}"]`);
-    if (!t) return;
-    setTimeout(() => { toggle(); setTimeout(toggle, 100); }, 30);
-  }, true);
-
-  // Changement de méthode dans le modal
-  document.addEventListener('change', (e) => {
-    if (!(e.target instanceof HTMLInputElement)) return;
-    if (e.target.type !== 'radio' || e.target.name !== GROUP) return;
-    const scope = e.target.closest(MODAL);
-    toggle(scope);
-  });
-})();
-
-
-
 
 /* === PATCH: Sync des badges de panier (header + bulle) === */
 (function () {
@@ -2390,60 +2384,67 @@ function closeModal() {
 })();
 
 
+// ... juste après writeCart(list)
+const currentList = Array.isArray(list) ? list : (function () {
+  try { return JSON.parse(localStorage.getItem('cart') || '[]'); }
+  catch { return []; }
+})();
 
-// ... après writeCart(list)
-const totalQty = list.reduce((s, i) => s + Number(i.qty || 0), 0);
-window.updateCartBadges(totalQty);
+const totalQty = currentList.reduce((s, i) => s + Number(i.qty || 0), 0);
+if (typeof window.updateCartBadges === 'function') window.updateCartBadges(totalQty);
 
 
 
-/* === PATCH: Fly-to-cart -> cible la bulle en priorité === */
-(function () {
+
+/* === PATCH: cible = bulle sur mobile, sinon plus proche du point de départ === */
+(function(){
   'use strict';
 
-  // Helper: élément visible ?
-  function isVisible(el) {
+  function isVisible(el){
     if (!el) return false;
-    const r = el.getClientRects();
-    if (!r || !r.length) return false;
+    const rects = el.getClientRects();
+    if (!rects || !rects.length) return false;
     const cs = getComputedStyle(el);
-    return cs.visibility !== 'hidden' && cs.display !== 'none';
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
   }
 
-  // Trouver la meilleure cible (bulle mobile > header > fallback coin)
-  function getDestEl() {
-    const CANDIDATES = [
-      '#cart-bubble .cart-count', // ton span dans la bulle
-      '#cart-bubble',             // la bulle elle-même
-      '.cart-bubble .cart-count',
-      '.cart-bubble',
-      '#cart-count',              // si tu changes d’HTML plus tard
-      '#cartBadge',
-      '#js-cart-badge',
-      '.cart-badge',
-      '[data-cart-badge]'
+  // >>> remplace ton ancienne getDestEl par celle-ci
+  function getDestEl(startRect){
+    // 1) MOBILE (<= 992px) : TOUJOURS prioriser la bulle
+    const isMobile = window.matchMedia('(max-width: 991.98px)').matches;
+    const bubble = document.querySelector('#cart-bubble, .cart-bubble');
+    if (isMobile && bubble && isVisible(bubble)) return bubble;
+
+    // 2) Sinon, choisir le "cart" visible le PLUS PROCHE du point de départ
+    const selectors = [
+      '#cart-bubble .cart-count', '#cart-bubble', '.cart-bubble .cart-count', '.cart-bubble',
+      '#cart-count', '#cartBadge', '#js-cart-badge', '.cart-badge', '[data-cart-badge]'
     ];
-    for (const sel of CANDIDATES) {
+    let best = null, bestD = Infinity;
+    for (const sel of selectors){
       const el = document.querySelector(sel);
-      if (isVisible(el)) return el;
+      if (!isVisible(el)) continue;
+      const r = el.getBoundingClientRect();
+      const sx = startRect.left + startRect.width/2;
+      const sy = startRect.top  + startRect.height/2;
+      const dx = (r.left + r.width/2) - sx;
+      const dy = (r.top  + r.height/2) - sy;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestD){ bestD = d2; best = el; }
     }
-    return null;
+    return best; // peut être null → fallback coin en haut à droite
   }
 
-  // Re-écrit uniquement la partie "destination" de ton fly-to-cart
-  window.__flyToCart = function (startEl) {
-    const destEl = getDestEl();
+  // >>> remplace l’intérieur de __flyToCart pour lui passer startRect à getDestEl
+  window.__flyToCart = function(startEl){
     const start = (startEl && startEl.getBoundingClientRect) ? startEl : document.body;
     const srect = start.getBoundingClientRect();
-    let drect;
-    if (destEl) {
-      drect = destEl.getBoundingClientRect();
-    } else {
-      // fallback coin haut droit
-      drect = { left: innerWidth - 16, top: 16, width: 0, height: 0 };
-    }
 
-    // petit fantôme rond (ou clone image si tu préfères)
+    const destEl = getDestEl(srect);
+    const drect = destEl
+      ? destEl.getBoundingClientRect()
+      : { left: innerWidth - 16, top: 16, width: 0, height: 0 };
+
     const ghost = document.createElement('div');
     ghost.style.cssText = `
       position:fixed; left:${srect.left + srect.width/2 - 8}px; top:${srect.top + srect.height/2 - 8}px;
@@ -2456,28 +2457,26 @@ window.updateCartBadges(totalQty);
 
     const dx = (drect.left + drect.width/2) - (srect.left + srect.width/2);
     const dy = (drect.top  + drect.height/2) - (srect.top  + srect.height/2);
-    requestAnimationFrame(() => {
-      ghost.style.transform = `translate(${dx}px, ${dy}px) scale(.6)`;
+    requestAnimationFrame(()=>{
+      ghost.style.transform = `translate(${dx}px, ${dy}px) scale(.55)`;
       ghost.style.opacity = '0.2';
     });
 
-    setTimeout(() => {
-      try { ghost.remove(); } catch {}
-      if (destEl) {
+    setTimeout(()=>{
+      ghost.remove();
+      if (destEl){
         destEl.classList.add('cart-badge-pulse');
-        setTimeout(() => destEl.classList.remove('cart-badge-pulse'), 500);
+        setTimeout(()=> destEl.classList.remove('cart-badge-pulse'), 500);
       }
     }, 650);
   };
-
-  // Hook sur tous les boutons "Ajouter"
-  const ADD_SEL = '.js-add, .add-to-cart, .btn-add, [data-action="add-to-cart"]';
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest(ADD_SEL);
-    if (!btn) return;
-    try { window.__flyToCart(btn); } catch {}
-  }, true);
 })();
+
+  
+setTimeout(() => {
+  // recalcule et met à jour #cart-count + badges header
+  document.dispatchEvent(new Event('cart:changed')); // optionnel si tu l’écoutes
+}, 60);
 
 
 
@@ -2691,4 +2690,88 @@ window.updateCartBadges(totalQty);
   })();
 
   
- 
+/* ===== Catégories -> ouvrir Shop + filtrer par type ===== */
+(function () {
+  'use strict';
+
+  // Shop et grille : on accepte ID ou data-page pour être robustes
+  const SHOP_SEL = '#shop-section, [data-page="shop"]';
+  const GRID_SEL = '#products-grid, .products-grid';
+
+  // FR -> data-type des .product-card
+  const TYPE_MAP = {
+    'collier':'necklace','colliers':'necklace',
+    'bague':'ring','bagues':'ring',
+    'bracelet':'bracelet','bracelets':'bracelet',
+    'boucle':'earring','boucles':'earring',
+    "boucles d’oreilles":'earring',"boucles d'oreilles":'earring',
+    'parure':'set','parures':'set',
+    'cheville':'anklet','chaîne':'anklet','chaine':'anklet'
+  };
+
+  function getShop() {
+    return document.querySelector(SHOP_SEL);
+  }
+  function getGrid() {
+    return document.querySelector(GRID_SEL);
+  }
+
+  function showShop() {
+    // cache seulement les sections de page (pas le footer)
+    document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
+    const shop = getShop();
+    if (!shop) { console.warn('[cat] Section shop introuvable via', SHOP_SEL); return; }
+    shop.classList.remove('hidden');
+    shop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function filterByType(type) {
+    const grid = getGrid();
+    if (!grid) { console.warn('[cat] Grille introuvable via', GRID_SEL); return; }
+
+    let shown = 0;
+    grid.querySelectorAll('.product-card').forEach(card => {
+      const ok = !type || (card.dataset.type || '') === type;
+      // masque la colonne Bootstrap qui contient la card
+      const wrap = card.closest('.col-6, .col, [class*="col-"]') || card;
+      wrap.classList.toggle('d-none', !ok);
+      if (ok) shown++;
+    });
+    grid.classList.toggle('empty', shown === 0);
+  }
+
+  function handleCategory(raw) {
+    const key = String(raw || '').trim().toLowerCase();
+    const type = TYPE_MAP[key] || ''; // '' = tout
+    showShop();
+    filterByType(type);
+  }
+
+  // Un seul listener pour tout élément portant data-cat
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-cat]');
+    if (!el) return;
+    e.preventDefault();
+    handleCategory(el.getAttribute('data-cat'));
+  });
+
+  // Bouton "Shop" du header (montre tout)
+  const navShop = document.getElementById('nav-shop');
+  if (navShop) {
+    navShop.addEventListener('click', (e) => {
+      e.preventDefault();
+      showShop();
+      filterByType(''); // tout
+    });
+  }
+})();
+
+
+window.updateCartBadges = window.updateCartBadges || function (n) {
+  document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge], #cart-count')
+    .forEach(b => b.textContent = String(n));
+};
+
+
+
+

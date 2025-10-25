@@ -1950,3 +1950,18 @@ html {
 @media (prefers-reduced-motion: reduce){
   .btn-pulse, .btn-pulse::after{ animation: none !important; }
 }
+
+
+/* badge pulse après fly */
+.cart-badge-pulse{
+  animation: cartPulse .5s ease;
+}
+@keyframes cartPulse{
+  0%{ transform: scale(1); }
+  40%{ transform: scale(1.25); }
+  100%{ transform: scale(1); }
+}
+
+
+
+.page-section.hidden { display:none !important; }
