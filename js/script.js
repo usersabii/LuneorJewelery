@@ -2775,3 +2775,134 @@ window.updateCartBadges = window.updateCartBadges || function (n) {
 
 
 
+/* ========= CONFIG ========= */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec'; // remplace par ton URL
+let pendingItem = null;
+
+/* ========= Modal minimal (si tu en as déjà un, branche seulement l'écouteur "submit") ========= */
+function ensureCheckoutModal(){
+  let m = document.getElementById('checkoutModal');
+  if (m) return m;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+  <div id="checkoutModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:9999">
+    <form id="checkoutForm" style="background:#fff;padding:16px;border-radius:14px;max-width:420px;width:92%;display:grid;gap:8px">
+      <h3 style="margin:0 0 6px">Vos coordonnées</h3>
+      <input id="c_nom" placeholder="Nom" required>
+      <input id="c_prenom" placeholder="Prénom" required>
+      <input id="c_tel" placeholder="Téléphone" required>
+      <input id="c_email" type="email" placeholder="Email (optionnel)">
+      <input id="c_adresse" placeholder="Adresse (optionnel)">
+      <input id="c_qty" type="number" min="1" value="1" required>
+      <select id="c_payment">
+        <option value="COD">Paiement à la livraison</option>
+        <option value="Virement">Virement/CCP</option>
+      </select>
+      <select id="c_delivery">
+        <option value="Standard">Livraison Standard</option>
+        <option value="Express">Livraison Express</option>
+      </select>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button type="button" id="c_cancel">Annuler</button>
+        <button type="submit" id="c_submit" style="background:#111;color:#fff;border-radius:8px;padding:8px 12px">Confirmer la commande</button>
+      </div>
+      <small id="c_status" style="color:#666"></small>
+    </form>
+  </div>`;
+  document.body.appendChild(wrap.firstElementChild);
+  document.getElementById('c_cancel').onclick = () => (document.getElementById('checkoutModal').style.display='none');
+  return document.getElementById('checkoutModal');
+}
+
+/* ========= Clic sur "Acheter" : mémoriser l'article et ouvrir le modal ========= */
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.btn-buy');
+  if(!btn) return;
+
+  const card = btn.closest('.product-card') || document;
+  const title = (card.querySelector('.product-title')?.textContent || btn.dataset.name || 'Produit').trim();
+  const variant = card.querySelector('.product-variants .swatch.is-active .lab')?.textContent?.trim() || '';
+  const img = card.querySelector('.product-img')?.src || '';
+  const sku = btn.dataset.id || 'SKU_UNKNOWN';
+  const price = Number(btn.dataset.price || 0);
+
+  pendingItem = {
+    sku,
+    name: variant ? `${title} – ${variant}` : title,
+    variant: variant || '',
+    img,
+    unit_price: price
+  };
+
+  const modal = ensureCheckoutModal();
+  modal.style.display = 'flex';
+  modal.querySelector('#c_qty').value = 1;
+});
+
+/* ========= Envoi au format attendu par TON Apps Script ========= */
+document.addEventListener('submit', async (e)=>{
+  if (e.target.id !== 'checkoutForm') return;
+  e.preventDefault();
+  const f = e.target;
+  const status = f.querySelector('#c_status');
+  const submitBtn = f.querySelector('#c_submit');
+
+  if(!pendingItem){ status.textContent = 'Aucun article sélectionné.'; return; }
+
+  const qty = Math.max(1, Number(f.querySelector('#c_qty').value || 1));
+  const total = pendingItem.unit_price * qty;
+
+  const payload = {
+    __kind: 'order',                 // << clé que ton script attend
+    source: 'direct',                // 'cart' pour aller dans "CommandesPanier"
+    orderId: '',                     // optionnel (laisse vide pour qu’il génère un UUID)
+    client: {
+      nom:     f.querySelector('#c_nom').value.trim(),
+      prenom:  f.querySelector('#c_prenom').value.trim(),
+      email:   f.querySelector('#c_email').value.trim(),
+      telephone: f.querySelector('#c_tel').value.trim(),
+      adresse: f.querySelector('#c_adresse').value.trim()
+    },
+    payment:  f.querySelector('#c_payment').value,
+    delivery: f.querySelector('#c_delivery').value,
+    items: [
+      {
+        sku: pendingItem.sku,
+        name: pendingItem.name,
+        variant: pendingItem.variant,
+        img: pendingItem.img,
+        qty,
+        unit_price: pendingItem.unit_price,
+        total
+      }
+    ],
+    total
+  };
+
+  status.textContent = 'Envoi de votre commande…';
+  submitBtn.disabled = true;
+
+  try{
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if(res.ok && data.ok){
+      status.textContent = '✅ Commande reçue ! Nous vous contactons très vite.';
+      // fermer le modal un peu après
+      setTimeout(()=>{ document.getElementById('checkoutModal').style.display='none'; }, 900);
+      f.reset();
+      pendingItem = null;
+    } else {
+      throw new Error(data.error || 'Erreur serveur');
+    }
+  }catch(err){
+    console.error(err);
+    status.textContent = '❌ Impossible d’enregistrer la commande. Réessayez.';
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
