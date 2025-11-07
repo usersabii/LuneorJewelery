@@ -1962,6 +1962,13 @@ html {
   100%{ transform: scale(1); }
 }
 
-
-
 .page-section.hidden { display:none !important; }
+
+
+
+
+.product-variants{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0;}
+.swatch{border:1px solid #eee;border-radius:10px;padding:4px;background:#fff;cursor:pointer}
+.swatch.is-active{box-shadow:0.2 0.2 0.2 0.5px #000 inset}
+.swatch img{width:44px;height:44px;object-fit:cover;border-radius:8px;display:block}
+.swatch .lab{display:block;font-size:.75rem;margin-top:2px;color:#666;text-align:center}
