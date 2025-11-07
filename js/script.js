@@ -190,52 +190,6 @@ function renderBadge(){
         qty: Number(addBtn.dataset.qty || 1)
       });
     }
-     // qty
-const qty = Number(addBtn.dataset.qty || 1) || 1;
-
-// 1) Incrément OPTIMISTE immédiat (corrige le décalage du 1er clic)
-optimisticInc(qty);
-
-// 2) Appel addToCart (attend si async), puis sync réelle
-let maybePromise;
-if (typeof window.addToCart === 'function') {
-  maybePromise = window.addToCart({
-    id: addBtn.dataset.id,
-    name: addBtn.dataset.name,
-    price: Number(addBtn.dataset.price || 0),
-    img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-    qty
-  });
-} else {
-  // fallback: écrit dans localStorage puis notifie
-  bumpItem({
-    id: addBtn.dataset.id,
-    name: addBtn.dataset.name,
-    price: Number(addBtn.dataset.price || 0),
-    img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-    qty
-  });
-}
-
-// 3) Quand l’ajout est “vraiment” fini, on re-render pour être 100% synchro
-const sync = () => {
-  // petit délai pour laisser localStorage / état se mettre à jour si addToCart est sync
-  setTimeout(() => {
-    document.dispatchEvent(new CustomEvent('cart:updated'));
-    renderBadge();
-  }, 0);
-};
-
-if (maybePromise && typeof maybePromise.then === 'function') {
-  // addToCart est async → on attend
-  maybePromise.then(sync).catch(sync);
-} else {
-  // addToCart sync ou fallback → on sync au prochain tick
-  sync();
-}
-
-// 4) Animation
-flyToCart(imgEl, bubbleEl);
 
     // Animation
     flyToCart(imgEl, bubbleEl);
@@ -245,24 +199,63 @@ flyToCart(imgEl, bubbleEl);
   // .btn-add{ touch-action: manipulation; }
 })();
 
-// --- AJOUTER CES FONCTIONS ---
-function getDisplayedCount() {
-  const bubble = pickCartBubble(document.body);
-  if (!bubble) return null;
-  const el = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
-  if (!el) return null;
-  const n = parseInt(el.textContent || '0', 10);
-  return Number.isNaN(n) ? 0 : n;
+function getBubble(){
+  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble, #headerCart'));
+  return list.find(el => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+  }) || list[0] || null;
 }
-function optimisticInc(qty = 1) {
-  const bubble = pickCartBubble(document.body);
-  if (!bubble) return;
-  const el = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
-  if (!el) return;
-  const cur = getDisplayedCount() ?? 0;
-  el.textContent = cur + qty;
-  el.style.display = ''; // s’assurer qu’il est visible
+
+function ensureBadge(){
+  const bubble = getBubble();
+  if (!bubble) return { bubble:null, badge:null };
+
+  // cherche un compteur existant
+  let badge = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!badge) {
+    // s’il n’existe pas → on le crée
+    badge = document.createElement('span');
+    badge.setAttribute('data-cart-count', '');
+    badge.textContent = '0';
+    badge.style.position = 'absolute';
+    badge.style.top = '-6px';
+    badge.style.right = '-8px';
+    badge.style.minWidth = '1.25rem';
+    badge.style.lineHeight = '1.25rem';
+    badge.style.textAlign = 'center';
+    badge.style.borderRadius = '999px';
+    badge.style.fontSize = '.75rem';
+    badge.style.padding = '0 .35rem';
+    // s’assurer que le parent est positionné
+    const cs = getComputedStyle(bubble);
+    if (cs.position === 'static') bubble.style.position = 'relative';
+    bubble.appendChild(badge);
+  }
+  return { bubble, badge };
 }
+
+function readCart(){
+  try { return JSON.parse(localStorage.getItem('cart') || '[]'); }
+  catch { return []; }
+}
+function totalQty(){
+  return readCart().reduce((s, x) => s + (x.qty||0), 0);
+}
+
+function renderBadge(){
+  const { badge } = ensureBadge();
+  if (!badge) return;
+  const n = totalQty();
+  badge.textContent = n;
+  badge.style.display = n <= 0 ? 'none' : '';
+  // debug utile:
+  console.debug('[cart] renderBadge →', n);
+}
+
+
+
 
 
 
