@@ -190,6 +190,52 @@ function renderBadge(){
         qty: Number(addBtn.dataset.qty || 1)
       });
     }
+     // qty
+const qty = Number(addBtn.dataset.qty || 1) || 1;
+
+// 1) Incrément OPTIMISTE immédiat (corrige le décalage du 1er clic)
+optimisticInc(qty);
+
+// 2) Appel addToCart (attend si async), puis sync réelle
+let maybePromise;
+if (typeof window.addToCart === 'function') {
+  maybePromise = window.addToCart({
+    id: addBtn.dataset.id,
+    name: addBtn.dataset.name,
+    price: Number(addBtn.dataset.price || 0),
+    img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+    qty
+  });
+} else {
+  // fallback: écrit dans localStorage puis notifie
+  bumpItem({
+    id: addBtn.dataset.id,
+    name: addBtn.dataset.name,
+    price: Number(addBtn.dataset.price || 0),
+    img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+    qty
+  });
+}
+
+// 3) Quand l’ajout est “vraiment” fini, on re-render pour être 100% synchro
+const sync = () => {
+  // petit délai pour laisser localStorage / état se mettre à jour si addToCart est sync
+  setTimeout(() => {
+    document.dispatchEvent(new CustomEvent('cart:updated'));
+    renderBadge();
+  }, 0);
+};
+
+if (maybePromise && typeof maybePromise.then === 'function') {
+  // addToCart est async → on attend
+  maybePromise.then(sync).catch(sync);
+} else {
+  // addToCart sync ou fallback → on sync au prochain tick
+  sync();
+}
+
+// 4) Animation
+flyToCart(imgEl, bubbleEl);
 
     // Animation
     flyToCart(imgEl, bubbleEl);
@@ -198,6 +244,30 @@ function renderBadge(){
   // Petit style recommandé:
   // .btn-add{ touch-action: manipulation; }
 })();
+
+// --- AJOUTER CES FONCTIONS ---
+function getDisplayedCount() {
+  const bubble = pickCartBubble(document.body);
+  if (!bubble) return null;
+  const el = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!el) return null;
+  const n = parseInt(el.textContent || '0', 10);
+  return Number.isNaN(n) ? 0 : n;
+}
+function optimisticInc(qty = 1) {
+  const bubble = pickCartBubble(document.body);
+  if (!bubble) return;
+  const el = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!el) return;
+  const cur = getDisplayedCount() ?? 0;
+  el.textContent = cur + qty;
+  el.style.display = ''; // s’assurer qu’il est visible
+}
+
+
+
+
+
 
 
 // === Panier : helpers uniques (source de vérité) ===
