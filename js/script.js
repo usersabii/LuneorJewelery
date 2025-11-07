@@ -115,40 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function totalQty(){
     return readCart().reduce((s, x) => s + (x.qty||0), 0);
   }
-  // remplace pickCartBubble + renderBadge par ceci
-
-function pickCartBubble(btn){
-  const sel = btn?.dataset?.cartTarget;
-  if (sel) return document.querySelector(sel);
-  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble'));
-  // on prend la bulle visible
-  return list.find(el => {
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
-  }) || list[0] || null;
-}
-
-function renderBadge(){
-  // 1) On trouve la bulle
-  const bubble = pickCartBubble(document.body);
-  if (!bubble) return;
-
-  // 2) On trouve UNIQUEMENT l’élément compteur
-  const countEl = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
-  if (!countEl) return; // on ne touche jamais au conteneur/icone
-
-  const n = totalQty();
-  countEl.textContent = n;
-
-  // Montrer/cacher juste le COMPTEUR (pas le conteneur du panier)
-  if (n <= 0) {
-    countEl.style.display = 'none';
-  } else {
-    countEl.style.display = '';
+  function renderBadge(){
+    const bubble = pickCartBubble(document.body) || $('#cart-bubble');
+    if (!bubble) return;
+    const badge = bubble.querySelector('.badge, #cartBadge') || bubble;
+    const n = totalQty();
+    badge.textContent = n;
+    if ('hidden' in badge) badge.hidden = n <= 0;
   }
-}
-
   document.addEventListener('cart:updated', renderBadge);
   window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) renderBadge(); });
   document.addEventListener('DOMContentLoaded', renderBadge, { once:true });
@@ -198,69 +172,6 @@ function renderBadge(){
   // Petit style recommandé:
   // .btn-add{ touch-action: manipulation; }
 })();
-
-function getBubble(){
-  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble, #headerCart'));
-  return list.find(el => {
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
-  }) || list[0] || null;
-}
-
-function ensureBadge(){
-  const bubble = getBubble();
-  if (!bubble) return { bubble:null, badge:null };
-
-  // cherche un compteur existant
-  let badge = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
-  if (!badge) {
-    // s’il n’existe pas → on le crée
-    badge = document.createElement('span');
-    badge.setAttribute('data-cart-count', '');
-    badge.textContent = '0';
-    badge.style.position = 'absolute';
-    badge.style.top = '-6px';
-    badge.style.right = '-8px';
-    badge.style.minWidth = '1.25rem';
-    badge.style.lineHeight = '1.25rem';
-    badge.style.textAlign = 'center';
-    badge.style.borderRadius = '999px';
-    badge.style.fontSize = '.75rem';
-    badge.style.padding = '0 .35rem';
-    // s’assurer que le parent est positionné
-    const cs = getComputedStyle(bubble);
-    if (cs.position === 'static') bubble.style.position = 'relative';
-    bubble.appendChild(badge);
-  }
-  return { bubble, badge };
-}
-
-function readCart(){
-  try { return JSON.parse(localStorage.getItem('cart') || '[]'); }
-  catch { return []; }
-}
-function totalQty(){
-  return readCart().reduce((s, x) => s + (x.qty||0), 0);
-}
-
-function renderBadge(){
-  const { badge } = ensureBadge();
-  if (!badge) return;
-  const n = totalQty();
-  badge.textContent = n;
-  badge.style.display = n <= 0 ? 'none' : '';
-  // debug utile:
-  console.debug('[cart] renderBadge →', n);
-}
-
-
-
-
-
-
-
-
 
 
 // === Panier : helpers uniques (source de vérité) ===
