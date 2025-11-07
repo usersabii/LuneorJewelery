@@ -2906,3 +2906,73 @@ document.addEventListener('submit', async (e)=>{
     submitBtn.disabled = false;
   }
 });
+
+
+
+
+
+// === Compteur panier fiable (mobile & desktop) ===
+const STORAGE_KEY = 'cart.count';
+
+// localStorage safe (iOS privé, quotas, iframe…)
+function safeStorage() {
+  try {
+    localStorage.setItem('__t', '1'); localStorage.removeItem('__t');
+    return localStorage;
+  } catch (e) {
+    const mem = {};
+    return {
+      getItem: k => (k in mem ? mem[k] : null),
+      setItem: (k, v) => (mem[k] = String(v)),
+      removeItem: k => delete mem[k],
+    };
+  }
+}
+const store = safeStorage();
+
+const getCount = () => {
+  const v = parseInt(store.getItem(STORAGE_KEY) || '0', 10);
+  return Number.isNaN(v) ? 0 : v;
+};
+const setCount = n => {
+  store.setItem(STORAGE_KEY, String(Math.max(0, n)));
+  renderBadge();
+};
+const inc = (n = 1) => setCount(getCount() + n);
+
+function renderBadge() {
+  const b = document.getElementById('cartBadge');
+  if (!b) return;
+  const n = getCount();
+  b.textContent = n;
+  b.hidden = n <= 0;
+}
+
+// 1 seul écouteur global (évite click+touch doublons)
+document.addEventListener('DOMContentLoaded', () => {
+  renderBadge();
+
+  document.addEventListener(
+    'pointerup',
+    e => {
+      const btn = e.target.closest('[data-add-to-cart]');
+      if (!btn) return;
+
+      // Garde anti double-tap (certains mobiles tirent 2 events)
+      if (e.pointerType === 'touch') {
+        if (btn.dataset.busy === '1') return;
+        btn.dataset.busy = '1';
+        setTimeout(() => delete btn.dataset.busy, 300);
+      }
+
+      const qty = parseInt(btn.dataset.qty || '1', 10) || 1;
+      inc(qty);
+    },
+    { passive: true }
+  );
+}, { once: true });
+
+// (facultatif) sync entre onglets
+window.addEventListener('storage', e => {
+  if (e.key === STORAGE_KEY) renderBadge();
+});
