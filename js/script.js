@@ -33,13 +33,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-/* === Animation + compteur pour .btn-add (sans rien casser) === */
+/* === Animation + compteur pour .btn-add (mobile-safe) === */
 (function () {
-  // éviter d'attacher deux fois si tu reloads souvent
   if (window.__flyHooked) return;
   window.__flyHooked = true;
 
-  // 1) Animation d'aspiration vers la bulle
+  // ---------- Utils ----------
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const STORAGE_KEY = 'cart';
+
+  function visible(el){
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+  }
+
+  // Choisit la bonne bulle:
+  // 1) si le bouton fournit data-cart-target on l'utilise,
+  // 2) sinon on prend la bulle visible (ex: header sticky en mobile).
+  function pickCartBubble(btn){
+    const sel = btn?.dataset?.cartTarget;
+    if (sel) return $(sel);
+    const candidates = $$('.cart-bubble, #cart-bubble, [data-cart-bubble="1"]');
+    return candidates.find(visible) || candidates[0] || null;
+  }
+
+  // ---------- Animation ----------
   function flyToCart(sourceImgEl, bubbleEl) {
     if (!sourceImgEl || !bubbleEl) return;
 
@@ -47,69 +68,137 @@ document.addEventListener('DOMContentLoaded', () => {
     const r2 = bubbleEl.getBoundingClientRect();
 
     const ghost = sourceImgEl.cloneNode(true);
-    ghost.style.position = 'fixed';
-    ghost.style.left = r1.left + 'px';
-    ghost.style.top = r1.top + 'px';
-    ghost.style.width = sourceImgEl.clientWidth + 'px';
-    ghost.style.height = sourceImgEl.clientHeight + 'px';
-    ghost.style.borderRadius = '12px';
-    ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
-    ghost.style.zIndex = '9999';
-    ghost.style.pointerEvents = 'none';
+    Object.assign(ghost.style, {
+      position: 'fixed',
+      left: r1.left + 'px',
+      top:  r1.top  + 'px',
+      width:  r1.width + 'px',
+      height: r1.height + 'px',
+      borderRadius: '12px',
+      transition: 'transform .55s cubic-bezier(.22,.75,.2,1), opacity .55s',
+      zIndex: '9999',
+      pointerEvents: 'none',
+      margin: 0,
+      transform: 'translate3d(0,0,0)',
+      opacity: '1'
+    });
     document.body.appendChild(ghost);
 
     const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
     const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
+    const scale = Math.max(0.18, Math.min(0.4, r2.width / Math.max(r1.width, 1)));
 
     requestAnimationFrame(() => {
-      ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.18)`;
+      ghost.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
       ghost.style.opacity = '0.35';
     });
 
     ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
   }
 
-  // 3) Accroche sur tous les boutons .btn-add (délégation globale)
-  document.addEventListener('click', (e) => {
+  // ---------- Compteur / Bulle ----------
+  function readCart(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function writeCart(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    document.dispatchEvent(new CustomEvent('cart:updated')); // notifie la bulle
+  }
+  function bumpItem({id, name, price, img, qty=1}){
+    const cart = readCart();
+    const it = cart.find(x => x.id === id);
+    if (it) it.qty = (it.qty || 1) + qty;
+    else cart.push({ id, name, price, img, qty });
+    writeCart(cart);
+  }
+  function totalQty(){
+    return readCart().reduce((s, x) => s + (x.qty||0), 0);
+  }
+  // remplace pickCartBubble + renderBadge par ceci
+
+function pickCartBubble(btn){
+  const sel = btn?.dataset?.cartTarget;
+  if (sel) return document.querySelector(sel);
+  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble'));
+  // on prend la bulle visible
+  return list.find(el => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+  }) || list[0] || null;
+}
+
+function renderBadge(){
+  // 1) On trouve la bulle
+  const bubble = pickCartBubble(document.body);
+  if (!bubble) return;
+
+  // 2) On trouve UNIQUEMENT l’élément compteur
+  const countEl = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!countEl) return; // on ne touche jamais au conteneur/icone
+
+  const n = totalQty();
+  countEl.textContent = n;
+
+  // Montrer/cacher juste le COMPTEUR (pas le conteneur du panier)
+  if (n <= 0) {
+    countEl.style.display = 'none';
+  } else {
+    countEl.style.display = '';
+  }
+}
+
+  document.addEventListener('cart:updated', renderBadge);
+  window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) renderBadge(); });
+  document.addEventListener('DOMContentLoaded', renderBadge, { once:true });
+
+  // ---------- Listener global (anti double-tap) ----------
+  document.addEventListener('pointerup', (e) => {
     const addBtn = e.target.closest('.btn-add');
     if (!addBtn) return;
 
-    // Trouver l’image de la carte pour l’anim
-    const card = addBtn.closest('.product-card');
-    const imgEl = card?.querySelector('.product-img, img');
-    const bubbleEl = document.querySelector('.cart-bubble, #cart-bubble');
+    // Anti double tap iOS
+    if (e.pointerType === 'touch') {
+      if (addBtn.dataset.busy === '1') return;
+      addBtn.dataset.busy = '1';
+      setTimeout(() => delete addBtn.dataset.busy, 300);
+    }
 
-    // D’abord on ajoute au panier via ta fonction existante si elle existe
+    // Image source pour l'anim
+    const card  = addBtn.closest('.product-card');
+    const imgEl = (addBtn.dataset.flyImg && $(addBtn.dataset.flyImg)) || card?.querySelector('.product-img, img');
+    const bubbleEl = pickCartBubble(addBtn);
+
+    // Ajout au panier : on respecte ta fonction si elle existe
     if (typeof window.addToCart === 'function') {
       window.addToCart({
         id: addBtn.dataset.id,
         name: addBtn.dataset.name,
         price: Number(addBtn.dataset.price || 0),
         img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-        qty: 1
+        qty: Number(addBtn.dataset.qty || 1)
       });
+      // Si addToCart ne déclenche pas 'cart:updated', on peut forcer:
+      document.dispatchEvent(new CustomEvent('cart:updated'));
     } else {
-      // Fallback ultra léger qui ne perturbe pas ton code
-      let cart = [];
-      try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch(_) {}
-      const id = addBtn.dataset.id;
-      const found = cart.find(x => x.id === id);
-      if (found) found.qty = (found.qty || 1) + 1;
-      else cart.push({
-        id,
+      bumpItem({
+        id: addBtn.dataset.id,
         name: addBtn.dataset.name,
         price: Number(addBtn.dataset.price || 0),
         img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-        qty: 1
+        qty: Number(addBtn.dataset.qty || 1)
       });
-      localStorage.setItem('cart', JSON.stringify(cart));
     }
 
-
-    // Lance l’animation d’aspiration
+    // Animation
     flyToCart(imgEl, bubbleEl);
-  });
-  })();
+  }, { passive:true });
+
+  // Petit style recommandé:
+  // .btn-add{ touch-action: manipulation; }
+})();
+
 
 // === Panier : helpers uniques (source de vérité) ===
 (function () {
@@ -2905,74 +2994,4 @@ document.addEventListener('submit', async (e)=>{
   }finally{
     submitBtn.disabled = false;
   }
-});
-
-
-
-
-
-// === Compteur panier fiable (mobile & desktop) ===
-const STORAGE_KEY = 'cart.count';
-
-// localStorage safe (iOS privé, quotas, iframe…)
-function safeStorage() {
-  try {
-    localStorage.setItem('__t', '1'); localStorage.removeItem('__t');
-    return localStorage;
-  } catch (e) {
-    const mem = {};
-    return {
-      getItem: k => (k in mem ? mem[k] : null),
-      setItem: (k, v) => (mem[k] = String(v)),
-      removeItem: k => delete mem[k],
-    };
-  }
-}
-const store = safeStorage();
-
-const getCount = () => {
-  const v = parseInt(store.getItem(STORAGE_KEY) || '0', 10);
-  return Number.isNaN(v) ? 0 : v;
-};
-const setCount = n => {
-  store.setItem(STORAGE_KEY, String(Math.max(0, n)));
-  renderBadge();
-};
-const inc = (n = 1) => setCount(getCount() + n);
-
-function renderBadge() {
-  const b = document.getElementById('cartBadge');
-  if (!b) return;
-  const n = getCount();
-  b.textContent = n;
-  b.hidden = n <= 0;
-}
-
-// 1 seul écouteur global (évite click+touch doublons)
-document.addEventListener('DOMContentLoaded', () => {
-  renderBadge();
-
-  document.addEventListener(
-    'pointerup',
-    e => {
-      const btn = e.target.closest('[data-add-to-cart]');
-      if (!btn) return;
-
-      // Garde anti double-tap (certains mobiles tirent 2 events)
-      if (e.pointerType === 'touch') {
-        if (btn.dataset.busy === '1') return;
-        btn.dataset.busy = '1';
-        setTimeout(() => delete btn.dataset.busy, 300);
-      }
-
-      const qty = parseInt(btn.dataset.qty || '1', 10) || 1;
-      inc(qty);
-    },
-    { passive: true }
-  );
-}, { once: true });
-
-// (facultatif) sync entre onglets
-window.addEventListener('storage', e => {
-  if (e.key === STORAGE_KEY) renderBadge();
 });
