@@ -115,14 +115,40 @@ document.addEventListener('DOMContentLoaded', () => {
   function totalQty(){
     return readCart().reduce((s, x) => s + (x.qty||0), 0);
   }
-  function renderBadge(){
-    const bubble = pickCartBubble(document.body) || $('#cart-bubble');
-    if (!bubble) return;
-    const badge = bubble.querySelector('.badge, #cartBadge') || bubble;
-    const n = totalQty();
-    badge.textContent = n;
-    if ('hidden' in badge) badge.hidden = n <= 0;
+  // remplace pickCartBubble + renderBadge par ceci
+
+function pickCartBubble(btn){
+  const sel = btn?.dataset?.cartTarget;
+  if (sel) return document.querySelector(sel);
+  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble'));
+  // on prend la bulle visible
+  return list.find(el => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+  }) || list[0] || null;
+}
+
+function renderBadge(){
+  // 1) On trouve la bulle
+  const bubble = pickCartBubble(document.body);
+  if (!bubble) return;
+
+  // 2) On trouve UNIQUEMENT l’élément compteur
+  const countEl = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!countEl) return; // on ne touche jamais au conteneur/icone
+
+  const n = totalQty();
+  countEl.textContent = n;
+
+  // Montrer/cacher juste le COMPTEUR (pas le conteneur du panier)
+  if (n <= 0) {
+    countEl.style.display = 'none';
+  } else {
+    countEl.style.display = '';
   }
+}
+
   document.addEventListener('cart:updated', renderBadge);
   window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) renderBadge(); });
   document.addEventListener('DOMContentLoaded', renderBadge, { once:true });
