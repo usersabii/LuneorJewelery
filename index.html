@@ -151,7 +151,35 @@
                 </div>
             </div>
         </section>
-      
+        <section id="home-cats" class="section page-section" data-page="home">
+             <div class="container">
+                 <h2 class="mb-3">Découvrir par catégorie</h2>
+         
+                 <div class="cat-strip" role="list">
+                     <a href="#" class="cat-tile" data-category="necklace" role="listitem" aria-label="Voir nos colliers" onclick="(function(ev){ev&&ev.preventDefault();var s=document.getElementById('shop-section');if(!s)return false;var n=s;while(n&&n!==document.body){if(n.hasAttribute&&n.hasAttribute('hidden'))n.removeAttribute('hidden');if(n.classList){n.classList.remove('d-none','hidden');}if(n.style){n.style.setProperty('display','block','important');n.style.removeProperty('visibility');}n=n.parentNode;}document.querySelectorAll('[data-type]').forEach(function(c){var t=(c.getAttribute('data-type')||'').toLowerCase().split(',').map(function(x){return x.trim()});c.style.display=t.indexOf('necklace')>-1?'':'none';});return false;})(event)">
+                         <img class="cat-tile__bg" src="img/colliercadenas.png" alt="">
+                         <span class="cat-tile__title">Nos colliers</span>
+                     </a>     
+                     <a href="#" class="cat-tile" data-category="earring" role="listitem" aria-label="Voir les boucles d’oreilles" onclick="(function(ev){ev&&ev.preventDefault();var s=document.getElementById('shop-section');if(!s)return false;var n=s;while(n&&n!==document.body){if(n.hasAttribute&&n.hasAttribute('hidden'))n.removeAttribute('hidden');if(n.classList){n.classList.remove('d-none','hidden');}if(n.style){n.style.setProperty('display','block','important');n.style.removeProperty('visibility');}n=n.parentNode;}document.querySelectorAll('[data-type]').forEach(function(c){var t=(c.getAttribute('data-type')||'').toLowerCase().split(',').map(function(x){return x.trim()});c.style.display=t.indexOf('earring')>-1?'':'none';});return false;})(event)" >
+                         <img class="cat-tile__bg" src="img/boucled'oreillesplume.png" alt="">
+                         <span class="cat-tile__title">Boucles d’oreilles</span>
+                     </a>
+                     <a href="#" class="cat-tile" data-category="bracelet" role="listitem" aria-label="Voir les bracelets" onclick="(function(ev){ev&&ev.preventDefault();var s=document.getElementById('shop-section');if(!s)return false;var n=s;while(n&&n!==document.body){if(n.hasAttribute&&n.hasAttribute('hidden'))n.removeAttribute('hidden');if(n.classList){n.classList.remove('d-none','hidden');}if(n.style){n.style.setProperty('display','block','important');n.style.removeProperty('visibility');}n=n.parentNode;}document.querySelectorAll('[data-type]').forEach(function(c){var t=(c.getAttribute('data-type')||'').toLowerCase().split(',').map(function(x){return x.trim()});c.style.display=t.indexOf('bracelet')>-1?'':'none';});return false;})(event)">
+                          <img class="cat-tile__bg" src="img/gourmetteperleblanche.png" alt="">
+                         <span class="cat-tile__title">Bracelets</span>
+                     </a>
+                     <a href="#" class="cat-tile" data-category="set" role="listitem" aria-label="Voir les parures" onclick="(function(ev){ev&&ev.preventDefault();var s=document.getElementById('shop-section');if(!s)return false;var n=s;while(n&&n!==document.body){if(n.hasAttribute&&n.hasAttribute('hidden'))n.removeAttribute('hidden');if(n.classList){n.classList.remove('d-none','hidden');}if(n.style){n.style.setProperty('display','block','important');n.style.removeProperty('visibility');}n=n.parentNode;}document.querySelectorAll('[data-type]').forEach(function(c){var t=(c.getAttribute('data-type')||'').toLowerCase().split(',').map(function(x){return x.trim()});c.style.display=t.indexOf('set')>-1?'':'none';});return false;})(event)">
+                         <img class="cat-tile__bg" src="img/parruresamandeCB.png" alt="">
+                         <span class="cat-tile__title">Parures</span>
+                      </a>
+                      <a href="#" class="cat-tile" data-category="ring" role="listitem" aria-label="Voir les bagues" onclick="(function(ev){ev&&ev.preventDefault();var s=document.getElementById('shop-section');if(!s)return false;var n=s;while(n&&n!==document.body){if(n.hasAttribute&&n.hasAttribute('hidden'))n.removeAttribute('hidden');if(n.classList){n.classList.remove('d-none','hidden');}if(n.style){n.style.setProperty('display','block','important');n.style.removeProperty('visibility');}n=n.parentNode;}document.querySelectorAll('[data-type]').forEach(function(c){var t=(c.getAttribute('data-type')||'').toLowerCase().split(',').map(function(x){return x.trim()});c.style.display=t.indexOf('ring')>-1?'':'none';});return false;})(event)">
+                         <img class="cat-tile__bg" src="img/bagueetoile.png" alt="">
+                         <span class="cat-tile__title">Bagues</span>
+                      </a>
+                 </div>
+             </div>
+        </section>
+            
         <!-- Description -->
         <section id="description" class="d-flex flex-column flex-md-row align-items-center py-5 px-3 page-section" data-aos="fade-up" data-page="home">
            <div class="container">
@@ -193,35 +221,6 @@
                     <p>Garantie 30 jours ou remboursé.</p>
                 </div>
             </div>     
-      </section>
-          
-      <section id="home-cats" class="section page-section" data-page="home">
-         <div class="container">
-             <h2 class="mb-3">Découvrir par catégorie</h2>
-      
-             <div class="cat-strip" role="list">
-                 <a href="#" class="cat-tile" data-category="necklace" role="listitem" aria-label="Voir nos colliers" onclick="showShop(event)">
-                     <img class="cat-tile__bg" src="img/colliercadenas.png" alt="">
-                     <span class="cat-tile__title">Nos colliers</span>
-                 </a>     
-                 <a href="#" class="cat-tile" data-category="earring" role="listitem" aria-label="Voir les boucles d’oreilles">
-                     <img class="cat-tile__bg" src="img/boucled'oreillesplume.png" alt="">
-                     <span class="cat-tile__title">Boucles d’oreilles</span>
-                 </a>
-                 <a href="#" class="cat-tile" data-category="bracelet" role="listitem" aria-label="Voir les bracelets">
-                      <img class="cat-tile__bg" src="img/gourmetteperleblanche.png" alt="">
-                     <span class="cat-tile__title">Bracelets</span>
-                 </a>
-                 <a href="#" class="cat-tile" data-category="set" role="listitem" aria-label="Voir les parures">
-                     <img class="cat-tile__bg" src="img/parruresamandeCB.png" alt="">
-                     <span class="cat-tile__title">Parures</span>
-                  </a>
-                  <a href="#" class="cat-tile" data-category="ring" role="listitem" aria-label="Voir les bagues">
-                     <img class="cat-tile__bg" src="img/bagueetoile.png" alt="">
-                     <span class="cat-tile__title">Bagues</span>
-                 </a>
-             </div>
-          </div>
       </section>
       
       <script>
@@ -2463,6 +2462,7 @@
               <div class="toast-body" id="orderToastBody"></div>
          </div>
       </div>
+        
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
      <script>AOS.init({ duration: 800 });</script>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/4.0.12/fullpage.min.js"></script>

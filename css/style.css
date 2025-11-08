@@ -1972,3 +1972,7 @@ html {
 .swatch.is-active{box-shadow:0.2 0.2 0.2 0.5px #000 inset}
 .swatch img{width:44px;height:44px;object-fit:cover;border-radius:8px;display:block}
 .swatch .lab{display:block;font-size:.75rem;margin-top:2px;color:#666;text-align:center}
+
+
+/* cache proprement les cartes non concernées */
+.is-hidden { display: none !important; }
