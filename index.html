@@ -44,7 +44,7 @@
          <div class="marquee__track">
              <div class="marquee__group">
                  <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
-                 <span><i class="ms">payments</i> Paiement à la livraison ou par carte</span>
+                 <span><i class="ms">payments</i> Paiement à la livraison </span>
              </div>
              <div class="marquee__group" aria-hidden="true">
                  <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
@@ -2348,145 +2348,7 @@
             </div>
         </div>
      </section>
-     <script>
-         (function () {
-          'use strict';
-          if (window.__CART_MOBILE_SAFE__) return;
-          window.__CART_MOBILE_SAFE__ = true;
-        
-          var CART_KEY  = 'cart';               // tableau [{id, qty, ...}]
-          var COUNT_SEL = '#cart-count';        // <span id="cart-count">
-          var BTN_SEL   = '.btn-add, [data-add-to-cart]';
-        
-          function $(sel, root){ return (root||document).querySelector(sel); }
-        
-          // --- localStorage safe (iOS privé/quota) ---
-          var mem = window.__CART_MEM__ || (window.__CART_MEM__ = {});
-          var store = (function(){
-            try {
-              localStorage.setItem('__t','1'); localStorage.removeItem('__t');
-              return localStorage;
-            } catch(e) {
-              return {
-                getItem: function(k){ return (k in mem) ? mem[k] : null; },
-                setItem: function(k,v){ mem[k] = String(v); }
-              };
-            }
-          })();
-        
-          function readCart(){
-            try {
-              var raw = store.getItem(CART_KEY);
-              return raw ? JSON.parse(raw) : [];
-            } catch(e){ return []; }
-          }
-          function writeCart(arr){
-            try { store.setItem(CART_KEY, JSON.stringify(arr||[])); } catch(e){}
-            renderFromStorage();
-          }
-          function totalQty(){
-            var a = readCart(), i, s=0, q;
-            for(i=0;i<a.length;i++){
-              q = parseInt(a[i] && a[i].qty, 10);
-              s += isNaN(q) ? 0 : q;
-            }
-            return s;
-          }
-        
-          // --- Rendu depuis la source (storage ou mémoire) ---
-          function renderFromStorage(){
-            var el = $(COUNT_SEL);
-            if (!el) return;
-            el.textContent = String(totalQty());
-          }
-        
-          // --- Incrément immédiat (UI optimiste) ---
-          function optimisticInc(qty){
-            var el = $(COUNT_SEL);
-            if (!el) return;
-            var cur = parseInt(el.textContent || '0', 10); if (isNaN(cur)) cur = 0;
-            var q = parseInt(qty, 10); if (isNaN(q) || q<=0) q = 1;
-            el.textContent = String(cur + q);
-          }
-        
-          // --- Fallback ajout local (si pas de window.addToCart) ---
-          function addLocal(item){
-            var cart = readCart();
-            var i, it=null;
-            for(i=0;i<cart.length;i++){ if (cart[i] && cart[i].id === item.id){ it = cart[i]; break; } }
-            var q = parseInt(item.qty,10); if (isNaN(q) || q<=0) q = 1;
-            if (it){
-              var old = parseInt(it.qty,10); if (isNaN(old)) old = 0;
-              it.qty = old + q;
-            } else {
-              cart.push({ id:item.id, name:item.name||'', price:item.price||0, img:item.img||'', qty:q });
-            }
-            writeCart(cart);
-          }
-        
-          // --- Handler ajout (mobile-safe) ---
-          function onPointerUp(e){
-            // un seul handler, évite click+touch doublons
-            var btn = e.target && e.target.closest ? e.target.closest(BTN_SEL) : null;
-            if (!btn) return;
-        
-            // anti double-tap iOS
-            if (e.pointerType === 'touch' || 'ontouchstart' in window){
-              if (btn.getAttribute('data-busy') === '1') return;
-              btn.setAttribute('data-busy','1');
-              setTimeout(function(){ btn.removeAttribute('data-busy'); }, 300);
-            }
-        
-            var qty   = btn.getAttribute('data-qty') || '1';
-            var id    = btn.getAttribute('data-id') || '';
-            var name  = btn.getAttribute('data-name') || '';
-            var price = parseFloat(btn.getAttribute('data-price')||'0') || 0;
-            var img   = btn.getAttribute('data-img') || '';
-        
-            // 1) UI immédiate (corrige le “1er clic = 0”)
-            optimisticInc(qty);
-        
-            // 2) Ajout réel
-            try {
-              if (typeof window.addToCart === 'function'){
-                var ret = window.addToCart({ id:id, name:name, price:price, img:img, qty: parseInt(qty,10)||1 });
-                if (ret && typeof ret.then === 'function'){
-                  ret.then(renderFromStorage).catch(renderFromStorage);
-                } else {
-                  setTimeout(renderFromStorage, 0);
-                }
-              } else {
-                addLocal({ id:id, name:name, price:price, img:img, qty: qty });
-              }
-            } catch(err){
-              setTimeout(renderFromStorage, 0);
-            }
-          }
-        
-          // --- (iOS) bfcache / retour page / visibilite ---
-          function onPageShow(){ renderFromStorage(); }
-          function onVisibility(){ if (document.visibilityState === 'visible') renderFromStorage(); }
-        
-          // --- Init ---
-          document.addEventListener('DOMContentLoaded', function(){
-            // Si aucune clé, initialise à []
-            if (store.getItem(CART_KEY) == null) writeCart([]);
-            renderFromStorage();
-            // pointerup = fiable mobile & desktop
-            document.addEventListener('pointerup', onPointerUp, { passive:true });
-            // bfcache + visibilité (Safari/iOS)
-            window.addEventListener('pageshow', onPageShow, false);
-            document.addEventListener('visibilitychange', onVisibility, false);
-          }, { once:true });
-        
-          // sync inter-onglets (si storage dispo)
-          window.addEventListener('storage', function(ev){
-            if (ev && ev.key === CART_KEY) renderFromStorage();
-          }, false);
-        
-         })();
-        </script>
-        
+       
        <!-- Footer -->
        <footer class="footer">
           <div class="container grid-footer">
