@@ -33,92 +33,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-/* === Luneor Cart (unique bundle) ===
-   - Compteur immédiat sur #cart-count
-   - Fallback panier localStorage (clé: 'cart')
-   - Animation fly-to-cart
-   - Mobile-safe (pointerup + anti double-tap)
-   - Aucun doublon d'écouteurs
-*/
+/* === Animation + compteur pour .btn-add (mobile-safe) === */
 (function () {
-  if (window.__LuneorCartInit) return;
-  window.__LuneorCartInit = true;
+  if (window.__flyHooked) return;
+  window.__flyHooked = true;
 
-  // --------- CONFIG ----------
-  const CART_KEY = 'cart'; // panier (array d'items)
-  const BUBBLE_SEL = '#cart-bubble';
-  const COUNT_SEL  = '#cart-bubble .cart-count';
-
-  // --------- HELPERS ----------
+  // ---------- Utils ----------
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const STORAGE_KEY = 'cart';
 
-  // localStorage safe (iOS privé)
-  const store = (() => {
-    try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return localStorage; }
-    catch { const m={}; return { getItem:k=>m[k]??null, setItem:(k,v)=>m[k]=String(v) }; }
-  })();
-
-  function readCart() {
-    try { return JSON.parse(store.getItem(CART_KEY) || '[]'); }
-    catch { return []; }
-  }
-  function writeCart(arr) {
-    store.setItem(CART_KEY, JSON.stringify(arr || []));
-    document.dispatchEvent(new CustomEvent('cart:updated'));
-  }
-  function addToLocalCart({id, name, price, img, qty=1}) {
-    const cart = readCart();
-    const it = cart.find(x => x.id === id);
-    if (it) it.qty = (parseInt(it.qty||1,10) + parseInt(qty||1,10));
-    else cart.push({ id, name, price, img, qty: parseInt(qty||1,10) });
-    writeCart(cart);
-  }
-  function totalQty() {
-    return readCart().reduce((s, x) => s + (parseInt(x.qty,10) || 0), 0);
-  }
-
-  // --------- COMPTEUR (ton HTML exact) ----------
-  function getCountEl() { return $(COUNT_SEL); }
-  function renderCount() {
-    const el = getCountEl();
-    if (!el) return;
-    const n = totalQty();
-    el.textContent = String(n);
-    // on ne masque pas le bouton panier (tu le gères en CSS si besoin)
-  }
-  function optimisticInc(qty) {
-    const el = getCountEl();
-    if (!el) return;
-    const cur = parseInt(el.textContent || '0', 10); 
-    const safeCur = Number.isNaN(cur) ? 0 : cur;
-    el.textContent = String(safeCur + (parseInt(qty||1,10) || 1));
-  }
-
-  // --------- CIBLE BULLE + IMAGE ----------
   function visible(el){
     if (!el) return false;
     const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
-  }
-  function pickCartBubble(btn){
-    const sel = btn?.dataset?.cartTarget || BUBBLE_SEL;
-    const candidate = $(sel);
-    if (candidate && visible(candidate)) return candidate;
-    const list = $$('.cart-bubble, #cart-bubble, [data-cart-bubble="1"]');
-    return list.find(visible) || $(BUBBLE_SEL) || list[0] || null;
-  }
-  function pickFlyImg(btn) {
-    const sel = btn?.dataset?.flyImg;
-    if (sel) return $(sel);
-    const card = btn.closest('.product-card');
-    return card?.querySelector('.product-img, img') || null;
+    const style = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
   }
 
-  // --------- ANIMATION ----------
+  // Choisit la bonne bulle:
+  // 1) si le bouton fournit data-cart-target on l'utilise,
+  // 2) sinon on prend la bulle visible (ex: header sticky en mobile).
+  function pickCartBubble(btn){
+    const sel = btn?.dataset?.cartTarget;
+    if (sel) return $(sel);
+    const candidates = $$('.cart-bubble, #cart-bubble, [data-cart-bubble="1"]');
+    return candidates.find(visible) || candidates[0] || null;
+  }
+
+  // ---------- Animation ----------
   function flyToCart(sourceImgEl, bubbleEl) {
     if (!sourceImgEl || !bubbleEl) return;
+
     const r1 = sourceImgEl.getBoundingClientRect();
     const r2 = bubbleEl.getBoundingClientRect();
 
@@ -131,85 +76,276 @@ document.addEventListener('DOMContentLoaded', () => {
       height: r1.height + 'px',
       borderRadius: '12px',
       transition: 'transform .55s cubic-bezier(.22,.75,.2,1), opacity .55s',
-      zIndex: 9999,
-      pointerEvents:'none',
+      zIndex: '9999',
+      pointerEvents: 'none',
       margin: 0,
-      transform:'translate3d(0,0,0)',
+      transform: 'translate3d(0,0,0)',
       opacity: '1'
     });
     document.body.appendChild(ghost);
 
     const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
     const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
-    const scale = Math.max(0.18, Math.min(0.4, r2.width / Math.max(r1.width,1)));
+    const scale = Math.max(0.18, Math.min(0.4, r2.width / Math.max(r1.width, 1)));
 
     requestAnimationFrame(() => {
       ghost.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
       ghost.style.opacity = '0.35';
     });
-    ghost.addEventListener('transitionend', () => ghost.remove(), { once:true });
+
+    ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
   }
 
-  // --------- INIT COMPTEUR AU CHARGEMENT ----------
+  // ---------- Compteur / Bulle ----------
+  function readCart(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function writeCart(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    document.dispatchEvent(new CustomEvent('cart:updated')); // notifie la bulle
+  }
+  function bumpItem({id, name, price, img, qty=1}){
+    const cart = readCart();
+    const it = cart.find(x => x.id === id);
+    if (it) it.qty = (it.qty || 1) + qty;
+    else cart.push({ id, name, price, img, qty });
+    writeCart(cart);
+  }
+  function totalQty(){
+    return readCart().reduce((s, x) => s + (x.qty||0), 0);
+  }
+  // remplace pickCartBubble + renderBadge par ceci
+
+function pickCartBubble(btn){
+  const sel = btn?.dataset?.cartTarget;
+  if (sel) return document.querySelector(sel);
+  const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], .cart-bubble, #cart-bubble'));
+  // on prend la bulle visible
+  return list.find(el => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+  }) || list[0] || null;
+}
+
+function renderBadge(){
+  // 1) On trouve la bulle
+  const bubble = pickCartBubble(document.body);
+  if (!bubble) return;
+
+  // 2) On trouve UNIQUEMENT l’élément compteur
+  const countEl = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+  if (!countEl) return; // on ne touche jamais au conteneur/icone
+
+  const n = totalQty();
+  countEl.textContent = n;
+
+  // Montrer/cacher juste le COMPTEUR (pas le conteneur du panier)
+  if (n <= 0) {
+    countEl.style.display = 'none';
+  } else {
+    countEl.style.display = '';
+  }
+}
+
+  document.addEventListener('cart:updated', renderBadge);
+  window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) renderBadge(); });
+  document.addEventListener('DOMContentLoaded', renderBadge, { once:true });
+
+  // ---------- Listener global (anti double-tap) ----------
+  document.addEventListener('pointerup', (e) => {
+    const addBtn = e.target.closest('.btn-add');
+    if (!addBtn) return;
+
+    // Anti double tap iOS
+    if (e.pointerType === 'touch') {
+      if (addBtn.dataset.busy === '1') return;
+      addBtn.dataset.busy = '1';
+      setTimeout(() => delete addBtn.dataset.busy, 300);
+    }
+
+    // Image source pour l'anim
+    const card  = addBtn.closest('.product-card');
+    const imgEl = (addBtn.dataset.flyImg && $(addBtn.dataset.flyImg)) || card?.querySelector('.product-img, img');
+    const bubbleEl = pickCartBubble(addBtn);
+
+    // Ajout au panier : on respecte ta fonction si elle existe
+    if (typeof window.addToCart === 'function') {
+      window.addToCart({
+        id: addBtn.dataset.id,
+        name: addBtn.dataset.name,
+        price: Number(addBtn.dataset.price || 0),
+        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+        qty: Number(addBtn.dataset.qty || 1)
+      });
+      // Si addToCart ne déclenche pas 'cart:updated', on peut forcer:
+      document.dispatchEvent(new CustomEvent('cart:updated'));
+    } else {
+      bumpItem({
+        id: addBtn.dataset.id,
+        name: addBtn.dataset.name,
+        price: Number(addBtn.dataset.price || 0),
+        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
+        qty: Number(addBtn.dataset.qty || 1)
+      });
+    }
+
+    // Animation
+    flyToCart(imgEl, bubbleEl);
+  }, { passive:true });
+
+  // Petit style recommandé:
+  // .btn-add{ touch-action: manipulation; }
+})();
+
+
+// === Panier : helpers uniques (source de vérité) ===
+(function () {
+  const STORAGE_KEY = 'cart';
+
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function setCart(arr) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr || []));
+    updateCartBubble(arr);
+  }
+
+  function updateCartBubble(cart) {
+    cart = Array.isArray(cart) ? cart : getCart();
+    const total = cart.reduce((s, it) => s + (parseInt(it.qty, 10) > 0 ? parseInt(it.qty, 10) : 1), 0);
+    const el = document.querySelector('.cart-count'); // <span class="cart-count" id="cart-count">
+    if (el) el.textContent = String(total); // affiche 0 si panier vide
+  }
+
+  // Init au chargement : crée [] si absent et affiche 0
   document.addEventListener('DOMContentLoaded', () => {
-    // n’efface PAS le panier au reload : on persiste
-    if (!store.getItem(CART_KEY)) writeCart([]); // init si absent
-    renderCount();
-  }, { once:true });
+    if (!localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STORAGE_KEY, '[]');
+    updateCartBubble(); // démarre bien à 0
+  });
 
-  // sync entre onglets
-  window.addEventListener('storage', e => { if (e.key === CART_KEY) renderCount(); });
-  document.addEventListener('cart:updated', renderCount);
+  // Expose proprement
+  window.getCart = getCart;
+  window.setCart = setCart;
+  window.updateCartBubble = updateCartBubble;
+})();
 
-  // --------- LISTENER UNIQUE D’AJOUT ----------
+// --- Démarrer le panier à 0 à CHAQUE rechargement ---
+(function () {
+  const STORAGE_KEY = 'cart';
+  const RESET_CART_ON_EVERY_LOAD = true; // mets false si un jour tu veux persister
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (RESET_CART_ON_EVERY_LOAD) {
+      // Vide le panier à chaque reload => bulle = 0
+      localStorage.setItem(STORAGE_KEY, '[]');
+    } else if (!localStorage.getItem(STORAGE_KEY)) {
+      // (mode persistant) initialise seulement s'il n'existe pas
+      localStorage.setItem(STORAGE_KEY, '[]');
+    }
+    // force l’affichage du compteur (sera 0 juste après le set([]))
+    if (typeof window.updateCartBubble === 'function') {
+      window.updateCartBubble([]);
+    }
+  });
+})();
+
+
+/* ===== Compteur panier instantané (mobile + desktop) ===== */
+(function(){
+  if (window.__cartCountHooked) return;
+  window.__cartCountHooked = true;
+
+  const KEY = 'cart.count';
+
+  // Sélecteurs robustes
+  function getBubble(){
+    const list = Array.from(document.querySelectorAll('[data-cart-bubble="1"], #headerCart, .cart-bubble, #cart-bubble'));
+    return list.find(el => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+    }) || list[0] || null;
+  }
+  function ensureBadge(){
+    const bubble = getBubble();
+    if (!bubble) return {bubble:null, badge:null};
+    let badge = bubble.querySelector('[data-cart-count], #cartBadge, .badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.setAttribute('data-cart-count','');
+      badge.textContent = '0';
+      const cs = getComputedStyle(bubble);
+      if (cs.position === 'static') bubble.style.position = 'relative';
+      Object.assign(badge.style, {
+        position:'absolute', top:'-6px', right:'-8px',
+        minWidth:'1.25rem', lineHeight:'1.25rem', textAlign:'center',
+        borderRadius:'999px', fontSize:'.75rem', padding:'0 .35rem'
+      });
+      bubble.appendChild(badge);
+    }
+    return {bubble, badge};
+  }
+
+  // Storage safe (iOS privé)
+  const store = (()=>{ try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return localStorage; }
+    catch{ const m={}; return {getItem:k=>m[k]??null,setItem:(k,v)=>m[k]=String(v)}; } })();
+
+  const read = () => {
+    const n = parseInt(store.getItem(KEY) || '0', 10);
+    return Number.isNaN(n) ? 0 : n;
+  };
+  const write = (n) => store.setItem(KEY, String(Math.max(0,n)));
+
+  function render(){
+    const { badge } = ensureBadge();
+    if (!badge) return;
+    const n = read();
+    badge.textContent = n;
+    badge.style.display = n<=0 ? 'none' : '';
+  }
+
+  // Incrément **instantané** au 1er clic, puis persist
+  function increment(qty){
+    qty = Number(qty||1) || 1;
+
+    // 1) UI optimiste (immédiate)
+    const { badge } = ensureBadge();
+    if (badge) {
+      const cur = parseInt(badge.textContent || '0', 10) || 0;
+      const next = cur + qty;
+      badge.textContent = next;
+      badge.style.display = '';
+    }
+
+    // 2) Persistance immédiate + re-sync au tick suivant
+    const current = read();
+    write(current + qty);
+    setTimeout(render, 0);
+  }
+
+  // Initial render
+  document.addEventListener('DOMContentLoaded', render, {once:true});
+  window.addEventListener('storage', e => { if (e.key === KEY) render(); });
+
+  // Un seul listener global (évite doublons click/touch)
   document.addEventListener('pointerup', (e) => {
     const btn = e.target.closest('.btn-add');
     if (!btn) return;
 
-    // anti double-tap iOS
+    // Anti double-tap iOS
     if (e.pointerType === 'touch') {
       if (btn.dataset.busy === '1') return;
       btn.dataset.busy = '1';
       setTimeout(() => delete btn.dataset.busy, 300);
     }
 
-    const qty  = parseInt(btn.dataset.qty || '1', 10) || 1;
-    const id   = btn.dataset.id   || '';
-    const name = btn.dataset.name || '';
-    const price= Number(btn.dataset.price || 0);
-    const imgEl= pickFlyImg(btn);
-    const img  = btn.dataset.img || (imgEl?.getAttribute?.('src') || '');
-
-    // 1) UI immédiate (corrige le "1er clic = 0")
-    optimisticInc(qty);
-
-    // 2) Ajout au panier
-    let maybePromise;
-    if (typeof window.addToCart === 'function') {
-      // Si tu as déjà une fonction métier, on la respecte
-      maybePromise = window.addToCart({ id, name, price, img, qty });
-    } else {
-      // Fallback local
-      addToLocalCart({ id, name, price, img, qty });
-    }
-
-    // 3) Re-sync quand c'est fini (ou au tick suivant si sync)
-    const sync = () => setTimeout(renderCount, 0);
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      maybePromise.then(sync).catch(sync);
-    } else {
-      sync();
-    }
-
-    // 4) Animation
-    const bubbleEl = pickCartBubble(btn);
-    flyToCart(imgEl, bubbleEl);
-  }, { passive:true });
-
-  // --------- CONSEIL CSS (optionnel) ----------
-  // .btn-add { touch-action: manipulation; }
+    increment(btn.dataset.qty || 1);
+  }, {passive:true});
 })();
-
 
 
 
