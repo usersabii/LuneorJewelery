@@ -17,28 +17,6 @@
      <link rel="stylesheet" href="css/style.css?v=47"/>
  </head>
  <body>
-     <!-- Modal de création de compte -->
-     <div id="account-modal" class="modal fade show d-block" tabindex="-1">
-         <div class="modal-dialog modal-dialog-centered">
-             <div class="modal-content">
-                 <div class="modal-header">
-                     <h5 class="modal-title">Créer un compte</h5>
-                     <button type="button" class="btn-close" id="modal-close"></button>
-                 </div>
-                 <div class="modal-body">
-                     <form id="account-form">
-                         <div class="mb-3"><input type="text" class="form-control" name="nom" placeholder="Nom" required></div>
-                         <div class="mb-3"><input type="text" class="form-control" name="prenom" placeholder="Prénom" required></div>
-                         <div class="mb-3"><input type="email" class="form-control" name="email" placeholder="Email" required></div>
-                         <div class="mb-3"><input type="password" class="form-control" name="mdp" placeholder="Mot de passe" required></div>
-                         <div class="mb-3"><input type="tel" class="form-control" name="telephone" placeholder="Numéro de téléphone" required></div>
-                         <div class="mb-3"><input type="text" class="form-control" name="adresse" placeholder="Adresse exacte" required></div>
-                         <button type="submit" class="btn btn-gold w-100">S'inscrire</button>
-                     </form>
-                 </div>
-              </div>
-         </div>
-      </div>
      <!-- TRUSTBAR MARQUEE -->
      <div class="trustbar marquee" style="--speed: 22s" aria-label="Infos livraison et paiement">
          <div class="marquee__track">
@@ -73,7 +51,6 @@
              </ul>
          </nav>
          <div class="d-flex align-items-center gap-2">
-             <button class="btn btn-link-dark me-2 ms-5"><u>AR</u></button>
              <i class="bi bi-person-circle fs-4"></i>
          </div>
       </header>
@@ -2412,7 +2389,40 @@
                              <span>Prix unitaire :</span>
                              <strong id="buyModalPrice">DA0</strong>
                          </div>
-      
+                         <!-- FORMULAIRE CLIENT -->
+                         <form id="orderForm" class="order-form mt-4">                         
+                             <h5 class="mb-3">Informations du client</h5>
+                             <div class="row g-3">
+                                 <div class="col-md-6">
+                                     <label class="form-label">Nom complet</label>
+                                     <input type="text" class="form-control" name="name" required>
+                                 </div>
+                                  <div class="col-md-6">
+                                     <label class="form-label">Numéro de téléphone</label>
+                                     <input type="tel" class="form-control" name="phone" required>
+                                 </div>
+                                 <div class="col-12">
+                                     <label class="form-label">Adresse complète</label>
+                                     <input type="text" class="form-control" name="address" required>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <label class="form-label">Wilaya</label>
+                                     <input type="text" class="form-control" name="wilaya" required>
+                                 </div>
+                                 <div class="col-md-6">
+                                     <label class="form-label">Commune</label>
+                                     <input type="text" class="form-control" name="commune" required>
+                                 </div>
+                             </div>
+                                <!-- Champs cachés que tu vas remplir en JS -->
+                              <input type="hidden" name="product">
+                              <input type="hidden" name="unitPrice">
+                              <input type="hidden" name="quantity">
+                              <input type="hidden" name="total">
+                              <input type="hidden" name="payment">
+                              <input type="hidden" name="delivery">
+                         </form>
+
                          <div class="qty-line">
                               <label>Quantité</label>
                               <div class="qty">

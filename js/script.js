@@ -198,103 +198,7 @@ window.flyToCart = function(sourceImgEl){
   setTimeout(()=> ghost.remove(), 650);
 };
 
-document.addEventListener('DOMContentLoaded', updateCartBubble);
-// #account-form : ENVOIE seulement à l’inscription
-document.getElementById('account-form')?.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const form = e.currentTarget;
-  const payload = Object.fromEntries(new FormData(form));
-  console.log('[signup] payload', payload);
 
-  try{
-    const r = await fetch('/.netlify/functions/signup', {
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(payload)
-    });
-    const txt = await r.text();
-    console.log('[signup] resp', txt);
-    if(!r.ok) throw new Error(txt);
-
-    // mémoriser le profil pour la commande
-    localStorage.setItem('signupProfile', JSON.stringify(payload));
-
-    // fermer le modal d’inscription si Bootstrap
-    bootstrap.Modal.getInstance(document.getElementById('account-modal'))?.hide();
-  }catch(err){
-    alert('Inscription échouée : ' + err.message);
-  }
-});
-
-// Récupère le modal, le bouton de fermeture et le formulaire
-const modal        = document.getElementById('account-modal');
-const closeBtn     = document.getElementById('modal-close');
-const accountForm  = document.getElementById('account-form');
-
-// Fonction utilitaire pour fermer le modal
-function hideModal() {
-  modal.classList.remove('show', 'd-block');
-}
-
-// À l’ouverture de la page, on affiche le modal seulement si on n'a pas encore créé de compte
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('accountCreated')) {
-    modal.classList.add('show', 'd-block');
-  }
-});
-
-// 1) Ferme le modal quand on clique sur la croix
-closeBtn.addEventListener('click', () => {
-  hideModal();
-});
-
-function doGet(e) {
-  const sh = SpreadsheetApp
-               .getActiveSpreadsheet()
-               .getSheetByName('Inscriptions');
-  sh.appendRow([
-    e.parameter.nom||'', 
-    e.parameter.prenom||'', 
-    e.parameter.email||'', 
-    e.parameter.telephone||'', 
-    e.parameter.adresse||'', 
-    new Date()
-  ]);
-  return ContentService
-    .createTextOutput('OK');
-}
-
-function doGet(e){
-  const r = e.parameter?.r || '';
-  if (r === 'return') {
-    // Page de remerciement simple (le front pourra rediriger ici)
-    const orderId = e.parameter?.orderId || '';
-    const html = HtmlService.createHtmlOutput(
-      `<meta charset="utf-8">
-       <style>body{font-family:sans-serif;padding:24px}</style>
-       <h2>Merci !</h2>
-       <p>Numéro de commande: <b>${orderId}</b></p>
-       <p>Nous vérifions votre paiement…</p>
-       <script>
-         // Ping le backend pour l'état
-         fetch('${webAppBase()}',{method:'POST',headers:{'Content-Type':'application/json'},
-           body: JSON.stringify({__kind:'pay_status', orderId:'${orderId}'})
-         }).then(r=>r.json()).then(d=>{
-           document.body.insertAdjacentHTML('beforeend',
-             '<p>Statut: <b>'+ (d.status||'inconnu') +'</b></p>');
-         }).catch(()=>{});
-       </script>`
-    );
-    return html;
-  }
-  if (r === 'notify') {
-    // Dans la vraie intégration, le PSP enverra un POST signé.
-    // Ici on accepte aussi GET pour la démonstration.
-    return payNotify_(e);
-  }
-  return ContentService.createTextOutput(JSON.stringify({ok:true,note:'POST uniquement'}))
-        .setMimeType(ContentService.MimeType.JSON);
-}
 
 function doPost(e){
   try{
@@ -360,22 +264,6 @@ function doPost(e){
   }
 }
 
-accountForm.addEventListener('submit', e => {
-  e.preventDefault();
-  // transforme le form en query string
-  const params = new URLSearchParams(new FormData(e.target)).toString();
-  // en GET & no-cors pour ne pas déclencher de preflight
-  fetch('https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec' + params, {
-    method: 'GET',
-    mode: 'no-cors'
-  })
-  .then(() => {
-    localStorage.setItem('accountCreated','true');
-    hideModal();
-    alert('Inscription enregistrée !');
-  })
-  .catch(err => console.error(err));
-});
 
 document.querySelectorAll('.btn-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2907,3 +2795,141 @@ document.addEventListener('submit', async (e)=>{
   }
 });
 
+
+
+/* -------------------------------------------------
+   BUY MODAL – GESTION COMPLÈTE
+--------------------------------------------------*/
+
+// Sélecteurs principaux
+const qtyInput = document.getElementById('qtyInput');
+const qtyPlus = document.getElementById('qtyPlus');
+const qtyMinus = document.getElementById('qtyMinus');
+const priceSpan = document.getElementById('buyModalPrice');
+const totalSpan = document.getElementById('buyModalTotal');
+const deliverySelect = document.getElementById('deliverySelect');
+const deliveryEta = document.getElementById('deliveryEta');
+const confirmBtn = document.getElementById('confirmBuyBtn');
+const orderForm = document.getElementById('orderForm');
+
+// Champs cachés
+const hiddenProduct = orderForm.querySelector('input[name="product"]');
+const hiddenUnitPrice = orderForm.querySelector('input[name="unitPrice"]');
+const hiddenQty = orderForm.querySelector('input[name="quantity"]');
+const hiddenTotal = orderForm.querySelector('input[name="total"]');
+const hiddenPayment = orderForm.querySelector('input[name="payment"]');
+const hiddenDelivery = orderForm.querySelector('input[name="delivery"]');
+
+// Toast
+const orderToast = new bootstrap.Toast(document.getElementById('orderToast'));
+const orderToastBody = document.getElementById('orderToastBody');
+
+// Variables internes
+let unitPrice = 0;
+let productName = "";
+
+/* -------------------------------------------------
+   OUVERTURE DU BUY MODAL
+   Appelée quand on clique "Acheter maintenant"
+--------------------------------------------------*/
+window.openBuyModal = function (product, price, imgSrc) {
+
+    // Remplir infos visibles
+    document.getElementById('buyModalTitle').innerText = product;
+    document.getElementById('buyModalImg').src = imgSrc;
+    priceSpan.innerText = price + " DA";
+
+    // Enregistrer pour calculs
+    unitPrice = parseInt(price);
+    productName = product;
+
+    // Reset quantité
+    qtyInput.value = 1;
+    calcTotal();
+
+    // Reset livraison
+    deliverySelect.value = "standard";
+    updateEta();
+};
+
+/* -------------------------------------------------
+   CALCUL TOTAL
+--------------------------------------------------*/
+function calcTotal() {
+    const qty = parseInt(qtyInput.value);
+    const total = qty * unitPrice;
+    totalSpan.innerText = total + " DA";
+    return total;
+}
+
+/* -------------------------------------------------
+   METTRE À JOUR L'ESTIMATION LIVRAISON
+--------------------------------------------------*/
+function updateEta() {
+    const opt = deliverySelect.selectedOptions[0];
+    const days = opt.dataset.days;
+    deliveryEta.innerText = "Estimation : " + days + ".";
+}
+
+/* -------------------------------------------------
+   BOUTONS + ET -
+--------------------------------------------------*/
+qtyPlus.addEventListener('click', () => {
+    qtyInput.value = parseInt(qtyInput.value) + 1;
+    calcTotal();
+});
+
+qtyMinus.addEventListener('click', () => {
+    let v = parseInt(qtyInput.value);
+    if (v > 1) qtyInput.value = v - 1;
+    calcTotal();
+});
+
+qtyInput.addEventListener('change', calcTotal);
+deliverySelect.addEventListener('change', updateEta);
+
+/* -------------------------------------------------
+   CONFIRMATION DE LA COMMANDE
+--------------------------------------------------*/
+confirmBtn.addEventListener('click', () => {
+
+    // Vérifier que tous les champs obligatoires sont remplis
+    if (!orderForm.reportValidity()) {
+        return;
+    }
+
+    // Remplir les champs cachés
+    hiddenProduct.value = productName;
+    hiddenUnitPrice.value = unitPrice;
+    hiddenQty.value = qtyInput.value;
+    hiddenTotal.value = calcTotal();
+
+    const payMethod = document.querySelector('input[name="buyPay"]:checked');
+    hiddenPayment.value = payMethod ? payMethod.value : "non spécifié";
+
+    const deliv = deliverySelect.value;
+    hiddenDelivery.value = deliv;
+
+    // Préparer données finale
+    const formData = new FormData(orderForm);
+    const params = new URLSearchParams(formData);
+
+    // --- ENVOI GOOGLE SHEETS ---
+    fetch("https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec" + params.toString(), {
+        method: "GET",
+        mode: "no-cors"
+    })
+    .then(() => {
+        // Toast success
+        orderToastBody.innerText = "Votre commande a été envoyée avec succès !";
+        orderToast.show();
+
+        // Fermer le modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('buyNowModal'));
+        modal.hide();
+    })
+    .catch((err) => {
+        console.error(err);
+        alert("Erreur lors de l’envoi de la commande.");
+    });
+});

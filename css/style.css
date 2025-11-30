@@ -1976,3 +1976,12 @@ html {
 
 /* cache proprement les cartes non concernées */
 .is-hidden { display: none !important; }
+
+.order-form .form-label {
+  font-weight: 600;
+}
+
+.order-form input {
+  border-radius: 8px;
+  padding: 8px 10px;
+}
