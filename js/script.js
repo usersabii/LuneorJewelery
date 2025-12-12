@@ -1,3 +1,102 @@
+document.addEventListener("DOMContentLoaded", () => {
+
+  const confirmBtn = document.getElementById("confirmBuyBtn");
+  const buyModalElement = document.getElementById("buyModal");
+  const buyModal = buyModalElement ? new bootstrap.Modal(buyModalElement) : null;
+
+  const buyForm = document.getElementById("buyForm");
+
+  // URL de ton Google Script
+  const GS_URL = "https://script.google.com/macros/s/AKfycbzOXk7kX-Ey6lQa6U2ai9Qs4zSKJDQxbOEXmcQq0k11BP4LOwgoNDB2HygWJ9oH2NvA/exec";
+
+  // Événement bouton "Confirmer la commande"
+  confirmBtn?.addEventListener("click", async () => {
+
+      if (!buyForm) return alert("Formulaire non trouvé.");
+
+      // Validation native HTML5
+      if (!buyForm.checkValidity()) {
+          buyForm.reportValidity();
+          return;
+      }
+
+      // Récupération des données client
+      const client = {
+          nom: buyForm.nom?.value || "",
+          prenom: buyForm.prenom?.value || "",
+          email: buyForm.email?.value || "",
+          telephone: buyForm.telephone?.value || "",
+          adresse: buyForm.adresse?.value || "",
+          ville: buyForm.commune?.value || "",
+          wilaya: buyForm.wilaya?.value || ""
+      };
+
+      // Récupérer les infos produit (ton code original)
+      const qtyInput = document.getElementById("buyQty");
+      const nameSpan = document.getElementById("productNameSpan");
+
+      const qty = parseInt(qtyInput?.value || "1");
+      const productName = nameSpan?.innerText || "Produit";
+      const productPrice = parseFloat(document.getElementById("productPriceSpan")?.dataset.price || "0");
+
+      const item = {
+          name: productName,
+          price: productPrice,
+          qty: qty,
+          total: qty * productPrice
+      };
+
+      // Génération ID unique
+      const orderId = crypto.randomUUID();
+
+      // Construction payload commande
+      const payload = {
+          __kind: "order",
+          orderId: orderId,
+          source: "direct",
+          client: client,
+          items: [item],
+          total: item.total,
+          payment: "Cash",
+          delivery: "Domicile"
+      };
+
+      try {
+          // Envoi vers Google Sheets
+          const res = await fetch(GS_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+          });
+
+          const data = await res.json();
+
+          if (!data.ok) {
+              alert("Une erreur est survenue ❌");
+              console.error(data);
+              return;
+          }
+
+          // Ajout au panier visuel
+          addToCart(item.name, item.price, qty);
+
+          // Fermer modal
+          buyModal?.hide();
+
+          alert("Commande envoyée avec succès ! ✔");
+
+      } catch (err) {
+          console.error(err);
+          alert("Erreur de connexion ❌");
+      }
+  });
+
+});
+
+
+
+
+
 // === LIVRAISON (mobile only) ===============================================
 document.addEventListener('DOMContentLoaded', () => {
   const links = document.querySelectorAll('.link-livraison'); // menu mobile
@@ -2938,100 +3037,3 @@ confirmBtn.addEventListener('click', () => {
 
 
 
-
-
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  const confirmBtn = document.getElementById("confirmBuyBtn");
-  const buyModalElement = document.getElementById("buyModal");
-  const buyModal = buyModalElement ? new bootstrap.Modal(buyModalElement) : null;
-
-  const buyForm = document.getElementById("buyForm");
-
-  // URL de ton Google Script
-  const GS_URL = "https://script.google.com/macros/s/AKfycbzOXk7kX-Ey6lQa6U2ai9Qs4zSKJDQxbOEXmcQq0k11BP4LOwgoNDB2HygWJ9oH2NvA/exec";
-
-  // Événement bouton "Confirmer la commande"
-  confirmBtn?.addEventListener("click", async () => {
-
-      if (!buyForm) return alert("Formulaire non trouvé.");
-
-      // Validation native HTML5
-      if (!buyForm.checkValidity()) {
-          buyForm.reportValidity();
-          return;
-      }
-
-      // Récupération des données client
-      const client = {
-          nom: buyForm.nom?.value || "",
-          prenom: buyForm.prenom?.value || "",
-          email: buyForm.email?.value || "",
-          telephone: buyForm.telephone?.value || "",
-          adresse: buyForm.adresse?.value || "",
-          ville: buyForm.commune?.value || "",
-          wilaya: buyForm.wilaya?.value || ""
-      };
-
-      // Récupérer les infos produit (ton code original)
-      const qtyInput = document.getElementById("buyQty");
-      const nameSpan = document.getElementById("productNameSpan");
-
-      const qty = parseInt(qtyInput?.value || "1");
-      const productName = nameSpan?.innerText || "Produit";
-      const productPrice = parseFloat(document.getElementById("productPriceSpan")?.dataset.price || "0");
-
-      const item = {
-          name: productName,
-          price: productPrice,
-          qty: qty,
-          total: qty * productPrice
-      };
-
-      // Génération ID unique
-      const orderId = crypto.randomUUID();
-
-      // Construction payload commande
-      const payload = {
-          __kind: "order",
-          orderId: orderId,
-          source: "direct",
-          client: client,
-          items: [item],
-          total: item.total,
-          payment: "Cash",
-          delivery: "Domicile"
-      };
-
-      try {
-          // Envoi vers Google Sheets
-          const res = await fetch(GS_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-          });
-
-          const data = await res.json();
-
-          if (!data.ok) {
-              alert("Une erreur est survenue ❌");
-              console.error(data);
-              return;
-          }
-
-          // Ajout au panier visuel
-          addToCart(item.name, item.price, qty);
-
-          // Fermer modal
-          buyModal?.hide();
-
-          alert("Commande envoyée avec succès ! ✔");
-
-      } catch (err) {
-          console.error(err);
-          alert("Erreur de connexion ❌");
-      }
-  });
-
-});
