@@ -2371,7 +2371,7 @@
              <p>&copy; 2025 Luneor Jewellery. Tous droits réservés.</p>
          </div>
      </footer>   
-     <div class="modal fade" id="buyNowModal" tabindex="-1" aria-hidden="true">
+     <div class="modal fade" id="buyModal" tabindex="-1" aria-hidden="true">
          <div class="modal-dialog modal-dialog-centered modal-lg">
              <div class="modal-content buy-modal">
                  <div class="modal-header">
@@ -2390,7 +2390,7 @@
                              <strong id="buyModalPrice">DA0</strong>
                          </div>
                          <!-- FORMULAIRE CLIENT -->
-                         <form id="buyForm class="order-form mt-4">                         
+                         <form id="buyForm" class="order-form mt-4">                         
                              <h5 class="mb-3">Informations du client</h5>
                              <div class="row g-3">
                                  <div class="col-md-6">
@@ -2494,37 +2494,35 @@
                                      </select>
                                  </div> 
                                  <script>
-                                     const communes = {
-                                        "Alger": ["Bab Ezzouar", "El Harrach", "Hussein Dey", "Kouba", "Bir Mourad Rais", "Bologhine", "Rais Hamidou"],
-                                        "Blida": ["Blida", "Boufarik", "Ouled Yaich", "Beni Mered"],
-                                        "Oran": ["Oran", "Es Senia", "Bir El Djir", "Aïn Turk"],
-                                        "Tizi Ouzou": ["Tizi Ouzou", "Draa Ben Khedda", "Ouaguenoun"],
-                                        "Constantine": ["Constantine", "El Khroub", "Hamma Bouziane"],
-                                        "Sétif": ["Sétif", "El Eulma", "Aïn Oulmene"],
-                                        "Annaba": ["Annaba", "El Bouni", "Seraïdi"],
-                                        "Béjaïa": ["Béjaïa", "Akbou", "Amizour"],
+                                    let communesDZ = {};
                                     
-                                        // Exemple pour les nouvelles wilayas
-                                        "Boussaâda": ["Boussaâda Ville", "Ouled Sidi Brahim"],
-                                        "El Khroub": ["El Khroub", "Aïn Smara"],
+                                    // Charger le fichier JSON
+                                    fetch("/assets/data/communes-dz.json")
+                                      .then(res => res.json())
+                                      .then(data => {
+                                        communesDZ = data;
+                                      })
+                                      .catch(err => {
+                                        console.error("Erreur chargement communes :", err);
+                                      });
                                     
-                                        // Tu peux ajouter ici les autres communes…
-                                     };
+                                    // Gestion du changement de wilaya
+                                    document.getElementById("wilaya").addEventListener("change", function () {
+                                      const communeSelect = document.getElementById("commune");
+                                      communeSelect.innerHTML = `<option value="">Sélectionnez une commune</option>`;
                                     
-                                     // Gestion du changement de wilaya
-                                     document.getElementById("wilaya").addEventListener("change", function () {
-                                        const wilaya = this.value;
-                                        const communeSelect = document.getElementById("commune");
+                                      const list = communesDZ[this.value];
+                                      if (!list) return;
                                     
-                                        communeSelect.innerHTML = `<option value="">Sélectionnez une commune</option>`;
-                                    
-                                        if (communes[wilaya]) {
-                                            communes[wilaya].forEach(c => {
-                                                communeSelect.innerHTML += `<option value="${c}">${c}</option>`;
-                                            });
-                                        }
-                                     });
-                                    </script>                                                                   
+                                      list.forEach(commune => {
+                                        const opt = document.createElement("option");
+                                        opt.value = commune;
+                                        opt.textContent = commune;
+                                        communeSelect.appendChild(opt);
+                                      });
+                                    });
+                                    </script>
+                                                                                                      
                               </div>
 
                                 <!-- Champs cachés à remplir en JS -->
