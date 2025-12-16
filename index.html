@@ -2196,6 +2196,99 @@
              </main>
           </div>
       </section>
+      <script>
+        /* ===============================
+           PANIER + COMPTEUR + ANIMATION
+           =============================== */
+        
+        function getCart() {
+          try {
+            return JSON.parse(localStorage.getItem('cart')) || [];
+          } catch {
+            return [];
+          }
+        }
+        
+        function saveCart(cart) {
+          localStorage.setItem('cart', JSON.stringify(cart));
+          updateCartCount();
+        }
+        
+        function updateCartCount() {
+          const cart = getCart();
+          const totalQty = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+          const badge = document.getElementById('cart-count');
+          if (badge) badge.textContent = totalQty;
+        }
+        
+        /* Animation produit → bulle panier */
+        function flyToCart(imgEl) {
+          if (!imgEl) return;
+        
+          const bubble = document.querySelector('.cart-bubble');
+          if (!bubble) return;
+        
+          const r1 = imgEl.getBoundingClientRect();
+          const r2 = bubble.getBoundingClientRect();
+        
+          const ghost = imgEl.cloneNode(true);
+          ghost.style.position = 'fixed';
+          ghost.style.left = r1.left + 'px';
+          ghost.style.top = r1.top + 'px';
+          ghost.style.width = r1.width + 'px';
+          ghost.style.height = r1.height + 'px';
+          ghost.style.borderRadius = '12px';
+          ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
+          ghost.style.zIndex = '9999';
+          ghost.style.pointerEvents = 'none';
+        
+          document.body.appendChild(ghost);
+        
+          const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
+          const ty = (r2.top + r2.height/2) - (r1.top + r1.height/2);
+        
+          requestAnimationFrame(() => {
+            ghost.style.transform = `translate(${tx}px, ${ty}px) scale(0.2)`;
+            ghost.style.opacity = '0.3';
+          });
+        
+          ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
+        }
+        
+        /* Click Ajouter */
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.btn-add');
+          if (!btn) return;
+        
+          const cart = getCart();
+          const id = btn.dataset.id;
+        
+          const found = cart.find(p => p.id === id);
+          if (found) {
+            found.qty += 1;
+          } else {
+            cart.push({
+              id,
+              name: btn.dataset.name,
+              price: Number(btn.dataset.price || 0),
+              img: btn.dataset.img,
+              qty: 1
+            });
+          }
+        
+          saveCart(cart);
+        
+          /* Image pour animation */
+          const card = btn.closest('.product-card') || btn.parentElement;
+          const img = card.querySelector('img');
+        
+          flyToCart(img);
+        });
+        
+        /* Sync au chargement */
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+        </script>
+        
        <!-- === PRODUCT MODAL === -->
        <div id="product-modal" class="pm" aria-hidden="true" role="dialog" aria-modal="true">
          <div class="pm__backdrop" data-pm-close></div>
@@ -2569,99 +2662,6 @@
               <div class="toast-body" id="orderToastBody"></div>
          </div>
       </div>
-      <script>
-        /* ===============================
-           PANIER + COMPTEUR + ANIMATION
-           =============================== */
-        
-        function getCart() {
-          try {
-            return JSON.parse(localStorage.getItem('cart')) || [];
-          } catch {
-            return [];
-          }
-        }
-        
-        function saveCart(cart) {
-          localStorage.setItem('cart', JSON.stringify(cart));
-          updateCartCount();
-        }
-        
-        function updateCartCount() {
-          const cart = getCart();
-          const totalQty = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
-          const badge = document.getElementById('cart-count');
-          if (badge) badge.textContent = totalQty;
-        }
-        
-        /* Animation produit → bulle panier */
-        function flyToCart(imgEl) {
-          if (!imgEl) return;
-        
-          const bubble = document.querySelector('.cart-bubble');
-          if (!bubble) return;
-        
-          const r1 = imgEl.getBoundingClientRect();
-          const r2 = bubble.getBoundingClientRect();
-        
-          const ghost = imgEl.cloneNode(true);
-          ghost.style.position = 'fixed';
-          ghost.style.left = r1.left + 'px';
-          ghost.style.top = r1.top + 'px';
-          ghost.style.width = r1.width + 'px';
-          ghost.style.height = r1.height + 'px';
-          ghost.style.borderRadius = '12px';
-          ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
-          ghost.style.zIndex = '9999';
-          ghost.style.pointerEvents = 'none';
-        
-          document.body.appendChild(ghost);
-        
-          const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
-          const ty = (r2.top + r2.height/2) - (r1.top + r1.height/2);
-        
-          requestAnimationFrame(() => {
-            ghost.style.transform = `translate(${tx}px, ${ty}px) scale(0.2)`;
-            ghost.style.opacity = '0.3';
-          });
-        
-          ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
-        }
-        
-        /* Click Ajouter */
-        document.addEventListener('click', function (e) {
-          const btn = e.target.closest('.btn-add');
-          if (!btn) return;
-        
-          const cart = getCart();
-          const id = btn.dataset.id;
-        
-          const found = cart.find(p => p.id === id);
-          if (found) {
-            found.qty += 1;
-          } else {
-            cart.push({
-              id,
-              name: btn.dataset.name,
-              price: Number(btn.dataset.price || 0),
-              img: btn.dataset.img,
-              qty: 1
-            });
-          }
-        
-          saveCart(cart);
-        
-          /* Image pour animation */
-          const card = btn.closest('.product-card') || btn.parentElement;
-          const img = card.querySelector('img');
-        
-          flyToCart(img);
-        });
-        
-        /* Sync au chargement */
-        document.addEventListener('DOMContentLoaded', updateCartCount);
-        </script>
-        
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
      <script>AOS.init({ duration: 800 });</script>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/4.0.12/fullpage.min.js"></script>
