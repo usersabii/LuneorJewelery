@@ -131,85 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-/* === Animation + compteur pour .btn-add (sans rien casser) === */
-(function () {
-  // éviter d'attacher deux fois si tu reloads souvent
-  if (window.__flyHooked) return;
-  window.__flyHooked = true;
-
-  // 1) Animation d'aspiration vers la bulle
-  function flyToCart(sourceImgEl, bubbleEl) {
-    if (!sourceImgEl || !bubbleEl) return;
-
-    const r1 = sourceImgEl.getBoundingClientRect();
-    const r2 = bubbleEl.getBoundingClientRect();
-
-    const ghost = sourceImgEl.cloneNode(true);
-    ghost.style.position = 'fixed';
-    ghost.style.left = r1.left + 'px';
-    ghost.style.top = r1.top + 'px';
-    ghost.style.width = sourceImgEl.clientWidth + 'px';
-    ghost.style.height = sourceImgEl.clientHeight + 'px';
-    ghost.style.borderRadius = '12px';
-    ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
-    ghost.style.zIndex = '9999';
-    ghost.style.pointerEvents = 'none';
-    document.body.appendChild(ghost);
-
-    const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
-    const ty = (r2.top  + r2.height/2) - (r1.top  + r1.height/2);
-
-    requestAnimationFrame(() => {
-      ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.18)`;
-      ghost.style.opacity = '0.35';
-    });
-
-    ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
-  }
-
-  // 3) Accroche sur tous les boutons .btn-add (délégation globale)
-  document.addEventListener('click', (e) => {
-    const addBtn = e.target.closest('.btn-add');
-    if (!addBtn) return;
-
-    // Trouver l’image de la carte pour l’anim
-    const card = addBtn.closest('.product-card');
-    const imgEl = card?.querySelector('.product-img, img');
-    const bubbleEl = document.querySelector('.cart-bubble, #cart-bubble');
-
-    // D’abord on ajoute au panier via ta fonction existante si elle existe
-    if (typeof window.addToCart === 'function') {
-      window.addToCart({
-        id: addBtn.dataset.id,
-        name: addBtn.dataset.name,
-        price: Number(addBtn.dataset.price || 0),
-        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-        qty: 1
-      });
-    } else {
-      // Fallback ultra léger qui ne perturbe pas ton code
-      let cart = [];
-      try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch(_) {}
-      const id = addBtn.dataset.id;
-      const found = cart.find(x => x.id === id);
-      if (found) found.qty = (found.qty || 1) + 1;
-      else cart.push({
-        id,
-        name: addBtn.dataset.name,
-        price: Number(addBtn.dataset.price || 0),
-        img: addBtn.dataset.img || (imgEl?.getAttribute('src') || ''),
-        qty: 1
-      });
-      localStorage.setItem('cart', JSON.stringify(cart));
-    }
-
-
-    // Lance l’animation d’aspiration
-    flyToCart(imgEl, bubbleEl);
-  });
-  })();
-
 // === Panier : helpers uniques (source de vérité) ===
 (function () {
   const STORAGE_KEY = 'cart';
@@ -266,36 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Panier minimal global (évite le crash si absent) ---
 window.cart = JSON.parse(localStorage.getItem('cart') || '[]');
-
-// Animation vers la bulle (facultative si elem pas dispo)
-window.flyToCart = function(sourceImgEl){
-  if (!sourceImgEl) return; // pas d'image => pas d'anim
-  const bubble = document.querySelector('.cart-bubble');
-  if (!bubble) return;
-
-  const r1 = sourceImgEl.getBoundingClientRect();
-  const r2 = bubble.getBoundingClientRect();
-
-  const ghost = sourceImgEl.cloneNode(true);
-  ghost.style.position = 'fixed';
-  ghost.style.left = r1.left + 'px';
-  ghost.style.top = r1.top + 'px';
-  ghost.style.width = sourceImgEl.clientWidth + 'px';
-  ghost.style.height = sourceImgEl.clientHeight + 'px';
-  ghost.style.transition = 'transform .6s cubic-bezier(.22,.75,.2,1), opacity .6s';
-  ghost.style.zIndex = '9999';
-  ghost.style.pointerEvents = 'none';
-  document.body.appendChild(ghost);
-
-  const tx = r2.left - r1.left;
-  const ty = r2.top - r1.top;
-
-  requestAnimationFrame(()=>{
-    ghost.style.transform = `translate(${tx}px, ${ty}px) scale(.2)`;
-    ghost.style.opacity = '0.3';
-  });
-  setTimeout(()=> ghost.remove(), 650);
-};
 
 
 
@@ -592,14 +483,14 @@ document.addEventListener('DOMContentLoaded', () => {
     etaEl.textContent = 'Estimation : ' + (opt.dataset.days || '');
   });
 
-  // Confirmer = ajoute au panier + animation + fermer
-  confirm?.addEventListener('click', ()=>{
-    const qty = Math.max(1, parseInt(qtyIn.value||'1',10));
-    // Ajoute N fois (ou adapte ta fonction addToCart pour accepter une qty)
-    for(let i=0;i<qty;i++){
-      addToCart({ id: current.id, name: current.name, price: current.price, img: current.img });
+  confirm?.addEventListener('click', () => {
+    const qty = Math.max(1, parseInt(qtyIn.value || '1', 10));
+  
+    for (let i = 0; i < qty; i++) {
+      const btn = document.querySelector(`.btn-add[data-id="${current.id}"]`);
+      btn?.click();
     }
-    flyToCart(current.sourceImgEl);
+  
     buyModal?.hide();
   });
 });

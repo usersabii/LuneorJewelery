@@ -21,19 +21,19 @@
      <div class="trustbar marquee" style="--speed: 22s" aria-label="Infos livraison et paiement">
          <div class="marquee__track">
              <div class="marquee__group">
-                 <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
+                 <span><i class="ms">local_shipping</i> Livraison 69 wilayas</span>
                  <span><i class="ms">payments</i> Paiement à la livraison </span>
              </div>
              <div class="marquee__group" aria-hidden="true">
-                 <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
+                 <span><i class="ms">local_shipping</i> Livraison 69 wilayas</span>
                  <span><i class="ms">payments</i> Paiement à la livraison </span>
              </div>
              <div class="marquee__group" aria-hidden="true">
-                 <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
+                 <span><i class="ms">local_shipping</i> Livraison 69 wilayas</span>
                  <span><i class="ms">payments</i> Paiement à la livraison </span>
              </div>
              <div class="marquee__group" aria-hidden="true">
-                 <span><i class="ms">local_shipping</i> Livraison 58 wilayas</span>
+                 <span><i class="ms">local_shipping</i> Livraison 69 wilayas</span>
                  <span><i class="ms">payments</i> Paiement à la livraison </span>
               </div>
          </div>
@@ -1891,15 +1891,15 @@
                      <div class="col-6 col-md-4 col-lg-3">
                          <article class="product-card" data-type="set" data-metal="silver" data-desc="Collier délicat Acier inoxidable, finition polie. Longueur 42 cm + rallonge 5 cm." data-gallery="img/collierparrures.png, img/bagueparrures.png, img/boucleparrure.png">
                              <div class="product-media">
-                                 <img src="img/parrurescarrépierredednas.png" alt="Bague Lune Or" class="product-img">
+                                 <img src="img/parrurescarrépierredednas.png" alt="Parrure Forever" class="product-img">
                                  <button class="btn-fav" aria-label="Ajouter aux favoris">♡</button>
                              </div>
                              <div class="product-info">
-                                 <h5 class="product-title">Bague Lune</h5>
+                                 <h5 class="product-title">Parrure Forever</h5>
                                  <div class="product-meta">
-                                     <span class="price">1200DA</span>
-                                     <button class="btn-add" data-id="SKU090" data-name="Bague Lune" data-price="120" data-img="img/parrurescarrépierredednas.png">Ajouter</button>
-                                     <button class="btn-buy" data-id="SKU090" data-name="Bague Lune" data-price="120" data-img="img/parrurescarrépierredednas.png">Acheter</button>
+                                     <span class="price">1700DA</span>
+                                     <button class="btn-add" data-id="SKU090" data-name="Parrure Forever" data-price="1700" data-img="img/parrurescarrépierredednas.png">Ajouter</button>
+                                     <button class="btn-buy" data-id="SKU090" data-name="Parrure Forever" data-price="1700" data-img="img/parrurescarrépierredednas.png">Acheter</button>
                                  </div>
                              </div>
                          </article>
@@ -2569,6 +2569,98 @@
               <div class="toast-body" id="orderToastBody"></div>
          </div>
       </div>
+      <script>
+        /* ===============================
+           PANIER + COMPTEUR + ANIMATION
+           =============================== */
+        
+        function getCart() {
+          try {
+            return JSON.parse(localStorage.getItem('cart')) || [];
+          } catch {
+            return [];
+          }
+        }
+        
+        function saveCart(cart) {
+          localStorage.setItem('cart', JSON.stringify(cart));
+          updateCartCount();
+        }
+        
+        function updateCartCount() {
+          const cart = getCart();
+          const totalQty = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+          const badge = document.getElementById('cart-count');
+          if (badge) badge.textContent = totalQty;
+        }
+        
+        /* Animation produit → bulle panier */
+        function flyToCart(imgEl) {
+          if (!imgEl) return;
+        
+          const bubble = document.querySelector('.cart-bubble');
+          if (!bubble) return;
+        
+          const r1 = imgEl.getBoundingClientRect();
+          const r2 = bubble.getBoundingClientRect();
+        
+          const ghost = imgEl.cloneNode(true);
+          ghost.style.position = 'fixed';
+          ghost.style.left = r1.left + 'px';
+          ghost.style.top = r1.top + 'px';
+          ghost.style.width = r1.width + 'px';
+          ghost.style.height = r1.height + 'px';
+          ghost.style.borderRadius = '12px';
+          ghost.style.transition = 'transform .65s cubic-bezier(.22,.75,.2,1), opacity .65s';
+          ghost.style.zIndex = '9999';
+          ghost.style.pointerEvents = 'none';
+        
+          document.body.appendChild(ghost);
+        
+          const tx = (r2.left + r2.width/2) - (r1.left + r1.width/2);
+          const ty = (r2.top + r2.height/2) - (r1.top + r1.height/2);
+        
+          requestAnimationFrame(() => {
+            ghost.style.transform = `translate(${tx}px, ${ty}px) scale(0.2)`;
+            ghost.style.opacity = '0.3';
+          });
+        
+          ghost.addEventListener('transitionend', () => ghost.remove(), { once: true });
+        }
+        
+        /* Click Ajouter */
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.btn-add');
+          if (!btn) return;
+        
+          const cart = getCart();
+          const id = btn.dataset.id;
+        
+          const found = cart.find(p => p.id === id);
+          if (found) {
+            found.qty += 1;
+          } else {
+            cart.push({
+              id,
+              name: btn.dataset.name,
+              price: Number(btn.dataset.price || 0),
+              img: btn.dataset.img,
+              qty: 1
+            });
+          }
+        
+          saveCart(cart);
+        
+          /* Image pour animation */
+          const card = btn.closest('.product-card') || btn.parentElement;
+          const img = card.querySelector('img');
+        
+          flyToCart(img);
+        });
+        
+        /* Sync au chargement */
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+        </script>
         
      <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
      <script>AOS.init({ duration: 800 });</script>
