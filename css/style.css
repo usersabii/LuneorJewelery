@@ -981,24 +981,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
 
-.btn-buy{
-  background: #353430; 
-  color: #fff;
-  border: 0;
-  padding: .45rem .75rem;
-  margin-left: 5px; 
-  border-radius: 999px;
-  font-size: .9rem; 
-  cursor: pointer;
-  transition: transform .12s ease, box-shadow .2s ease, background .2s;
-}
-.btn-buy:hover{ 
-  background: #2e2d29; 
-  box-shadow: 0 6px 16px rgba(212,175,55,.35); 
-}
-.btn-buy:active{ 
-  transform: scale(.97); 
-}
+
 
 /* Bouton Réinitialiser */
 .btn-reset {
@@ -1037,35 +1020,7 @@ h1, h2, h3, h4, h5, h6 {
 
 
 
-/* Modal checkout */
-.buy-modal{
-  border-radius:16px; 
-  overflow:hidden; 
-}
-.buy-grid{
-  display:grid; 
-  gap:1rem;
-  grid-template-columns: 1fr 1.2fr;
-}
-.buy-media{
-  background:#f7f5ef; 
-  border-radius:12px; 
-  overflow:hidden;
-  display:flex; 
-  align-items:center; 
-  justify-content:center;
-}
-.buy-media img{ 
-  width:100%; 
-  height:auto; 
-  object-fit:cover; 
-}
 
-.buy-info{ 
-  display:flex; 
-  flex-direction:column; 
-  gap:1rem; 
-}
 .price-line, .total-line{
   display:flex; align-items:center; justify-content:space-between;
   font-size:1rem;
@@ -1086,9 +1041,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 .eta{ margin-top:.5rem; color:#666; }
 
-@media (max-width: 768px){
-  .buy-grid{ grid-template-columns: 1fr; }
-}
 
 .footer {
   background: rgba(255, 255, 255, 0.689);
@@ -1295,8 +1247,7 @@ html {
 .product-meta .price{ margin-right:auto; }
 
 /* Boutons */
-.product-meta .btn-add,
-.product-meta .btn-buy{
+.product-meta .btn-add{
   white-space: nowrap;
   flex: 0 1 auto;
 }
@@ -1316,8 +1267,7 @@ html {
     order: -1;
   }
   /* Les deux boutons prennent chacun ~50% (et ne sont jamais coupés) */
-  #products-grid .product-meta .btn-add,
-  #products-grid .product-meta .btn-buy{
+  #products-grid .product-meta .btn-add{
     flex: 1 1 calc(50% - 6px);
   }
 
@@ -1790,7 +1740,6 @@ html {
 }
 
 /* s'assure que les boutons existent visuellement */
-.product-card .btn-buy,
 .product-card .btn-add{
   display: inline-flex;              /* évite display:none par erreur */
   align-items: center;

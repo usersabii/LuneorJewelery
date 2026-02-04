@@ -1,98 +1,176 @@
-document.addEventListener("DOMContentLoaded", () => {
 
-  const confirmBtn = document.getElementById("confirmBuyBtn");
-  const buyModalElement = document.getElementById("buyModal");
-  const buyModal = buyModalElement ? new bootstrap.Modal(buyModalElement) : null;
+function addToCart(product) {
+  const existing = cart.find(p => p.id === product.id);
 
-  const buyForm = document.getElementById("buyForm");
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      img: product.img,
+      qty: 1
+    });
+  }
 
-  // URL de ton Google Script
-  const GS_URL = "https://script.google.com/macros/s/AKfycbzOXk7kX-Ey6lQa6U2ai9Qs4zSKJDQxbOEXmcQq0k11BP4LOwgoNDB2HygWJ9oH2NvA/exec";
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+  openCart(); // 👈 ouverture automatique
+}
 
-  // Événement bouton "Confirmer la commande"
-  confirmBtn?.addEventListener("click", async () => {
 
-      if (!buyForm) return alert("Formulaire non trouvé.");
 
-      // Validation native HTML5
-      if (!buyForm.checkValidity()) {
-          buyForm.reportValidity();
-          return;
-      }
 
-      // Récupération des données client
-      const client = {
-          nom: buyForm.nom?.value || "",
-          prenom: buyForm.prenom?.value || "",
-          email: buyForm.email?.value || "",
-          telephone: buyForm.telephone?.value || "",
-          adresse: buyForm.adresse?.value || "",
-          ville: buyForm.commune?.value || "",
-          wilaya: buyForm.wilaya?.value || ""
-      };
 
-      // Récupérer les infos produit (ton code original)
-      const qtyInput = document.getElementById("buyQty");
-      const nameSpan = document.getElementById("productNameSpan");
 
-      const qty = parseInt(qtyInput?.value || "1");
-      const productName = nameSpan?.innerText || "Produit";
-      const productPrice = parseFloat(document.getElementById("productPriceSpan")?.dataset.price || "0");
+// ------------------------------
+// PANIER EN MÉMOIRE
+// ------------------------------
+let cart = []; // chaque item: {id, name, price, qty, img}
 
-      const item = {
-          name: productName,
-          price: productPrice,
-          qty: qty,
-          total: qty * productPrice
-      };
+// ------------------------------
+// OUVRIR / FERMER LE PANIER
+// ------------------------------
+const cartDrawerEl = document.getElementById('cartDrawer');
+const cartDrawer = new bootstrap.Offcanvas(cartDrawerEl);
 
-      // Génération ID unique
-      const orderId = crypto.randomUUID();
+function openCart() { cartDrawer.show(); }
+function closeCart() { cartDrawer.hide(); }
 
-      // Construction payload commande
-      const payload = {
-          __kind: "order",
-          orderId: orderId,
-          source: "direct",
-          client: client,
-          items: [item],
-          total: item.total,
-          payment: "Cash",
-          delivery: "Domicile"
-      };
+// ------------------------------
+// AJOUTER AU PANIER
+// ------------------------------
+function addToCart(product) {
+  const existing = cart.find(p => p.id === product.id);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({ ...product, qty: 1 });
+  }
+  renderCart();
+  openCart();
+}
 
-      try {
-          // Envoi vers Google Sheets
-          const res = await fetch(GS_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-          });
+// ------------------------------
+// SUPPRIMER DU PANIER
+// ------------------------------
+function removeFromCart(id) {
+  cart = cart.filter(p => p.id !== id);
+  renderCart();
+}
 
-          const data = await res.json();
+// ------------------------------
+// AFFICHAGE DU PANIER
+// ------------------------------
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  const subtotalEl = document.getElementById('cartSubtotal');
 
-          if (!data.ok) {
-              alert("Une erreur est survenue ❌");
-              console.error(data);
-              return;
-          }
+  container.innerHTML = '';
 
-          // Ajout au panier visuel
-          addToCart(item.name, item.price, qty);
+  let subtotal = 0;
 
-          // Fermer modal
-          buyModal?.hide();
+  cart.forEach(item => {
+    subtotal += item.price * item.qty;
 
-          alert("Commande envoyée avec succès ! ✔");
+    const div = document.createElement('div');
+    div.className = 'd-flex gap-2 align-items-center border-bottom pb-2';
 
-      } catch (err) {
-          console.error(err);
-          alert("Erreur de connexion ❌");
-      }
+    div.innerHTML = `
+      <img src="${item.img}" width="50" class="rounded">
+      <div class="flex-grow-1">
+        <div class="fw-semibold">${item.name}</div>
+        <small>${item.qty} × ${item.price} DA</small>
+      </div>
+      <strong>${item.qty * item.price} DA</strong>
+    `;
+
+    container.appendChild(div);
   });
 
+  subtotalEl.textContent = subtotal + ' DA';
+}
+
+
+// ------------------------------
+// BOUTON AJOUTER PRODUIT
+// ------------------------------
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-add');
+  if (!btn) return;
+
+  const product = {
+    id: btn.dataset.id,
+    name: btn.dataset.name,
+    price: Number(btn.dataset.price || 0),
+    img: btn.dataset.img || ''
+  };
+
+  addToCart(product);
 });
 
+// ------------------------------
+// BOUTON CONTINUER SHOPPING
+// ------------------------------
+document.getElementById('btnContinuerShopping')?.addEventListener('click', () => {
+  closeCart();
+});
+
+// ------------------------------
+// BOUTON CONFIRMER COMMANDE
+// ------------------------------
+document.getElementById('btnConfirmerPanier')?.addEventListener('click', async () => {
+  if (cart.length === 0) {
+    alert('Votre panier est vide ❌');
+    return;
+  }
+
+  const delivery = document.getElementById('cartDeliverySelect').value;
+  const pay = document.querySelector('input[name="cartPay"]:checked')?.value || 'cod';
+  const client = JSON.parse(localStorage.getItem('signupProfile') || '{}');
+
+  if (!client.nom || !client.telephone || !client.adresse) {
+    alert('Veuillez compléter vos informations personnelles avant de confirmer.');
+    return;
+  }
+
+  const orderId = 'CART-' + Date.now().toString().slice(-6);
+  const payload = {
+    __kind: 'order',
+    orderId,
+    client,
+    payment: pay,
+    delivery,
+    items: cart.map(p => ({ id: p.id, name: p.name, qty: p.qty, price: p.price })),
+    total: cart.reduce((s,i) => s + i.price*i.qty, 0),
+    source: 'cart'
+  };
+
+  try {
+    const GS_URL = 'https://script.google.com/macros/s/AKfycbzOXpEENB1TmkRu9-BqtcGuxsneUarZF3fIe3H4QkJD3_qfyJ0nk7nBKOfSCa9Vv17T/exec'; // mets ton URL
+    const res = await fetch(GS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erreur inconnue');
+
+    alert('Commande envoyée avec succès ✅');
+    cart = [];
+    renderCart();
+    closeCart();
+  } catch(err) {
+    console.error(err);
+    alert('Erreur lors de l’envoi de la commande ❌');
+  }
+});
+
+document.getElementById('btnContinueShopping')?.addEventListener('click', () => {
+  const cartEl = document.getElementById('cartDrawer');
+  bootstrap.Offcanvas.getInstance(cartEl)?.hide();
+});
 
 
 
@@ -410,97 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
-  const buyModalEl   = document.getElementById('buyNowModal');
-  const buyModal     = buyModalEl ? new bootstrap.Modal(buyModalEl) : null;
-
-  const titleEl = document.getElementById('buyModalTitle');
-  const imgEl   = document.getElementById('buyModalImg');
-  const priceEl = document.getElementById('buyModalPrice');
-  const totalEl = document.getElementById('buyModalTotal');
-  const qtyIn   = document.getElementById('qtyInput');
-  const qPlus   = document.getElementById('qtyPlus');
-  const qMinus  = document.getElementById('qtyMinus');
-  const payHint = document.getElementById('payHint');
-  const delSel  = document.getElementById('deliverySelect');
-  const etaEl   = document.getElementById('deliveryEta');
-  const confirm = document.getElementById('confirmBuyBtn');
-
-  let current = { id:'', name:'', price:0, img:'' , sourceImgEl:null };
-
-  function format(n){ return 'DA' + Number(n).toFixed(0); }
-  function updateTotal(){
-    const q = Math.max(1, parseInt(qtyIn.value||'1',10));
-    totalEl.textContent = format(q * current.price);
-  }
-
-  // Ouvre le modal avec les données du produit
-  document.getElementById('products-grid')?.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.btn-buy');
-    if(!btn) return;
-
-    const card = btn.closest('.product-card');
-    const img  = card?.querySelector('.product-img');
-
-    current = {
-      id:    btn.dataset.id,
-      name:  btn.dataset.name,
-      price: Number(btn.dataset.price||0),
-      img:   btn.dataset.img,
-      sourceImgEl: img || null
-    };
-
-    titleEl.textContent = current.name;
-    imgEl.src = current.img;
-    priceEl.textContent = format(current.price);
-    qtyIn.value = 1;
-    updateTotal();
-    delSel.value = 'standard';
-    etaEl.textContent = 'Estimation : 3-5 jours.';
-    payHint.textContent = 'Paiement carte : simulation pour l’instant.';
-    buyModal?.show();
-  });
-
-  // Qty +/-
-  qPlus?.addEventListener('click', ()=>{ qtyIn.value = Number(qtyIn.value||1)+1; updateTotal(); });
-  qMinus?.addEventListener('click', ()=>{
-    qtyIn.value = Math.max(1, Number(qtyIn.value||1)-1); updateTotal();
-  });
-  qtyIn?.addEventListener('input', updateTotal);
-
-  // Paiement hint
-  document.querySelectorAll('input[name="pay"]').forEach(r=>{
-    r.addEventListener('change', ()=>{
-      payHint.textContent = r.value === 'cod'
-        ? 'Vous payez à la livraison (main à main).'
-        : 'Paiement carte : simulation pour l’instant.';
-    });
-  });
-
-  // Livraison ETA
-  delSel?.addEventListener('change', ()=>{
-    const opt = delSel.selectedOptions[0];
-    etaEl.textContent = 'Estimation : ' + (opt.dataset.days || '');
-  });
-
-  confirm?.addEventListener('click', () => {
-    const qty = Math.max(1, parseInt(qtyIn.value || '1', 10));
-  
-    for (let i = 0; i < qty; i++) {
-      const btn = document.querySelector(`.btn-add[data-id="${current.id}"]`);
-      btn?.click();
-    }
-  
-    buyModal?.hide();
-  });
-});
-function openBuyModal(product){
-  // remplace les set… actuels par l’usage de product.{id,name,price,img,sourceImgEl}
-  current = product;
-  // ... remplis titre, image, prix, qty=1, total, etc.
-  buyModal?.show();
-}
-
 document.addEventListener('DOMContentLoaded', ()=>{
   const shopLink = document.getElementById('nav-shop');
 
@@ -622,120 +609,6 @@ document.getElementById('cta-parures')?.addEventListener('click', (e)=>{
   document.getElementById('shop-section')?.scrollIntoView({behavior:'smooth'});
 });
 
-
-// --- ouverture robuste du modal ---
-function openBuyModal(p){
-  // éléments du modal
-  const mEl = document.getElementById('buyNowModal');
-  if (!mEl) return console.warn('Modal #buyNowModal introuvable');
-  // Instance Bootstrap (crée-la si besoin)
-  const modal = bootstrap.Modal.getOrCreateInstance(mEl);
-
-  // Remplir le contenu
-  document.getElementById('buyModalTitle').textContent = p.name || '';
-  document.getElementById('buyModalImg').src = p.img || '';
-  document.getElementById('buyModalPrice').textContent = 'DA' + (p.price || 0);
-  const qtyIn = document.getElementById('qtyInput');
-  qtyIn.value = 1;
-  // total
-  const updateTotal = () => {
-    const q = Math.max(1, parseInt(qtyIn.value||'1', 10));
-    document.getElementById('buyModalTotal').textContent = 'DA' + (q * (p.price||0));
-  };
-  qtyIn.oninput = updateTotal; updateTotal();
-
-  // montrer le modal
-  modal.show();
-
-  // mémoriser l’image source pour l’animation après confirmation
-  window.__currentBuy = { ...p };
-}
-
-// --- écouteur global pour tous les .btn-buy de la page ---
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.btn-buy');
-  if (!btn) return;
-
-  e.preventDefault();
-
-  const card = btn.closest('.product-card');
-  const img  = card?.querySelector('.product-img, img');
-
-  const product = {
-    id:    btn.dataset.id || '',
-    name:  btn.dataset.name || card?.querySelector('.product-title')?.textContent?.trim() || '',
-    price: Number(btn.dataset.price || 0),
-    img:   btn.dataset.img || img?.getAttribute('src') || '',
-    sourceImgEl: img || null
-  };
-
-  openBuyModal(product);
-});
-
-// --- confirmer la commande (ajout panier + animation + fermer) ---
-document.getElementById('confirmBuyBtn')?.addEventListener('click', () => {
-  const q = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1', 10));
-  const p = window.__currentBuy || {};
-  for (let i=0; i<q; i++){
-    addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
-  }
-  if (p.sourceImgEl) flyToCart(p.sourceImgEl);
-  bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
-});
-
-document.getElementById('confirmBuyBtn')?.addEventListener('click', async () => {
-  const qty = Math.max(1, parseInt(document.getElementById('qtyInput').value||'1',10));
-  const pay = document.querySelector('input[name="pay"]:checked')?.value || 'card';
-  const del = document.getElementById('deliverySelect').value;
-
-  // récupère le client
-  const client = JSON.parse(localStorage.getItem('signupProfile') || '{}');
-  if (!client?.nom || !client?.telephone || !client?.adresse) {
-    // si pas d'info → rouvrir le modal d'inscription
-    const accModal = new bootstrap.Modal(document.getElementById('account-modal'));
-    accModal.show();
-    return;
-  }
-
-  // produit courant (déjà mémorisé lors de openBuyModal)
-  const p = window.__currentBuy || {};
-  const orderId = 'LNJ-' + Date.now().toString().slice(-6); // simple ID
-
-  const order = {
-    orderId,
-    payment: pay === 'cod' ? 'COD' : 'CARD',
-    delivery: del,
-    items: [{ id: p.id, name: p.name, qty, price: p.price }],
-    total: qty * (p.price || 0),
-    client
-  };
-
-  try{
-    // 1) enregistre dans Sheets via Netlify Function
-    const r = await fetch('/.netlify/functions/order', {
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(order)
-    });
-    if (!r.ok) throw new Error(await r.text());
-
-    // 2) ajoute au panier local (facultatif si tu veux) + animation
-    for(let i=0;i<qty;i++){
-      addToCart({ id:p.id, name:p.name, price:p.price, img:p.img });
-    }
-    if (p.sourceImgEl) flyToCart(p.sourceImgEl);
-
-    // 3) ferme le modal achat
-    bootstrap.Modal.getInstance(document.getElementById('buyNowModal'))?.hide();
-
-    // 4) toast de confirmation
-    showOrderToast(orderId, pay);
-
-  }catch(err){
-    alert('Commande non enregistrée : ' + err.message);
-    console.error(err);
-  }
-});
 
 function showOrderToast(orderId, pay){
   const body = document.getElementById('orderToastBody');
@@ -1359,95 +1232,6 @@ window.__confirmCartOnce = async function (ev) {
   return false;
 };
 
-  
-    // Achat direct (modal)
-window.__buyOnce = async function (ev) {
-  try {
-    const btn = document.getElementById('confirmBuyBtn'); if (!btn) return false;
-    if (btn.dataset.lock) return false;
-    btn.dataset.lock = '1'; setTimeout(() => delete btn.dataset.lock, 600);
-
-    const profile = window.__SHOP.getProfile();
-    if (!(profile.nom && profile.telephone && profile.adresse)) {
-      alert('Complétez nom + téléphone + adresse avant achat direct.');
-      return false;
-    }
-
-    const sku   = btn.dataset.sku   || (window.__currentBuy && window.__currentBuy.id);
-    const name  = btn.dataset.name  || (window.__currentBuy && window.__currentBuy.name) || sku;
-    const price = Number(btn.dataset.price || (window.__currentBuy && window.__currentBuy.price) || 0);
-    if (!sku) { alert('Produit introuvable'); return false; }
-
-    const orderId = btn.dataset.orderId || (btn.dataset.orderId = window.__SHOP.uuid());
-    const payload = {
-      __kind:'order',
-      orderId,
-      client: profile,
-      payment:'to-choose',
-      delivery:'to-choose',
-      items:[{ sku, name, price, qty:1 }],
-      total: price,
-      source:'buy_button'
-    };
-
-    // === SPINNER on ===
-    window.__loading && window.__loading.show('Validation de votre achat…');
-    // Laisse le temps à l'overlay de se peindre
-    await new Promise(r => requestAnimationFrame(r));
-
-    const out = await window.__SHOP.post(payload);
-
-    // Cache le spinner dès que le réseau a répondu
-    window.__loading && window.__loading.hide();
-
-    alert('Commande (achat direct) ✅ ID: ' + (out.orderId || orderId));
-    window.__markOrderOk && window.__markOrderOk('buy', out.orderId || orderId);
-    btn.dataset.ok = '1';
-
-    // Journal local (inchangé)
-    try {
-      const log = JSON.parse(localStorage.getItem('ordersLog') || '[]');
-      log.unshift({ orderId: out.orderId || orderId, source: 'buy', ts: Date.now(), total: price, items: [{ sku, name, price, qty: 1 }] });
-      localStorage.setItem('ordersLog', JSON.stringify(log.slice(0, 50)));
-    } catch {}
-  } catch (err) {
-    console.error('[buy] FAIL', err);
-    alert('Échec achat direct ❌ ' + err.message);
-  } finally {
-    // Sécurité si on est passé par catch/alert avant hide()
-    window.__loading && window.__loading.hide();
-  }
-  return false;
- };
-
-    
-    // Binding propre (sans capture globale)
-    function bindBuyConfirm() {
-      const buyBtn = document.getElementById('confirmBuyBtn');
-      if (buyBtn) {
-        if (buyBtn.tagName === 'BUTTON') buyBtn.type = 'button';
-        buyBtn.onclick = (e) => (window.__buyOnce ? window.__buyOnce(e) : false);
-        if (!buyBtn.dataset.captureBound) {
-          buyBtn.addEventListener('click', (ev) => { if (window.__buyOnce) window.__buyOnce(ev); }, true);
-          buyBtn.dataset.captureBound = '1';
-        }
-      }
-      const cartBtn = document.getElementById('btnConfirmerPanier');
-      if (cartBtn) {
-        if (cartBtn.tagName === 'BUTTON') cartBtn.type = 'button';
-        cartBtn.onclick = (e) => (window.__confirmCartOnce ? window.__confirmCartOnce(e) : false);
-        if (!cartBtn.dataset.captureBound) {
-          cartBtn.addEventListener('click', (ev) => { if (window.__confirmCartOnce) window.__confirmCartOnce(ev); }, true);
-          cartBtn.dataset.captureBound = '1';
-        }
-      }
-    }
-  
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bindBuyConfirm, { once: true });
-    } else { bindBuyConfirm(); }
-    new MutationObserver(bindBuyConfirm).observe(document.documentElement, { childList: true, subtree: true });
-  
   /* ======================================
      [C] ADD-TO-CART — Unifié & Idempotent
      ====================================== */
@@ -2114,11 +1898,6 @@ if (el) el.addEventListener('click', closeModal);
     $('#qvAdd').dataset.name = baseName;
     $('#qvAdd').dataset.img  = qvImg.src;
 
-    $('#qvBuy').dataset.id = sku;
-    $('#qvBuy').dataset.price = price;
-    $('#qvBuy').dataset.name = baseName;
-    $('#qvBuy').dataset.img  = qvImg.src;
-
     // Ouvre le modal
     const modal = bootstrap.Modal.getOrCreateInstance($('#qvModal'));
     modal.show();
@@ -2784,147 +2563,4 @@ document.addEventListener('submit', async (e)=>{
     submitBtn.disabled = false;
   }
 });
-
-
-
-/* -------------------------------------------------
-   BUY MODAL – GESTION COMPLÈTE
---------------------------------------------------*/
-
-// Sélecteurs principaux
-const qtyInput = document.getElementById('qtyInput');
-const qtyPlus = document.getElementById('qtyPlus');
-const qtyMinus = document.getElementById('qtyMinus');
-const priceSpan = document.getElementById('buyModalPrice');
-const totalSpan = document.getElementById('buyModalTotal');
-const deliverySelect = document.getElementById('deliverySelect');
-const deliveryEta = document.getElementById('deliveryEta');
-const confirmBtn = document.getElementById('confirmBuyBtn');
-const orderForm = document.getElementById('orderForm');
-
-// Champs cachés
-const hiddenProduct = orderForm.querySelector('input[name="product"]');
-const hiddenUnitPrice = orderForm.querySelector('input[name="unitPrice"]');
-const hiddenQty = orderForm.querySelector('input[name="quantity"]');
-const hiddenTotal = orderForm.querySelector('input[name="total"]');
-const hiddenPayment = orderForm.querySelector('input[name="payment"]');
-const hiddenDelivery = orderForm.querySelector('input[name="delivery"]');
-
-// Toast
-const orderToast = new bootstrap.Toast(document.getElementById('orderToast'));
-const orderToastBody = document.getElementById('orderToastBody');
-
-// Variables internes
-let unitPrice = 0;
-let productName = "";
-
-/* -------------------------------------------------
-   OUVERTURE DU BUY MODAL
-   Appelée quand on clique "Acheter maintenant"
---------------------------------------------------*/
-window.openBuyModal = function (product, price, imgSrc) {
-
-    // Remplir infos visibles
-    document.getElementById('buyModalTitle').innerText = product;
-    document.getElementById('buyModalImg').src = imgSrc;
-    priceSpan.innerText = price + " DA";
-
-    // Enregistrer pour calculs
-    unitPrice = parseInt(price);
-    productName = product;
-
-    // Reset quantité
-    qtyInput.value = 1;
-    calcTotal();
-
-    // Reset livraison
-    deliverySelect.value = "standard";
-    updateEta();
-};
-
-/* -------------------------------------------------
-   CALCUL TOTAL
---------------------------------------------------*/
-function calcTotal() {
-    const qty = parseInt(qtyInput.value);
-    const total = qty * unitPrice;
-    totalSpan.innerText = total + " DA";
-    return total;
-}
-
-/* -------------------------------------------------
-   METTRE À JOUR L'ESTIMATION LIVRAISON
---------------------------------------------------*/
-function updateEta() {
-    const opt = deliverySelect.selectedOptions[0];
-    const days = opt.dataset.days;
-    deliveryEta.innerText = "Estimation : " + days + ".";
-}
-
-/* -------------------------------------------------
-   BOUTONS + ET -
---------------------------------------------------*/
-qtyPlus.addEventListener('click', () => {
-    qtyInput.value = parseInt(qtyInput.value) + 1;
-    calcTotal();
-});
-
-qtyMinus.addEventListener('click', () => {
-    let v = parseInt(qtyInput.value);
-    if (v > 1) qtyInput.value = v - 1;
-    calcTotal();
-});
-
-qtyInput.addEventListener('change', calcTotal);
-deliverySelect.addEventListener('change', updateEta);
-
-/* -------------------------------------------------
-   CONFIRMATION DE LA COMMANDE
---------------------------------------------------*/
-confirmBtn.addEventListener('click', () => {
-
-    // Vérifier que tous les champs obligatoires sont remplis
-    if (!orderForm.reportValidity()) {
-        return;
-    }
-
-    // Remplir les champs cachés
-    hiddenProduct.value = productName;
-    hiddenUnitPrice.value = unitPrice;
-    hiddenQty.value = qtyInput.value;
-    hiddenTotal.value = calcTotal();
-
-    const payMethod = document.querySelector('input[name="buyPay"]:checked');
-    hiddenPayment.value = payMethod ? payMethod.value : "non spécifié";
-
-    const deliv = deliverySelect.value;
-    hiddenDelivery.value = deliv;
-
-    // Préparer données finale
-    const formData = new FormData(orderForm);
-    const params = new URLSearchParams(formData);
-
-    // --- ENVOI GOOGLE SHEETS ---
-    fetch("https://script.google.com/macros/s/AKfycbxX5f2Co1vfdCxjbISfyiwJcqrhksoshPnM4wBB-ZG4s0_1oRBp8rC1YHfr9NKVYbY2/exec" + params.toString(), {
-        method: "GET",
-        mode: "no-cors"
-    })
-    .then(() => {
-        // Toast success
-        orderToastBody.innerText = "Votre commande a été envoyée avec succès !";
-        orderToast.show();
-
-        // Fermer le modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('buyNowModal'));
-        modal.hide();
-    })
-    .catch((err) => {
-        console.error(err);
-        alert("Erreur lors de l’envoi de la commande.");
-    });
-});
-
-
-
-
 
