@@ -2041,14 +2041,18 @@ function closeModal() {
 })();
 
 
-// ... juste après writeCart(list)
-const currentList = Array.isArray(list) ? list : (function () {
-  try { return JSON.parse(localStorage.getItem('cart') || '[]'); }
-  catch { return []; }
+const currentList = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('cart') || '[]');
+  } catch {
+    return [];
+  }
 })();
 
 const totalQty = currentList.reduce((s, i) => s + Number(i.qty || 0), 0);
-if (typeof window.updateCartBadges === 'function') window.updateCartBadges(totalQty);
+if (typeof window.updateCartBadges === 'function') {
+  window.updateCartBadges(totalQty);
+}
 
 
 
