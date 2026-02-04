@@ -1,3 +1,11 @@
+console.log('ADD TO CART CLICKED');
+console.log(
+  'CART IN STORAGE NOW 👉',
+  localStorage.getItem('cart')
+);
+
+console.log('BADGE ELEMENT 👉', document.querySelector('.cart-badge'));
+
 
 function addToCart(product) {
   const existing = cart.find(p => p.id === product.id);
@@ -18,67 +26,6 @@ function addToCart(product) {
   renderCart();
   openCart(); // 👈 ouverture automatique
 }
-
-
-
-
-
-
-
-function getCart() {
-  try {
-    return JSON.parse(localStorage.getItem('cart')) || [];
-  } catch {
-    return [];
-  }
-}
-
-
-
-function saveCart(cart) {
-  localStorage.setItem('cart', JSON.stringify(cart));
-}
-
-function updateCartUI(cart) {
-  const totalQty = cart.reduce((s, i) => s + Number(i.qty), 0);
-
-  // bulle
-  const badge = document.querySelector('.cart-badge');
-  if (badge) badge.textContent = totalQty;
-
-  // page panier
-  renderCart(cart);
-}
-
-
-
-function renderCart(cart) {
-  const container = document.querySelector('#cart-items');
-  if (!container) return;
-
-  if (cart.length === 0) {
-    container.innerHTML = '<p>Votre panier est vide</p>';
-    return;
-  }
-
-  container.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      <span>${item.name}</span>
-      <span>x${item.qty}</span>
-    </div>
-  `).join('');
-}
-
-
-
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  const cart = getCart();
-  updateCartUI(cart);
-});
-
-
 
 
 
@@ -2084,7 +2031,7 @@ function closeModal() {
   // Expose une fonction globale pour MAJ tous les badges
   window.updateCartBadges = function (totalQty) {
     // Tous les badges "génériques" que tu utilises déjà
-    document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge], #cartBadge, .nav-cart-badge')
+    document.querySelectorAll('#js-cart-count, .cart-count, [data-cart-count], #cartcount, .nav-cart-count')
       .forEach(el => el.textContent = String(totalQty));
 
     // Le compteur de la bulle mobile (ton span spécifique)
@@ -2489,7 +2436,7 @@ setTimeout(() => {
 
 
 window.updateCartBadges = window.updateCartBadges || function (n) {
-  document.querySelectorAll('#js-cart-badge, .cart-badge, [data-cart-badge], #cart-count')
+  document.querySelectorAll('#js-cart-count, .cart-count, [data-cart-count], #cart-count')
     .forEach(b => b.textContent = String(n));
 };
 
