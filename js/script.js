@@ -24,6 +24,66 @@ function addToCart(product) {
 
 
 
+
+function getCart() {
+  try {
+    return JSON.parse(localStorage.getItem('cart')) || [];
+  } catch {
+    return [];
+  }
+}
+
+
+
+function saveCart(cart) {
+  localStorage.setItem('cart', JSON.stringify(cart));
+}
+
+function updateCartUI(cart) {
+  const totalQty = cart.reduce((s, i) => s + Number(i.qty), 0);
+
+  // bulle
+  const badge = document.querySelector('.cart-badge');
+  if (badge) badge.textContent = totalQty;
+
+  // page panier
+  renderCart(cart);
+}
+
+
+
+function renderCart(cart) {
+  const container = document.querySelector('#cart-items');
+  if (!container) return;
+
+  if (cart.length === 0) {
+    container.innerHTML = '<p>Votre panier est vide</p>';
+    return;
+  }
+
+  container.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <span>${item.name}</span>
+      <span>x${item.qty}</span>
+    </div>
+  `).join('');
+}
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cart = getCart();
+  updateCartUI(cart);
+});
+
+
+
+
+
+
+
 // ------------------------------
 // PANIER EN MÉMOIRE
 // ------------------------------
